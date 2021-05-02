@@ -1,0 +1,53 @@
+name: "CI"
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build:
+    name: "Build"
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: "Checkout code"
+      uses: actions/checkout@v2
+
+    - name: "Set up Python"
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - name: "Install Poetry"
+      # The newer `install-poetry.py` is bugged: https://github.com/python-poetry/poetry/issues/3870
+      run: >
+        curl --silent --show-error https://raw.githubusercontent.com/python-poetry/poetry/7360b09e4ba3c01e1d5dc6eaaf34cb3ff57bc16e/get-poetry.py | python - --no-modify-path
+      env:
+        POETRY_VERSION: 1.1.6
+
+    - name: "Install test dependencies"
+      run: ~/.poetry/bin/poetry install --no-root
+      env:
+        POETRY_VIRTUALENVS_CREATE: 0
+
+    - name: "Check code style"
+      run: >
+        black --check --diff .
+        && flake8 .
+        && isort --check-only --diff .
+
+    - name: "Run tests"
+      env:
+        SECRET_KEY: xxx
+        DATABASE_URL: sqlite:///db.sqlite
+      run: pytest -vvv --cov=. .
