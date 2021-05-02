@@ -1,0 +1,34 @@
+[tool.poetry]
+name = "crypto-fifo-taxes"
+version = "0.1.0"
+description = ""
+authors = ["Eemeli Ranta <rantaeemeli@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+Django = "^3.2"
+django-environ = "^0.4.5"
+dj-database-url = "^0.5.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.3"
+isort = "^5.8.0"
+flake8 = "^3.9.1"
+black = "^21.4b2"
+pytest-cov = "^2.11.1"
+pytest-django = "^4.2.0"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "project.settings"
+norecursedirs = "node_modules"
+addopts = "--nomigrations"
+
+[tool.black]
+exclude = "(migrations|node_modules)"
+line_length = 120
+
+[tool.isort]
+profile = "black"
+line_length=120
+atomic = true
+skip_glob = ["*/migrations/*", "*/node_modules/*"]
