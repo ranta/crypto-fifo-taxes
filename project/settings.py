@@ -11,9 +11,15 @@ env.read_env(os.path.join(BASE_DIR, "app", ".env"))
 
 SECRET_KEY = env("SECRET_KEY")
 
+ALLOWED_HOSTS = env("ALLOWED_HOSTS", default="*").split(",")
+
 DATABASES = {"default": dj_database_url.config()}
 
-ALLOWED_HOSTS = env("ALLOWED_HOSTS", default="*").split(",")
+MEDIA_URL = env("MEDIA_URL", default="/media/")
+STATIC_URL = env("STATIC_URL", default="/static/")
+
+MEDIA_ROOT = root(env("MEDIA_LOCATION", default=os.path.join(BASE_DIR, "var", "media")))
+STATIC_ROOT = root(env("STATIC_LOCATION", default=os.path.join(BASE_DIR, "var", "static")))
 
 # Application definition
 
