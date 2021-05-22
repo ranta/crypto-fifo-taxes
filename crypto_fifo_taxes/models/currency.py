@@ -5,7 +5,7 @@ from crypto_fifo_taxes.models import TransactionDecimalField
 
 
 class Currency(models.Model):
-    # eg. "BTC"
+    """eg. "BTC"""
     symbol = models.CharField(
         max_length=30,
         verbose_name=_("Symbol"),
@@ -24,7 +24,7 @@ class Currency(models.Model):
 
 
 class CurrencyPair(models.Model):
-    # eg. "BTCUSDT"
+    """eg. BTCUSDT"""
     symbol = models.CharField(max_length=30)
     buy = models.ForeignKey(
         to=Currency,
@@ -39,7 +39,10 @@ class CurrencyPair(models.Model):
 
 
 class CurrencyPrice(models.Model):
-    """Crypto price in FIAT on a specific date"""
+    """
+    Crypto price in FIAT on a specific date
+    USD will be used as the base for all Crypto currency values
+    """
 
     currency = models.ForeignKey(
         to=Currency,
@@ -49,4 +52,9 @@ class CurrencyPrice(models.Model):
     date = models.DateField()
     value = TransactionDecimalField()
 
-    # TODO make Currency and Date unique together constraint
+    class Meta:
+        # A price can only have one price per day
+        unique_together = (
+            "currency",
+            "date",
+        )
