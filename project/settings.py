@@ -102,3 +102,13 @@ STATIC_URL = "/static/"
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# App settings
+
+# The FIAT currency, in which all crypto prices are saved in
+# Default: USD
+BASE_CRYPTO_FIAT_CURRENCY = "USD"
+
+# The FIAT currency, in which all prices are calculated
+# Default: EUR
+BASE_FIAT_CURRENCY = "EUR"

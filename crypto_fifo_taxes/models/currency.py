@@ -45,7 +45,7 @@ class CurrencyPair(models.Model):
 class CurrencyPrice(models.Model):
     """
     Crypto price in FIAT on a specific date
-    USD will be used as the base for all Crypto currency values
+    BASE_CRYPTO_FIAT_CURRENCY will be used as the base for all Crypto currency values
     """
 
     currency = models.ForeignKey(
