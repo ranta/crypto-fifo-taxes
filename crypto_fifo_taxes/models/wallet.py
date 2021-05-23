@@ -17,7 +17,6 @@ class Wallet(models.Model):
         upload_to="wallet_icons",
         verbose_name=_("Icon"),
     )
-    fiat = models.BooleanField(default=False)
 
     def get_currencies(self):
         """Return all currencies used in this wallet"""

@@ -20,7 +20,11 @@ class Currency(models.Model):
         upload_to="coin_icons",
         verbose_name=_("Icon"),
     )
-    fiat = models.BooleanField(default=False)
+    # Is this a FIAT currency?
+    fiat = models.BooleanField(
+        default=False,
+        verbose_name=_("FIAT")
+    )
 
 
 class CurrencyPair(models.Model):
