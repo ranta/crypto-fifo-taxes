@@ -2,6 +2,8 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext as _
 
+from crypto_fifo_taxes.models import Currency
+
 
 class Wallet(models.Model):
     user = models.ForeignKey(
@@ -16,6 +18,12 @@ class Wallet(models.Model):
     icon = models.ImageField(
         upload_to="wallet_icons",
         verbose_name=_("Icon"),
+    )
+    fiat = models.ForeignKey(
+        to=Currency,
+        on_delete=models.CASCADE,
+        related_name="wallets",
+        verbose_name=_("FIAT"),
     )
 
     def get_currencies(self):
