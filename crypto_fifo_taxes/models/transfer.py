@@ -1,6 +1,6 @@
 from django.db import models
 
-from crypto_fifo_taxes.models import TransactionDecimalField
+from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
 
 class WalletTransfer(models.Model):

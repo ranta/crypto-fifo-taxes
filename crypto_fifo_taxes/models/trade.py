@@ -2,7 +2,7 @@ from django.db import models
 from enumfields import EnumField
 
 from crypto_fifo_taxes.enums import TradeType
-from crypto_fifo_taxes.models import TransactionDecimalField
+from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
 
 class Trade(models.Model):
@@ -44,6 +44,7 @@ class TradeExtra(models.Model):
 
 class TradeFee(models.Model):
     """Most trades have a fee and the fee can be in any currency"""
+
     trade = models.OneToOneField(
         Trade,
         on_delete=models.CASCADE,
@@ -56,8 +57,10 @@ class TradeFee(models.Model):
         related_name="+",
     )
 
+
 class TradeFeeExtra(models.Model):
     """Contains calculated prices for the fee in FIAT"""
+
     fee = models.OneToOneField(
         TradeFee,
         on_delete=models.CASCADE,

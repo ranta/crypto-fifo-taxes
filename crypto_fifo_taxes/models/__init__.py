@@ -1,4 +1,3 @@
-from crypto_fifo_taxes.models._base import TransactionDecimalField
 from crypto_fifo_taxes.models.currency import Currency, CurrencyPair, CurrencyPrice
 from crypto_fifo_taxes.models.trade import Trade, TradeExtra, TradeFee
 from crypto_fifo_taxes.models.transfer import WalletTransfer
@@ -13,6 +12,4 @@ __all__ = [
     "Trade",
     "TradeFee",
     "TradeExtra",
-    # Non-models
-    "TransactionDecimalField",
 ]

@@ -1,11 +1,12 @@
 from django.db import models
 from django.utils.translation import gettext as _
 
-from crypto_fifo_taxes.models import TransactionDecimalField
+from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
 
 class Currency(models.Model):
     """eg. "BTC"""
+
     symbol = models.CharField(
         max_length=30,
         verbose_name=_("Symbol"),
@@ -23,12 +24,13 @@ class Currency(models.Model):
     # Is this a FIAT currency?
     fiat = models.BooleanField(
         default=False,
-        verbose_name=_("FIAT")
+        verbose_name=_("FIAT"),
     )
 
 
 class CurrencyPair(models.Model):
     """eg. BTCUSDT"""
+
     symbol = models.CharField(max_length=30)
     buy = models.ForeignKey(
         to=Currency,
