@@ -21,10 +21,9 @@ class Currency(models.Model):
         upload_to="coin_icons",
         verbose_name=_("Icon"),
     )
-    # Is this a FIAT currency?
-    fiat = models.BooleanField(
+    is_fiat = models.BooleanField(
         default=False,
-        verbose_name=_("FIAT"),
+        verbose_name=_("Is FIAT"),
     )
 
 
@@ -52,15 +51,25 @@ class CurrencyPrice(models.Model):
 
     currency = models.ForeignKey(
         to=Currency,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="prices",
+        verbose_name=_("Currency"),
+    )
+    fiat = models.ForeignKey(
+        to=Currency,
+        on_delete=models.CASCADE,
+        related_name="+",
+        verbose_name=_("FIAT"),
     )
     date = models.DateField()
-    value = TransactionDecimalField()
+    price = TransactionDecimalField()
+    market_cap = TransactionDecimalField()
+    volume = TransactionDecimalField()
 
     class Meta:
         # A price can only have one price per day
         unique_together = (
             "currency",
             "date",
+            "fiat",
         )
