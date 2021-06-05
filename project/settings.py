@@ -93,12 +93,15 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.2/howto/static-files/
-
-STATIC_URL = "/static/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# App settings
+# Default FIAT currency. Used if when no other currency is defined
+DEFAULT_FIAT_CURRENCY = "EUR"
+
+# Save records for these currencies
+ALL_FIAT_CURRENCIES = ["EUR", "USD"]
