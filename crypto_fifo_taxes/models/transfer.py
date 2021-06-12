@@ -26,3 +26,4 @@ class WalletTransfer(models.Model):
     )
     from_amount = TransactionDecimalField()
     to_amount = TransactionDecimalField()
+    timestamp = models.DateTimeField()
