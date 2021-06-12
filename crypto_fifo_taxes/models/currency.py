@@ -25,6 +25,8 @@ class Currency(models.Model):
     icon = models.ImageField(
         upload_to="coin_icons",
         verbose_name=_("Icon"),
+        blank=True,
+        null=True,
     )
     is_fiat = models.BooleanField(
         default=False,

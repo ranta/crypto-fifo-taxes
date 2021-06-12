@@ -18,6 +18,8 @@ class Wallet(models.Model):
     icon = models.ImageField(
         upload_to="wallet_icons",
         verbose_name=_("Icon"),
+        blank=True,
+        null=True,
     )
     fiat = models.ForeignKey(
         to=Currency,
