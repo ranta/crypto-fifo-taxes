@@ -1,5 +1,7 @@
 [run]
 omit =  *tests*
         *__init__.py
-        project*
+        project/*
+    	*/migrations/*
+    	*/venv/*
         manage.py

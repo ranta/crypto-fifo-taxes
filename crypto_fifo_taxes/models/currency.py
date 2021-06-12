@@ -25,6 +25,8 @@ class Currency(models.Model):
     icon = models.ImageField(
         upload_to="coin_icons",
         verbose_name=_("Icon"),
+        blank=True,
+        null=True,
     )
     is_fiat = models.BooleanField(
         default=False,
@@ -76,7 +78,10 @@ class CurrencyPair(models.Model):
     e.g. the pair `BTCUSDT`. BTC is bought using USDT
     """
 
-    symbol = models.CharField(max_length=30)
+    symbol = models.CharField(
+        max_length=30,
+        unique=True,
+    )
     buy = models.ForeignKey(
         to=Currency,
         on_delete=models.PROTECT,
@@ -87,6 +92,12 @@ class CurrencyPair(models.Model):
         on_delete=models.PROTECT,
         related_name="sell_pairs",
     )
+
+    class Meta:
+        unique_together = (
+            "buy",
+            "sell",
+        )
 
 
 class CurrencyPrice(models.Model):
