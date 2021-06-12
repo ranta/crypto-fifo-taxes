@@ -39,7 +39,6 @@ class TradeExtra(models.Model):
     )
     from_cost_basis = TransactionDecimalField()
     to_cost_basis = TransactionDecimalField()
-    fee_cost = TransactionDecimalField()
 
 
 class TradeFee(models.Model):
