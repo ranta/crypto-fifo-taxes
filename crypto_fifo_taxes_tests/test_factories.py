@@ -37,25 +37,10 @@ def test_currency_price_factory():
 
 
 @pytest.mark.django_db
-def test_wallet_transfer_factory():
-    factories.WalletTransferFactory.create()
+def test_transaction_factory():
+    factories.TransactionFactory.create()
 
 
 @pytest.mark.django_db
-def test_trade_factory():
-    factories.TradeFactory.create()
-
-
-@pytest.mark.django_db
-def test_trade_extra_factory():
-    factories.TradeExtraFactory.create()
-
-
-@pytest.mark.django_db
-def test_trade_fee_factory():
-    factories.TradeFeeFactory.create()
-
-
-@pytest.mark.django_db
-def test_trade_fee_extra_factory():
-    factories.TradeFeeExtraFactory.create()
+def test_transaction_detail_factory():
+    factories.TransactionDetailFactory.create()
