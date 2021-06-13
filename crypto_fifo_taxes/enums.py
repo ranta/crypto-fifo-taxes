@@ -2,29 +2,32 @@ from django.utils.translation import gettext as _
 from enumfields import Enum
 
 
-class TradeType(Enum):
-    BUY = 1
-    SELL = 2
-
-    class Labels:
-        BUY = _("Buy")
-        SELL = _("Sell")
-
-
 class TransactionType(Enum):
     UNKNOWN = 0
-    TRADE = 1  # Exchanging one crypto to another
-    BANK_DEPOSIT = 2  # Deposits from bank account to the wallet
-    MINING = 3
-    REWARD = 4  # Staking, airdrop etc.
-    SPENDING = 5  # Paying for things with crypto
-    SWAP = 6  # Name change etc.
+    DEPOSIT = 1
+    WITHDRAW = 2
+    TRADE = 3  # Trade between two crypto currencies
+    TRANSFER = 4  # Transfer from one wallet to another
+    SWAP = 5  # Name change etc. that doesn't realize value
 
     class Labels:
         UNKNOWN = _("Unknown")
+        DEPOSIT = _("Deposit")
+        WITHDRAW = _("Withdraw")
         TRADE = _("Trade")
-        BANK_DEPOSIT = _("Bank Deposit")
+        TRANSFER = _("Transfer")
+
+
+class TransactionLabel(Enum):
+    UNKNOWN = 0
+    MINING = 1
+    AIRDROP = 2
+    REWARD = 3  # Staking, interest etc.
+    SPENDING = 4  # Paying for things with crypto
+
+    class Labels:
+        UNKNOWN = _("Unknown")
         MINING = _("Mining")
+        AIRDROP = _("Airdrop")
         REWARD = _("Reward")
         SPENDING = _("Spending")
-        SWAP = _("Swap")
