@@ -17,11 +17,11 @@ class TransactionFactory(DjangoModelFactory):
         datetime.datetime(2020, 12, 31, tzinfo=UTC),
     )
 
-    transaction_type = TransactionType.TRADE
+    transaction_type = TransactionType.DEPOSIT
     transaction_label = TransactionLabel.UNKNOWN
-    tx_from = None
-    tx_to = factory.SubFactory("crypto_fifo_taxes_tests.factories.TransactionDetailFactory")
-    tx_fee = None
+    from_detail = None
+    to_detail = factory.SubFactory("crypto_fifo_taxes_tests.factories.TransactionDetailFactory")
+    fee_detail = None
     gain = None
     fee_amount = None
 

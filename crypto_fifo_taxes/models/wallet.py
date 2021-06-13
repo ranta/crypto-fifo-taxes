@@ -29,5 +29,5 @@ class Wallet(models.Model):
     )
 
     def get_currencies(self):
-        """Return all currencies used in this wallet"""
-        pass
+        """Returns a list of currency ids in this wallet"""
+        return self.transaction_details.values_list("currency_id", flat=True).distinct()
