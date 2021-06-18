@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.db.models import DecimalField, ExpressionWrapper, F, OuterRef
+from django.db.models.functions import Coalesce
 from django.utils.translation import gettext as _
 
 from crypto_fifo_taxes.models import Currency
@@ -53,7 +54,9 @@ class Wallet(models.Model):
                     ),
                     sum_field="quantity",
                 ),
-                balance=ExpressionWrapper(F("deposits") - F("withdrawals"), output_field=DecimalField()),
+                balance=ExpressionWrapper(
+                    Coalesce(F("deposits"), 0) - Coalesce(F("withdrawals"), 0), output_field=DecimalField()
+                ),
             )
             .order_by("currency_id")
             .distinct("currency_id")
