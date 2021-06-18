@@ -4,6 +4,7 @@ import pytest
 
 from crypto_fifo_taxes.models import Currency
 from crypto_fifo_taxes_tests.factories import TransactionDetailFactory, TransactionFactory, WalletFactory
+from crypto_fifo_taxes_tests.factories.utils import WalletHelper
 
 
 @pytest.mark.django_db
@@ -22,13 +23,15 @@ def test_wallet_get_used_currency_ids():
 
 
 @pytest.mark.django_db
-def test_wallet_get_balance_deposit_and_withdrawal():
+def test_wallet_get_balance_deposit_and_withdrawal_single_currency():
     wallet = WalletFactory.create()
 
+    wallet_helper = WalletHelper(wallet)
+
     # Create deposits
-    TransactionFactory.create(to_detail=TransactionDetailFactory.create(wallet=wallet, currency="BTC", quantity=5))
-    TransactionFactory.create(to_detail=TransactionDetailFactory.create(wallet=wallet, currency="BTC", quantity=10))
-    TransactionFactory.create(from_detail=TransactionDetailFactory.create(wallet=wallet, currency="BTC", quantity=2.5))
+    wallet_helper.deposit(currency="BTC", quantity=5)
+    wallet_helper.deposit(currency="BTC", quantity=10)
+    wallet_helper.withdraw(currency="BTC", quantity=2.5)
 
     currencies = wallet.get_balance()
     assert currencies.count() == 1
