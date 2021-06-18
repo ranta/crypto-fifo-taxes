@@ -10,15 +10,16 @@ A calculator to count gains and losses on crypto mining, staking and trading act
 * [Python 3.8](https://www.python.org/)
 * [Poetry](https://github.com/python-poetry/poetry#installation)
 * Make
+* PostgreSQL
 
 
 ### Setting up a project for development
 
 1. Create a new virtual environment, you can also let Poetry create one for you if you prefer.
 
-2. Create a (preferably PostgreSQL) database for the project.
+2. Create a PostgreSQL database for the project.
 
-3. `$ cp .env.template .env` and set your database credentials there.
+3. Run `$ cp .env.template .env` and set up your database credentials there.
 
 4. Set up your development environment: `$ make`
 
