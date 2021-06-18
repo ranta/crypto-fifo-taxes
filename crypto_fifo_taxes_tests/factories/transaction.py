@@ -6,6 +6,7 @@ from factory.django import DjangoModelFactory
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.models import Transaction, TransactionDetail
+from crypto_fifo_taxes_tests.factories.currency import CryptoCurrencyFactory, FiatCurrencyFactory
 
 
 class TransactionFactory(DjangoModelFactory):
@@ -17,11 +18,11 @@ class TransactionFactory(DjangoModelFactory):
         datetime.datetime(2020, 12, 31, tzinfo=UTC),
     )
 
-    transaction_type = TransactionType.TRADE
+    transaction_type = TransactionType.DEPOSIT
     transaction_label = TransactionLabel.UNKNOWN
-    tx_from = None
-    tx_to = factory.SubFactory("crypto_fifo_taxes_tests.factories.TransactionDetailFactory")
-    tx_fee = None
+    from_detail = None
+    to_detail = factory.SubFactory("crypto_fifo_taxes_tests.factories.TransactionDetailFactory")
+    fee_detail = None
     gain = None
     fee_amount = None
 
@@ -34,3 +35,17 @@ class TransactionDetailFactory(DjangoModelFactory):
     currency = factory.SubFactory("crypto_fifo_taxes_tests.factories.CryptoCurrencyFactory")
     quantity = factory.fuzzy.FuzzyDecimal(1, 1000, precision=8)
     cost_basis = None
+
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        """Allow passing currency as a string, instead of a Currency object"""
+        manager = cls._get_manager(model_class)
+        if type(kwargs.get("currency")) == str:
+            currency_factory = CryptoCurrencyFactory
+            is_fiat = kwargs.pop("is_fiat", False)
+            if is_fiat:
+                currency_factory = FiatCurrencyFactory
+            currency = currency_factory.create(symbol=kwargs.get("currency"))
+            kwargs.update({"currency": currency})
+
+        return manager.create(*args, **kwargs)

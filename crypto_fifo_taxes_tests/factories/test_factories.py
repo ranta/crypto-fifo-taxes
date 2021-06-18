@@ -44,3 +44,10 @@ def test_transaction_factory():
 @pytest.mark.django_db
 def test_transaction_detail_factory():
     factories.TransactionDetailFactory.create()
+
+
+@pytest.mark.django_db
+def test_transaction_detail_factory_currency_as_string():
+    currency = factories.CryptoCurrencyFactory.create(symbol="BTC")
+    factories.TransactionDetailFactory.create(currency=currency)
+    factories.TransactionDetailFactory.create(currency="BTC")

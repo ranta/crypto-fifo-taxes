@@ -12,9 +12,13 @@ class Transaction(models.Model):
     transaction_type = EnumField(TransactionType)
     transaction_label = EnumField(TransactionLabel)
     description = models.TextField(blank=True, default="")
-    tx_from = models.OneToOneField("TransactionDetail", on_delete=models.CASCADE, related_name="from_detail", null=True)
-    tx_to = models.OneToOneField("TransactionDetail", on_delete=models.CASCADE, related_name="to_detail", null=True)
-    tx_fee = models.OneToOneField("TransactionDetail", on_delete=models.CASCADE, related_name="fee_detail", null=True)
+    from_detail = models.OneToOneField(
+        "TransactionDetail", on_delete=models.CASCADE, related_name="from_detail", null=True
+    )
+    to_detail = models.OneToOneField("TransactionDetail", on_delete=models.CASCADE, related_name="to_detail", null=True)
+    fee_detail = models.OneToOneField(
+        "TransactionDetail", on_delete=models.CASCADE, related_name="fee_detail", null=True
+    )
     gain = TransactionDecimalField(null=True)  # Calculated field
     fee_amount = TransactionDecimalField(null=True)  # Calculated field
 
