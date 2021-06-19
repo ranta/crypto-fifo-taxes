@@ -76,12 +76,14 @@ class TransactionCreator:
 
     def create_deposit(self, timestamp: datetime, description: str = "", **kwargs):
         self.transaction_type = TransactionType.DEPOSIT
+        # Accept to_details values in kwargs
         if len(kwargs):
             self.add_to_detail(**kwargs)
         return self._create_transaction(timestamp, description)
 
     def create_withdrawal(self, timestamp: datetime, description: str = "", **kwargs):
         self.transaction_type = TransactionType.WITHDRAW
+        # Accept from_details values in kwargs
         if len(kwargs):
             self.add_from_detail(**kwargs)
         return self._create_transaction(timestamp, description)
