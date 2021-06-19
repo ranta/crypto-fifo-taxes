@@ -40,7 +40,7 @@ class TransactionDetailFactory(DjangoModelFactory):
     def _create(cls, model_class, *args, **kwargs):
         """Allow passing currency as a string, instead of a Currency object"""
         manager = cls._get_manager(model_class)
-        if type(kwargs.get("currency")) == str:
+        if isinstance(kwargs.get("currency"), str):
             currency_factory = CryptoCurrencyFactory
             is_fiat = kwargs.pop("is_fiat", False)
             if is_fiat:
