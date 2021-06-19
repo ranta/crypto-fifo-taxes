@@ -10,7 +10,7 @@ class Transaction(models.Model):
 
     timestamp = models.DateTimeField()
     transaction_type = EnumField(TransactionType)
-    transaction_label = EnumField(TransactionLabel)
+    transaction_label = EnumField(TransactionLabel, default=TransactionLabel.UNKNOWN)
     description = models.TextField(blank=True, default="")
     from_detail = models.OneToOneField(
         "TransactionDetail", on_delete=models.CASCADE, related_name="from_detail", null=True
