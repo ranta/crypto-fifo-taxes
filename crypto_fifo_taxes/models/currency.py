@@ -101,7 +101,10 @@ class CurrencyPair(models.Model):
 
 
 class CurrencyPrice(models.Model):
-    """Crypto price in FIAT on a specific date"""
+    """
+    Crypto price in FIAT on a specific date.
+    Tracking the price of a currency on day-scale is accurate enough.
+    """
 
     currency = models.ForeignKey(
         to=Currency,
