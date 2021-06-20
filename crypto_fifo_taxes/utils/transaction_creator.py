@@ -90,7 +90,9 @@ class TransactionCreator:
 
     def create_trade(self, timestamp: datetime, description: str = ""):
         self.transaction_type = TransactionType.TRADE
-        return self._create_transaction(timestamp, description)
+        transaction = self._create_transaction(timestamp, description)
+        transaction.fill_cost_basis()
+        return transaction
 
     @atomic()
     def _create_transaction(self, timestamp: datetime, description: Optional[str] = "", **kwargs):

@@ -31,6 +31,34 @@ class WalletHelper:
         )
         return tx_creator.create_withdrawal(timestamp=timestamp or timezone.now())
 
+    def _trade(self, currency_1, quantity_1, currency_2, quantity_2, timestamp=None):
+        tx_creator = TransactionCreator()
+        tx_creator.from_detail = TransactionDetailFactory.build(
+            wallet=self.wallet, currency=currency_1, quantity=quantity_1
+        )
+        tx_creator.to_detail = TransactionDetailFactory.build(
+            wallet=self.wallet, currency=currency_2, quantity=quantity_2
+        )
+        return tx_creator.create_trade(timestamp=timestamp or timezone.now())
+
+    def buy_crypto(self, crypto, crypto_quantity, fiat, fiat_quantity, timestamp=None):
+        return self._trade(
+            currency_1=fiat,
+            quantity_1=fiat_quantity,
+            currency_2=crypto,
+            quantity_2=crypto_quantity,
+            timestamp=timestamp,
+        )
+
+    def sell_crypto(self, crypto, crypto_quantity, fiat, fiat_quantity, timestamp=None):
+        return self._trade(
+            currency_1=crypto,
+            quantity_1=crypto_quantity,
+            currency_2=fiat,
+            quantity_2=fiat_quantity,
+            timestamp=timestamp,
+        )
+
 
 def get_currency(currency: Union[Currency, str], is_fiat: bool = False):
     """Allow passing currency as a string, instead of a Currency object."""
