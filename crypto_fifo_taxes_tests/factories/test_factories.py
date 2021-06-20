@@ -51,3 +51,7 @@ def test_transaction_detail_factory_currency_as_string():
     currency = factories.CryptoCurrencyFactory.create(symbol="BTC")
     factories.TransactionDetailFactory.create(currency=currency)
     factories.TransactionDetailFactory.create(currency="BTC")
+
+    # Currency should still be saved, even if detail is not saved
+    factories.TransactionDetailFactory.build(currency="ETH")
+    assert Currency.objects.get(symbol="ETH")

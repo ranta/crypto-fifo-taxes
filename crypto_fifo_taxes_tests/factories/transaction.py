@@ -36,11 +36,13 @@ class TransactionDetailFactory(DjangoModelFactory):
     quantity = factory.fuzzy.FuzzyDecimal(1, 1000, precision=8)
     cost_basis = None
 
-    @classmethod
-    def _create(cls, model_class, *args, **kwargs):
-        """Allow passing currency as a string, instead of a Currency object"""
-        manager = cls._get_manager(model_class)
-        if type(kwargs.get("currency")) == str:
+    @staticmethod
+    def handle_currency(kwargs):
+        """
+        Allow passing currency as a string, instead of a Currency object.
+        If currency is passed as a string, replace it in kwargs with a `Currency` object
+        """
+        if isinstance(kwargs.get("currency"), str):
             currency_factory = CryptoCurrencyFactory
             is_fiat = kwargs.pop("is_fiat", False)
             if is_fiat:
@@ -48,4 +50,13 @@ class TransactionDetailFactory(DjangoModelFactory):
             currency = currency_factory.create(symbol=kwargs.get("currency"))
             kwargs.update({"currency": currency})
 
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        manager = cls._get_manager(model_class)
+        cls.handle_currency(kwargs)
         return manager.create(*args, **kwargs)
+
+    @classmethod
+    def _build(cls, model_class, *args, **kwargs):
+        cls.handle_currency(kwargs)  # Currency will be created, even if this object is only built
+        return model_class(**kwargs)

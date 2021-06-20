@@ -16,6 +16,7 @@ class TransactionType(Enum):
         WITHDRAW = _("Withdraw")
         TRADE = _("Trade")
         TRANSFER = _("Transfer")
+        SWAP = _("Swap")
 
 
 class TransactionLabel(Enum):
