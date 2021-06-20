@@ -1,4 +1,5 @@
-from datetime import datetime
+import datetime
+from typing import Union
 
 from django.db import models
 from django.utils.translation import gettext as _
@@ -33,7 +34,7 @@ class Currency(models.Model):
         verbose_name=_("Is FIAT"),
     )
 
-    def get_fiat_price(self, date=None, fiat=None) -> "CurrencyPrice":
+    def get_fiat_price(self, date: Union[datetime.date, datetime.datetime], fiat: "Currency" = None) -> "CurrencyPrice":
         """
         Get the FIAT price for a crypto on a specific date.
 
@@ -43,7 +44,7 @@ class Currency(models.Model):
         if date is None:
             raise TypeError("Date must be entered!")
 
-        if isinstance(date, datetime):
+        if isinstance(date, datetime.datetime):
             date = date.date()
 
         if self.is_fiat is False:
