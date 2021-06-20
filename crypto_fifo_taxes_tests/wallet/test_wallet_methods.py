@@ -23,7 +23,7 @@ def test_wallet_get_used_currency_ids():
 
 
 @pytest.mark.django_db
-def test_wallet_get_balance_deposit_and_withdrawal_single_currency():
+def test_wallet_get_current_balance_deposit_and_withdrawal_single_currency():
     wallet = WalletFactory.create()
 
     wallet_helper = WalletHelper(wallet)
@@ -32,7 +32,7 @@ def test_wallet_get_balance_deposit_and_withdrawal_single_currency():
     wallet_helper.deposit(currency="BTC", quantity=10)
     wallet_helper.withdraw(currency="BTC", quantity="2.5")
 
-    currencies = wallet.get_balance()
+    currencies = wallet.get_current_balance()
     assert currencies.count() == 1
     assert currencies.first().symbol == "BTC"
     assert currencies.first().deposits == Decimal(15)
@@ -41,7 +41,7 @@ def test_wallet_get_balance_deposit_and_withdrawal_single_currency():
 
 
 @pytest.mark.django_db
-def test_wallet_get_balance_deposit_and_withdrawal_multiple_currencies():
+def test_wallet_get_current_balance_deposit_and_withdrawal_multiple_currencies():
     wallet = WalletFactory.create()
 
     wallet_helper = WalletHelper(wallet)
@@ -60,7 +60,7 @@ def test_wallet_get_balance_deposit_and_withdrawal_multiple_currencies():
     # Withdraw more than wallet has balance
     wallet_helper.withdraw(currency="DOGE", quantity="42069.1337")
 
-    currencies = wallet.get_balance()
+    currencies = wallet.get_current_balance()
     assert currencies.count() == 4
 
     assert currencies.get(symbol__exact="BTC").balance == Decimal(3)

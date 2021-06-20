@@ -35,7 +35,7 @@ class Wallet(models.Model):
         """Returns a list of currencies that have ever passed through this wallet"""
         return self.transaction_details.values_list("currency_id", flat=True).distinct()
 
-    def get_balance(self):
+    def get_current_balance(self):
         """Returns wallet's current currencies balances"""
         return (
             self.transaction_details.annotate(
