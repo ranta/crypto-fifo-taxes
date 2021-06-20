@@ -3,7 +3,12 @@ from decimal import Decimal
 import pytest
 
 from crypto_fifo_taxes.models import Currency
-from crypto_fifo_taxes_tests.factories import TransactionDetailFactory, TransactionFactory, WalletFactory
+from crypto_fifo_taxes_tests.factories import (
+    CryptoCurrencyFactory,
+    TransactionDetailFactory,
+    TransactionFactory,
+    WalletFactory,
+)
 from crypto_fifo_taxes_tests.factories.utils import WalletHelper
 
 
@@ -67,3 +72,36 @@ def test_wallet_get_current_balance_deposit_and_withdrawal_multiple_currencies()
     assert currencies.get(symbol__exact="ETH").balance == Decimal(0)
     assert currencies.get(symbol__exact="NANO").balance == Decimal(1000)
     assert currencies.get(symbol__exact="DOGE").balance == Decimal("-42069.1337")
+
+
+@pytest.mark.django_db
+def test_get_consumable_currency_balances():
+    wallet = WalletFactory.create()
+    wallet_helper = WalletHelper(wallet)
+    crypto = CryptoCurrencyFactory.create(symbol="ADA")
+
+    # No deposits, nothing should be returned
+    assert len(wallet.get_consumable_currency_balances(crypto)) == 0
+
+    wallet_helper.deposit(crypto, 100)
+    wallet_helper.deposit(crypto, 50)
+    currencies = wallet.get_consumable_currency_balances(crypto)
+    assert len(currencies) == 2
+    assert currencies[1].balance_left == 150
+
+    # Withdraw a part of the funds
+    wallet_helper.withdraw(crypto, 20)
+    currencies = wallet.get_consumable_currency_balances(crypto)
+    assert len(currencies) == 2
+    assert currencies[0].balance_left == 80
+    assert currencies[1].balance_left == 130
+
+    # Withdraw enough to consume the first deposit
+    wallet_helper.withdraw(crypto, 100)
+    currencies = wallet.get_consumable_currency_balances(crypto)
+    assert len(currencies) == 1
+    assert currencies[0].balance_left == 30
+
+    # Everything is withdrawn, nothing should be returned anymore
+    wallet_helper.withdraw(crypto, 30)
+    assert len(wallet.get_consumable_currency_balances(crypto)) == 0
