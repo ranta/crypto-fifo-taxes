@@ -77,7 +77,7 @@ def create_currency_price_history(
     days: int = 31,
 ):
     """Create linearly changing price history for a currency."""
-    from crypto_fifo_taxes_tests.factories.utils import get_currency
+    from crypto_fifo_taxes_tests.utils import get_currency
 
     currency = get_currency(currency, is_fiat=False)
     fiat = get_currency(fiat, is_fiat=True)

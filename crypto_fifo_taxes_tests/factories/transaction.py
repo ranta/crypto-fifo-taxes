@@ -41,7 +41,7 @@ class TransactionDetailFactory(DjangoModelFactory):
         Allow passing currency as a string, instead of a Currency object.
         If currency is passed as a string, replace it in kwargs with a `Currency` object
         """
-        from crypto_fifo_taxes_tests.factories.utils import get_currency
+        from crypto_fifo_taxes_tests.utils import get_currency
 
         currency = get_currency(kwargs.get("currency"), kwargs.pop("is_fiat", False))
         kwargs.update({"currency": currency})

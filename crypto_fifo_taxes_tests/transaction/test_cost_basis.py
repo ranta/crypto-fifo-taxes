@@ -3,11 +3,11 @@ from decimal import Decimal
 import pytest
 
 from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory, WalletFactory
-from crypto_fifo_taxes_tests.factories.utils import WalletHelper
+from crypto_fifo_taxes_tests.utils import WalletHelper
 
 
 @pytest.mark.django_db
-def test_calc_simple_fiat_trades_cost_basis():
+def test_cost_basis_simple_fiat_trades_cost_basis():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
