@@ -22,6 +22,18 @@ class Transaction(models.Model):
     gain = TransactionDecimalField(null=True)  # Calculated field
     fee_amount = TransactionDecimalField(null=True)  # Calculated field
 
+    def __str__(self):
+        if self.transaction_type == TransactionType.DEPOSIT:
+            detail_str = str(self.to_detail)
+        elif self.transaction_type == TransactionType.WITHDRAW:
+            detail_str = str(self.from_detail)
+        else:
+            detail_str = f"{self.from_detail} to {self.to_detail}"
+        return f"{self.transaction_type.label} of {detail_str}"
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} ({self.id}): {str(self)}>"
+
     def _handle_buy_crypto_with_fiat_cost_basis(self):
         self.from_detail.cost_basis = self.from_detail.quantity
 
@@ -51,3 +63,15 @@ class TransactionDetail(models.Model):
     currency = models.ForeignKey(to="Currency", on_delete=models.PROTECT, related_name="+")
     quantity = TransactionDecimalField()
     cost_basis = TransactionDecimalField(null=True)  # Calculated field
+
+    def __str__(self):
+        return f"{self.currency.symbol} ({self.quantity})"
+
+    def __repr__(self):
+        if hasattr(self, "from_detail"):
+            detail_type = self.from_detail.transaction_type.label
+        elif hasattr(self, "to_detail"):
+            detail_type = self.to_detail.transaction_type.label
+        else:
+            detail_type = self.fee_detail.transaction_type.label
+        return f"<{self.__class__.__name__} ({self.id}): {detail_type} '{self.currency}' ({self.quantity})>"

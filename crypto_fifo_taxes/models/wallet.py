@@ -34,6 +34,12 @@ class Wallet(models.Model):
         verbose_name=_("FIAT"),
     )
 
+    def __str__(self):
+        return f"{self.user.get_full_name()}'s Wallet ({self.name})"
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} ({self.pk}): User: {self.user.username} ({self.name}))>"
+
     def get_used_currency_ids(self):
         """Returns a list of currencies that have ever passed through this wallet"""
         return self.transaction_details.values_list("currency_id", flat=True).distinct()

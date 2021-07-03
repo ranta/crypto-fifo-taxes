@@ -34,6 +34,12 @@ class Currency(models.Model):
         verbose_name=_("Is FIAT"),
     )
 
+    def __str__(self):
+        return f"{self.name} ({self.symbol})"
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} ({self.pk}): {self.name} [{'FIAT' if self.is_fiat else 'NON-FIAT'}]>"
+
     def get_fiat_price(self, date: Union[datetime.date, datetime.datetime], fiat: "Currency" = None) -> "CurrencyPrice":
         """
         Get the FIAT price for a crypto on a specific date.
@@ -100,6 +106,12 @@ class CurrencyPair(models.Model):
             "sell",
         )
 
+    def __str__(self):
+        return f"{self.symbol})"
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} ({self.pk}): {self.symbol}>"
+
 
 class CurrencyPrice(models.Model):
     """
@@ -125,9 +137,18 @@ class CurrencyPrice(models.Model):
     volume = TransactionDecimalField()
 
     class Meta:
-        # A price can only have one price per day per FIAT currency
+        # Only one crypto price per day per FIAT currency
         unique_together = (
             "currency",
             "date",
             "fiat",
+        )
+
+    def __str__(self):
+        return f"{self.currency.symbol}'s  price in {self.fiat.symbol} on {self.date} ({self.price})"
+
+    def __repr__(self):
+        return (
+            f"<{self.__class__.__name__} ({self.pk}): "
+            f"FIAT: {self.fiat.symbol}, CRYPTO: {self.currency.symbol} ({self.date})>"
         )
