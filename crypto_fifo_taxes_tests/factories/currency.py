@@ -26,12 +26,13 @@ class CryptoCurrencyFactory(DjangoModelFactory):
         """
         return "".join(random.choices(string.ascii_uppercase, k=3)) + f".{n}"
 
-    name = factory.LazyAttribute(lambda self: f"Fiat Currency: {self.symbol}")
+    name = factory.LazyAttribute(lambda self: f"CRYPTO-{self.symbol}")
     icon = None
     is_fiat = False
 
 
 class FiatCurrencyFactory(CryptoCurrencyFactory):
+    name = factory.LazyAttribute(lambda self: f"FIAT-{self.symbol}")
     is_fiat = True
 
 
