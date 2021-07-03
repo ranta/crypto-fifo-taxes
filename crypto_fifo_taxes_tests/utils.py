@@ -60,33 +60,15 @@ class WalletHelper:
         )
         return tx_creator.create_withdrawal(timestamp=_set_timezone(timestamp) or self.tx_time.next())
 
-    def _trade(self, currency_1, quantity_1, currency_2, quantity_2, timestamp=None):
+    def trade(self, from_currency, from_currency_quantity, to_currency, to_currency_quantity, timestamp=None):
         tx_creator = TransactionCreator()
         tx_creator.from_detail = TransactionDetailFactory.build(
-            wallet=self.wallet, currency=currency_1, quantity=quantity_1
+            wallet=self.wallet, currency=from_currency, quantity=from_currency_quantity
         )
         tx_creator.to_detail = TransactionDetailFactory.build(
-            wallet=self.wallet, currency=currency_2, quantity=quantity_2
+            wallet=self.wallet, currency=to_currency, quantity=to_currency_quantity
         )
-        return tx_creator.create_trade(timestamp=timestamp or self.tx_time.next())
-
-    def buy_crypto(self, crypto, crypto_quantity, fiat, fiat_quantity, timestamp=None):
-        return self._trade(
-            currency_1=fiat,
-            quantity_1=fiat_quantity,
-            currency_2=crypto,
-            quantity_2=crypto_quantity,
-            timestamp=timestamp,
-        )
-
-    def sell_crypto(self, crypto, crypto_quantity, fiat, fiat_quantity, timestamp=None):
-        return self._trade(
-            currency_1=crypto,
-            quantity_1=crypto_quantity,
-            currency_2=fiat,
-            quantity_2=fiat_quantity,
-            timestamp=timestamp,
-        )
+        return tx_creator.create_trade(timestamp=_set_timezone(timestamp) or self.tx_time.next())
 
 
 def get_currency(currency: Union[Currency, str], is_fiat: bool = False):
