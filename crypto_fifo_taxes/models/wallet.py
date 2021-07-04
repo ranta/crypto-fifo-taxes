@@ -1,9 +1,10 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional, Union
 
 from django.conf import settings
 from django.db import models
-from django.db.models import DecimalField, ExpressionWrapper, F, OuterRef, Sum, Window
+from django.db.models import DecimalField, ExpressionWrapper, F, OuterRef, Q, Sum, Window
 from django.db.models.functions import Coalesce
 from django.utils.translation import gettext as _
 
@@ -72,7 +73,7 @@ class Wallet(models.Model):
         )
 
     def get_consumable_currency_balances(
-        self, currency: Currency, quantity: Optional[Union[Decimal, int]] = None
+        self, currency: Currency, timestamp: Optional[datetime] = None, quantity: Optional[Union[Decimal, int]] = None
     ) -> List[TransactionDetail]:
         """
         Returns a list of "deposits" to the wallet after excluding any deposits,
@@ -87,14 +88,19 @@ class Wallet(models.Model):
         """
 
         # Total amount of currency that has left the wallet
-        total_spent = self.transaction_details.filter(from_detail__isnull=False, currency=currency).aggregate(
-            total_spent=Sum("quantity")
-        )["total_spent"] or Decimal(0)
+        from_filter = Q()
+        to_filter = Q()
+        if timestamp is not None:
+            from_filter |= Q(from_detail__timestamp__lt=timestamp)
+            to_filter |= Q(to_detail__timestamp__lt=timestamp)
+        total_spent = self.transaction_details.filter(
+            from_filter, from_detail__isnull=False, currency=currency
+        ).aggregate(total_spent=Sum("quantity"))["total_spent"] or Decimal(0)
 
         # All deposits of currency to the wallet, annotated with
         # the sum of all earlier deposits and balance left after reducing total_spent.
         deposits = (
-            self.transaction_details.filter(to_detail__isnull=False, currency=currency)
+            self.transaction_details.filter(to_filter, to_detail__isnull=False, currency=currency)
             .annotate(
                 accum_quantity=Window(Sum(F("quantity")), order_by=F("to_detail__timestamp").asc()),
                 balance_left=ExpressionWrapper(F("accum_quantity") - total_spent, output_field=DecimalField()),
