@@ -103,7 +103,6 @@ class TransactionCreator:
         """Requires manually adding transaction details e.g. with `add_from_detail` and `add_to_detail` to use"""
         self.transaction_type = TransactionType.TRADE
         transaction = self._create_transaction(timestamp, description)
-        transaction.fill_cost_basis()
         return transaction
 
     @atomic()
@@ -125,7 +124,5 @@ class TransactionCreator:
             timestamp=timestamp, description=description, transaction_type=self.transaction_type, **details, **kwargs
         )
         transaction.save()
-
-        # TODO post-save to calculate cost_basis
-
+        transaction.fill_cost_basis()
         return transaction
