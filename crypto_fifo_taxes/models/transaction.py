@@ -68,10 +68,18 @@ class TransactionDetail(models.Model):
         return f"{self.currency.symbol} ({self.quantity})"
 
     def __repr__(self):
-        if hasattr(self, "from_detail"):
-            detail_type = self.from_detail.transaction_type.label
-        elif hasattr(self, "to_detail"):
-            detail_type = self.to_detail.transaction_type.label
+        if self.transaction is not None:
+            detail_type = self.transaction.transaction_type.label
         else:
-            detail_type = self.fee_detail.transaction_type.label
+            detail_type = "UNKNOWN-TYPE"
         return f"<{self.__class__.__name__} ({self.id}): {detail_type} '{self.currency}' ({self.quantity})>"
+
+    @property
+    def transaction(self):
+        if hasattr(self, "from_detail"):
+            return self.from_detail
+        elif hasattr(self, "to_detail"):
+            return self.to_detail
+        elif hasattr(self, "fee_detail"):
+            return self.fee_detail
+        return None
