@@ -90,6 +90,10 @@ def test_get_consumable_currency_balances():
     assert len(currencies) == 2
     assert currencies[0].balance_left == 100
     assert currencies[1].balance_left == 150
+    # Test the method with quantity kwarg
+    assert len(wallet.get_consumable_currency_balances(crypto, quantity=99)) == 1
+    assert len(wallet.get_consumable_currency_balances(crypto, quantity=101)) == 2
+    assert len(wallet.get_consumable_currency_balances(crypto, quantity=1000)) == 2
 
     # Withdraw a part of the funds
     wallet_helper.withdraw(crypto, quantity=20)

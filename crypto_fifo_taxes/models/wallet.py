@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import List
+from typing import List, Optional, Union
 
 from django.conf import settings
 from django.db import models
@@ -71,10 +71,14 @@ class Wallet(models.Model):
             .distinct("currency_id")
         )
 
-    def get_consumable_currency_balances(self, currency: Currency) -> List[TransactionDetail]:
+    def get_consumable_currency_balances(
+        self, currency: Currency, quantity: Optional[Union[Decimal, int]] = None
+    ) -> List[TransactionDetail]:
         """
         Returns a list of "deposits" to the wallet after excluding any deposits,
         which have already been withdrawn from older to newer.
+
+        If `quantity` is provided, exclude any deposits after `balance_left` > `quantity`
 
         Neither Django nor PostgreSQL support filtering rows by the values of a window function.
         This is overcome by wrapping the query and putting the `WHERE` clause in the outer query.
@@ -105,4 +109,12 @@ class Wallet(models.Model):
             "SELECT * FROM ({}) deposits_with_accumed_quantity WHERE accum_quantity > %s".format(sql),
             [*params, total_spent],
         )
-        return list(deposits_filtered)
+
+        deposits_filtered = list(deposits_filtered)
+        if quantity is not None:
+            assert quantity > 0
+            # Return only minimum amount of deposits, exclude all that exceed requested quantity.
+            for n, deposit in enumerate(deposits_filtered):
+                if deposit.balance_left >= quantity:
+                    return deposits_filtered[: n + 1]
+        return deposits_filtered
