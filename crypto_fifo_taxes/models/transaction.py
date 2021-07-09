@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import List, Optional
 
 from django.db import models
 from django.db.transaction import atomic
@@ -41,9 +42,16 @@ class Transaction(models.Model):
         """
         Use FIFO to get used currency quantities and cost bases.
         Then average them and return the result
+
+        e.g.
+        Transaction consumes 5 BTC
+        2 BTC has a cost basis of $100
+        3 BTC has a cost basis of $150
+        Cost basis for these currencies would be calculated using:
+        (2 BTC * $100 + 3 BTC * $150) / 5 BTC = $130
         """
-        consumable_balances = self.from_detail.get_consumable_balances()
-        required_quantity = self.from_detail.quantity
+        consumable_balances: List["TransactionDetail"] = self.from_detail.get_consumable_balances()
+        required_quantity: Decimal = self.from_detail.quantity
         cost_bases: list[tuple] = []  # [(quantity, cost_basis)]
 
         for balance in consumable_balances:
@@ -51,10 +59,10 @@ class Transaction(models.Model):
                 # Nothing left to do
                 break
 
-            if required_quantity >= balance.quantity:
+            if required_quantity >= balance.balance_left:
                 # Fully consume deposit balance
-                cost_bases.append((balance.quantity, balance.cost_basis))
-                required_quantity -= balance.quantity
+                cost_bases.append((balance.balance_left, balance.cost_basis))
+                required_quantity -= balance.balance_left
             else:
                 # Consume only the required quantity
                 cost_bases.append((required_quantity, balance.cost_basis))
@@ -68,7 +76,7 @@ class Transaction(models.Model):
         cost_basis = total_value / sum_quantity
         return cost_basis
 
-    def _handle_buy_crypto_with_fiat_cost_basis(self):
+    def _handle_buy_crypto_with_fiat_cost_basis(self) -> None:
         # from_detail cost_basis is simply the amount of FIAT it was bought with
         self.from_detail.cost_basis = self.from_detail.quantity
         self.from_detail.save()
@@ -77,7 +85,7 @@ class Transaction(models.Model):
         self.to_detail.cost_basis = self.from_detail.quantity / self.to_detail.quantity
         self.to_detail.save()
 
-    def _handle_sell_crypto_to_fiat_cost_basis(self):
+    def _handle_sell_crypto_to_fiat_cost_basis(self) -> None:
         self.from_detail.cost_basis = self._get_from_detail_cost_basis()
         self.from_detail.save()
 
@@ -86,7 +94,7 @@ class Transaction(models.Model):
         self.to_detail.save()
 
     @atomic()
-    def fill_cost_basis(self):
+    def fill_cost_basis(self) -> None:
         # TODO: Use `deemed acquisition cost` (hankintameno-olettama) when applicable
         # TODO: Reduce fee amount from cost-basis
         # TODO: Transfer funds to and from another wallet
@@ -132,7 +140,7 @@ class TransactionDetail(models.Model):
         return f"<{self.__class__.__name__} ({self.id}): {detail_type} '{self.currency}' ({self.quantity})>"
 
     @property
-    def transaction(self):
+    def transaction(self) -> Optional["Transaction"]:
         if hasattr(self, "from_detail"):
             return self.from_detail
         elif hasattr(self, "to_detail"):
@@ -141,7 +149,7 @@ class TransactionDetail(models.Model):
             return self.fee_detail
         return None
 
-    def get_consumable_balances(self):
+    def get_consumable_balances(self) -> List["TransactionDetail"]:
         return self.wallet.get_consumable_currency_balances(
             self.currency, quantity=self.quantity, timestamp=self.transaction.timestamp
         )
