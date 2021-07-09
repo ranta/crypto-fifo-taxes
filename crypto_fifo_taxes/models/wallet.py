@@ -79,7 +79,7 @@ class Wallet(models.Model):
         Returns a list of "deposits" to the wallet after excluding any deposits,
         which have already been withdrawn from older to newer.
 
-        If `quantity` is provided, exclude any deposits after `balance_left` > `quantity`
+        If `quantity` is provided, exclude any deposits after `quantity_left` > `quantity`
 
         Neither Django nor PostgreSQL support filtering rows by the values of a window function.
         This is overcome by wrapping the query and putting the `WHERE` clause in the outer query.
@@ -103,7 +103,7 @@ class Wallet(models.Model):
             self.transaction_details.filter(to_filter, to_detail__isnull=False, currency=currency)
             .annotate(
                 accum_quantity=Window(Sum(F("quantity")), order_by=F("to_detail__timestamp").asc()),
-                balance_left=ExpressionWrapper(F("accum_quantity") - total_spent, output_field=DecimalField()),
+                quantity_left=ExpressionWrapper(F("accum_quantity") - total_spent, output_field=DecimalField()),
             )
             .order_by("to_detail__timestamp")
         )
@@ -121,6 +121,6 @@ class Wallet(models.Model):
             assert quantity > 0
             # Return only minimum amount of deposits, exclude all that exceed requested quantity.
             for n, deposit in enumerate(deposits_filtered):
-                if deposit.balance_left >= quantity:
+                if deposit.quantity_left >= quantity:
                     return deposits_filtered[: n + 1]
         return deposits_filtered

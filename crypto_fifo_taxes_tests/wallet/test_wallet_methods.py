@@ -88,8 +88,8 @@ def test_get_consumable_currency_balances():
     wallet_helper.deposit(crypto, quantity=50)
     currencies = wallet.get_consumable_currency_balances(crypto)
     assert len(currencies) == 2
-    assert currencies[0].balance_left == 100
-    assert currencies[1].balance_left == 150
+    assert currencies[0].quantity_left == 100
+    assert currencies[1].quantity_left == 150
     # Test the method with quantity kwarg
     assert len(wallet.get_consumable_currency_balances(crypto, quantity=99)) == 1
     assert len(wallet.get_consumable_currency_balances(crypto, quantity=101)) == 2
@@ -99,14 +99,14 @@ def test_get_consumable_currency_balances():
     wallet_helper.withdraw(crypto, quantity=20)
     currencies = wallet.get_consumable_currency_balances(crypto)
     assert len(currencies) == 2
-    assert currencies[0].balance_left == 80
-    assert currencies[1].balance_left == 130
+    assert currencies[0].quantity_left == 80
+    assert currencies[1].quantity_left == 130
 
     # Withdraw enough to consume the first deposit and part of the second
     wallet_helper.withdraw(crypto, quantity=100)
     currencies = wallet.get_consumable_currency_balances(crypto)
     assert len(currencies) == 1
-    assert currencies[0].balance_left == 30
+    assert currencies[0].quantity_left == 30
 
     # Everything is withdrawn, nothing should be returned anymore
     wallet_helper.withdraw(crypto, quantity=30)

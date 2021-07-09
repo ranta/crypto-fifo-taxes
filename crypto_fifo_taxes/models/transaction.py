@@ -59,10 +59,10 @@ class Transaction(models.Model):
                 # Nothing left to do
                 break
 
-            if required_quantity >= balance.balance_left:
+            if required_quantity >= balance.quantity_left:
                 # Fully consume deposit balance
-                cost_bases.append((balance.balance_left, balance.cost_basis))
-                required_quantity -= balance.balance_left
+                cost_bases.append((balance.quantity_left, balance.cost_basis))
+                required_quantity -= balance.quantity_left
             else:
                 # Consume only the required quantity
                 cost_bases.append((required_quantity, balance.cost_basis))
