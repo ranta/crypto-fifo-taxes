@@ -98,7 +98,10 @@ class Transaction(models.Model):
         self.from_detail.save()
 
         # Use sold price as cost basis
-        self.to_detail.cost_basis = (self.from_detail.quantity * self.from_detail.cost_basis) / self.to_detail.quantity
+        currency_value = self.from_detail.currency.get_fiat_price(
+            self.from_detail.transaction.timestamp, self.from_detail.wallet.fiat
+        ).price
+        self.to_detail.cost_basis = (self.from_detail.quantity * currency_value) / self.to_detail.quantity
         self.to_detail.save()
 
     @atomic()

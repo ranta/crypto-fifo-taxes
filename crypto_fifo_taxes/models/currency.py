@@ -53,8 +53,8 @@ class Currency(models.Model):
         if isinstance(date, datetime.datetime):
             date = date.date()
 
-        if self.is_fiat is False:
-            raise TypeError("")
+        if self.is_fiat is True:
+            raise TypeError("Getting a FIAT currency's price in another FIAT currency is not supported yet.")
 
         currency_price = None
         # Get crypto price in entered FIAT currency

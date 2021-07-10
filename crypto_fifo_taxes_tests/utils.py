@@ -32,6 +32,9 @@ class TxTime:
         self.timestamp = self.timestamp + timedelta(**next_day)
         return self.timestamp
 
+    def date(self):
+        return self.timestamp.date()
+
 
 class WalletHelper:
     """
@@ -47,6 +50,9 @@ class WalletHelper:
     def __init__(self, wallet, start_time=None):
         self.wallet = wallet
         self.tx_time = TxTime(start_time)
+
+    def date(self):
+        return self.tx_time.date()
 
     def deposit(self, currency, quantity, timestamp=None):
         tx_creator = TransactionCreator()
