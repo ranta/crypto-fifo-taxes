@@ -93,6 +93,14 @@ class Transaction(models.Model):
         self.to_detail.cost_basis = self.to_detail.quantity / self.from_detail.quantity
         self.to_detail.save()
 
+    def _handle_trade_crypto_to_crypto_cost_basis(self) -> None:
+        self.from_detail.cost_basis = self._get_from_detail_cost_basis()
+        self.from_detail.save()
+
+        # Use sold price as cost basis
+        self.to_detail.cost_basis = (self.from_detail.quantity * self.from_detail.cost_basis) / self.to_detail.quantity
+        self.to_detail.save()
+
     @atomic()
     def fill_cost_basis(self) -> None:
         # TODO: Use `deemed acquisition cost` (hankintameno-olettama) when applicable
@@ -111,8 +119,8 @@ class Transaction(models.Model):
                 self._handle_sell_crypto_to_fiat_cost_basis()
 
             # Trade Crypto to Crypto
-            if self.from_detail.currency.is_fiat is False and self.to_detail.currency.is_fiat is False:
-                pass  # TODO
+            elif self.from_detail.currency.is_fiat is False and self.to_detail.currency.is_fiat is False:
+                self._handle_trade_crypto_to_crypto_cost_basis()
 
         # Deposit
         if self.from_detail is None and self.to_detail is not None:
