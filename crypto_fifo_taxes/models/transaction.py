@@ -74,11 +74,11 @@ class Transaction(models.Model):
         sum_quantity = sum(i for i, _ in cost_bases)
         total_value = sum(i * j for i, j in cost_bases)
         cost_basis = total_value / sum_quantity
-        return cost_basis
+        return Decimal(cost_basis)
 
     def _handle_buy_crypto_with_fiat_cost_basis(self) -> None:
         # from_detail cost_basis is simply the amount of FIAT it was bought with
-        self.from_detail.cost_basis = self.from_detail.quantity
+        self.from_detail.cost_basis = Decimal(1)
         self.from_detail.save()
 
         # Distribute amount of FIAT spent equally to crypto bought
@@ -90,7 +90,7 @@ class Transaction(models.Model):
         self.from_detail.save()
 
         # Use sold price as cost basis
-        self.to_detail.cost_basis = self.to_detail.quantity / self.from_detail.quantity
+        self.to_detail.cost_basis = Decimal(1)
         self.to_detail.save()
 
     def _handle_trade_crypto_to_crypto_cost_basis(self) -> None:

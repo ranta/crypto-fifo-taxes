@@ -25,18 +25,18 @@ def test_cost_basis_fiat_crypto_fiat_trades_simple():
 
     # Buy 10 BTC with 1000 EUR
     tx = wallet_helper.trade(fiat, 1000, crypto, 10)
-    assert tx.from_detail.cost_basis == Decimal(1000)  # 1 EUR == 1 EUR
-    assert tx.to_detail.cost_basis == Decimal(100)  # BOUGHT: 1 BTC == 100 EUR
+    assert tx.from_detail.cost_basis == Decimal(1)  # 1 EUR == 1 EUR
+    assert tx.to_detail.cost_basis == Decimal(100)  # 1 BTC == 100 EUR
 
     # Sell 5 BTC for 1000 EUR
     tx = wallet_helper.trade(crypto, 5, fiat, 1000)
-    assert tx.from_detail.cost_basis == Decimal(100)  # BOUGHT: 1 BTC == 100 EUR
-    assert tx.to_detail.cost_basis == Decimal(200)  # SOLD: 1 BTC == 200 EUR
+    assert tx.from_detail.cost_basis == Decimal(100)  # 1 BTC == 100 EUR
+    assert tx.to_detail.cost_basis == Decimal(1)  # 1 EUR == 1 EUR
 
     # Sell 5 BTC for 2000 EUR
     tx = wallet_helper.trade(crypto, 5, fiat, 2000)
-    assert tx.from_detail.cost_basis == Decimal(100)  # BOUGHT: 1 BTC == 100 EUR
-    assert tx.to_detail.cost_basis == Decimal(400)  # SOLD: 1 BTC == 400 EUR
+    assert tx.from_detail.cost_basis == Decimal(100)  # 1 BTC == 100 EUR
+    assert tx.to_detail.cost_basis == Decimal(1)  # 1 EUR == 1 EUR
 
 
 @pytest.mark.django_db
@@ -59,18 +59,15 @@ def test_cost_basis_fiat_crypto_fiat_trades_fifo():
 
     # Sell 2 BTC for 200 EUR
     tx = wallet_helper.trade(crypto, 2, fiat, 200)
-    assert tx.from_detail.cost_basis == Decimal(80)  # 1 BTC == 100 EUR
-    assert tx.to_detail.cost_basis == Decimal(100)  # 1 BTC == 100 EUR
+    assert tx.from_detail.cost_basis == Decimal(80)  # 1 BTC == 80 EUR
 
     # Sell 5 BTC for 500 EUR
     tx = wallet_helper.trade(crypto, 5, fiat, 500)
     assert tx.from_detail.cost_basis == Decimal(96)  # 1 BTC == 96 EUR = (3*80 + 2*120) / 5
-    assert tx.to_detail.cost_basis == Decimal(100)  # 1 BTC == 100 EUR
 
     # Sell the remaining 3 BTC for 600 EUR
     tx = wallet_helper.trade(crypto, 3, fiat, 600)
     assert tx.from_detail.cost_basis == Decimal(120)  # 1 BTC == 120 EUR
-    assert tx.to_detail.cost_basis == Decimal(200)  # 1 BTC == 400 EUR
 
 
 @pytest.mark.django_db
@@ -106,4 +103,3 @@ def test_cost_basis_fiat_crypto_crypto_fiat_trades_fifo():
     CurrencyPriceFactory.create(currency=eth, fiat=fiat, date=wallet_helper.date(), price=25)
     tx = wallet_helper.trade(eth, 40, fiat, 400)
     assert tx.from_detail.cost_basis == Decimal(25)
-    assert tx.to_detail.cost_basis == Decimal(10)  # 1 ETH == 10 EUR
