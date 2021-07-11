@@ -1,4 +1,5 @@
-from datetime import datetime
+import datetime
+from typing import Union
 
 from django.db import models
 from django.utils.translation import gettext as _
@@ -33,7 +34,13 @@ class Currency(models.Model):
         verbose_name=_("Is FIAT"),
     )
 
-    def get_fiat_price(self, date=None, fiat=None) -> "CurrencyPrice":
+    def __str__(self):
+        return f"{self.name} ({self.symbol})"
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} ({self.pk}): {self.name} [{'FIAT' if self.is_fiat else 'NON-FIAT'}]>"
+
+    def get_fiat_price(self, date: Union[datetime.date, datetime.datetime], fiat: "Currency" = None) -> "CurrencyPrice":
         """
         Get the FIAT price for a crypto on a specific date.
 
@@ -43,11 +50,11 @@ class Currency(models.Model):
         if date is None:
             raise TypeError("Date must be entered!")
 
-        if isinstance(date, datetime):
+        if isinstance(date, datetime.datetime):
             date = date.date()
 
-        if self.is_fiat is False:
-            raise TypeError("")
+        if self.is_fiat is True:
+            raise TypeError("Getting a FIAT currency's price in another FIAT currency is not supported yet.")
 
         currency_price = None
         # Get crypto price in entered FIAT currency
@@ -99,9 +106,18 @@ class CurrencyPair(models.Model):
             "sell",
         )
 
+    def __str__(self):
+        return f"{self.symbol})"
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} ({self.pk}): {self.symbol}>"
+
 
 class CurrencyPrice(models.Model):
-    """Crypto price in FIAT on a specific date"""
+    """
+    Crypto price in FIAT on a specific date.
+    Tracking the price of a currency on day-scale is accurate enough.
+    """
 
     currency = models.ForeignKey(
         to=Currency,
@@ -121,9 +137,18 @@ class CurrencyPrice(models.Model):
     volume = TransactionDecimalField()
 
     class Meta:
-        # A price can only have one price per day per FIAT currency
+        # Only one crypto price per day per FIAT currency
         unique_together = (
             "currency",
             "date",
             "fiat",
+        )
+
+    def __str__(self):
+        return f"{self.currency.symbol}'s  price in {self.fiat.symbol} on {self.date} ({self.price})"
+
+    def __repr__(self):
+        return (
+            f"<{self.__class__.__name__} ({self.pk}): "
+            f"FIAT: {self.fiat.symbol}, CRYPTO: {self.currency.symbol} ({self.date})>"
         )

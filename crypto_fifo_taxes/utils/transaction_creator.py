@@ -12,9 +12,20 @@ class TransactionCreator:
     """
     Utility to simplify creating transactions.
 
-    When creating transactions you should always use a new instance
-    of TransactionCreator for each transaction, to prevent data
-    from the old transaction being passed through
+    When creating transactions always use a new instance of TransactionCreator for each transaction,
+    to prevent data from the old transaction being passed through.
+
+    Allows setting transaction details, then creating everything in one go.
+
+    Example usages:
+    Deposit:
+    >>>TransactionCreator().create_deposit(timestamp=timezone.now(), wallet=wallet, currency=fiat, quantity=500)
+
+    Trade:
+    >>>tx_creator = TransactionCreator()
+    >>>tx_creator.add_from_detail(wallet=wallet, currency=fiat, quantity=Decimal(200))
+    >>>tx_creator.add_to_detail(wallet=wallet, currency=fiat, quantity=Decimal(200))
+    >>>tx_creator.create_trade(timestamp=timezone.now())
     """
 
     def __init__(self):
@@ -89,13 +100,21 @@ class TransactionCreator:
         return self._create_transaction(timestamp, description)
 
     def create_trade(self, timestamp: datetime, description: str = ""):
+        """Requires manually adding transaction details e.g. with `add_from_detail` and `add_to_detail` to use"""
         self.transaction_type = TransactionType.TRADE
-        return self._create_transaction(timestamp, description)
+        transaction = self._create_transaction(timestamp, description)
+        return transaction
 
     @atomic()
     def _create_transaction(self, timestamp: datetime, description: Optional[str] = "", **kwargs):
         assert self.transaction_type is not None
-        assert self.from_detail is not None or self.to_detail is not None
+        # Validate correct details are entered for transaction type
+        if self.transaction_type == TransactionType.DEPOSIT:
+            assert self.from_detail is None and self.to_detail is not None
+        elif self.transaction_type == TransactionType.WITHDRAW:
+            assert self.from_detail is not None and self.to_detail is None
+        else:
+            assert self.from_detail is not None and self.to_detail is not None
 
         details = self.get_details()
         for key, detail in details.items():
@@ -105,7 +124,5 @@ class TransactionCreator:
             timestamp=timestamp, description=description, transaction_type=self.transaction_type, **details, **kwargs
         )
         transaction.save()
-
-        # TODO post-save to calculate cost_basis
-
+        transaction.fill_cost_basis()
         return transaction

@@ -3,8 +3,13 @@ from decimal import Decimal
 import pytest
 
 from crypto_fifo_taxes.models import Currency
-from crypto_fifo_taxes_tests.factories import TransactionDetailFactory, TransactionFactory, WalletFactory
-from crypto_fifo_taxes_tests.factories.utils import WalletHelper
+from crypto_fifo_taxes_tests.factories import (
+    CryptoCurrencyFactory,
+    TransactionDetailFactory,
+    TransactionFactory,
+    WalletFactory,
+)
+from crypto_fifo_taxes_tests.utils import WalletHelper
 
 
 @pytest.mark.django_db
@@ -23,7 +28,7 @@ def test_wallet_get_used_currency_ids():
 
 
 @pytest.mark.django_db
-def test_wallet_get_balance_deposit_and_withdrawal_single_currency():
+def test_wallet_get_current_balance_deposit_and_withdrawal_single_currency():
     wallet = WalletFactory.create()
 
     wallet_helper = WalletHelper(wallet)
@@ -32,7 +37,7 @@ def test_wallet_get_balance_deposit_and_withdrawal_single_currency():
     wallet_helper.deposit(currency="BTC", quantity=10)
     wallet_helper.withdraw(currency="BTC", quantity="2.5")
 
-    currencies = wallet.get_balance()
+    currencies = wallet.get_current_balance()
     assert currencies.count() == 1
     assert currencies.first().symbol == "BTC"
     assert currencies.first().deposits == Decimal(15)
@@ -41,7 +46,7 @@ def test_wallet_get_balance_deposit_and_withdrawal_single_currency():
 
 
 @pytest.mark.django_db
-def test_wallet_get_balance_deposit_and_withdrawal_multiple_currencies():
+def test_wallet_get_current_balance_deposit_and_withdrawal_multiple_currencies():
     wallet = WalletFactory.create()
 
     wallet_helper = WalletHelper(wallet)
@@ -60,10 +65,49 @@ def test_wallet_get_balance_deposit_and_withdrawal_multiple_currencies():
     # Withdraw more than wallet has balance
     wallet_helper.withdraw(currency="DOGE", quantity="42069.1337")
 
-    currencies = wallet.get_balance()
+    currencies = wallet.get_current_balance()
     assert currencies.count() == 4
 
     assert currencies.get(symbol__exact="BTC").balance == Decimal(3)
     assert currencies.get(symbol__exact="ETH").balance == Decimal(0)
     assert currencies.get(symbol__exact="NANO").balance == Decimal(1000)
     assert currencies.get(symbol__exact="DOGE").balance == Decimal("-42069.1337")
+
+
+@pytest.mark.django_db
+def test_get_consumable_currency_balances():
+    wallet = WalletFactory.create()
+    wallet_helper = WalletHelper(wallet)
+    crypto = CryptoCurrencyFactory.create(symbol="ADA")
+
+    # No deposits, nothing should be returned
+    assert len(wallet.get_consumable_currency_balances(crypto)) == 0
+
+    # Deposit some cryptocurrency to wallet in two separate events
+    wallet_helper.deposit(crypto, quantity=100)
+    wallet_helper.deposit(crypto, quantity=50)
+    currencies = wallet.get_consumable_currency_balances(crypto)
+    assert len(currencies) == 2
+    assert currencies[0].quantity_left == 100
+    assert currencies[1].quantity_left == 150
+    # Test the method with quantity kwarg
+    assert len(wallet.get_consumable_currency_balances(crypto, quantity=99)) == 1
+    assert len(wallet.get_consumable_currency_balances(crypto, quantity=101)) == 2
+    assert len(wallet.get_consumable_currency_balances(crypto, quantity=1000)) == 2
+
+    # Withdraw a part of the funds
+    wallet_helper.withdraw(crypto, quantity=20)
+    currencies = wallet.get_consumable_currency_balances(crypto)
+    assert len(currencies) == 2
+    assert currencies[0].quantity_left == 80
+    assert currencies[1].quantity_left == 130
+
+    # Withdraw enough to consume the first deposit and part of the second
+    wallet_helper.withdraw(crypto, quantity=100)
+    currencies = wallet.get_consumable_currency_balances(crypto)
+    assert len(currencies) == 1
+    assert currencies[0].quantity_left == 30
+
+    # Everything is withdrawn, nothing should be returned anymore
+    wallet_helper.withdraw(crypto, quantity=30)
+    assert len(wallet.get_consumable_currency_balances(crypto)) == 0
