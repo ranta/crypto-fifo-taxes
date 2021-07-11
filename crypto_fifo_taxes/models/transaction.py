@@ -93,6 +93,9 @@ class Transaction(models.Model):
         self.to_detail.cost_basis = Decimal(1)
         self.to_detail.save()
 
+        self.gain = self.to_detail.total_value - self.from_detail.total_value
+        self.save()
+
     def _handle_trade_crypto_to_crypto_cost_basis(self) -> None:
         self.from_detail.cost_basis = self._get_from_detail_cost_basis()
         self.from_detail.save()
@@ -103,6 +106,9 @@ class Transaction(models.Model):
         ).price
         self.to_detail.cost_basis = (self.from_detail.quantity * currency_value) / self.to_detail.quantity
         self.to_detail.save()
+
+        self.gain = self.to_detail.total_value - self.from_detail.total_value
+        self.save()
 
     @atomic()
     def fill_cost_basis(self) -> None:
@@ -164,3 +170,7 @@ class TransactionDetail(models.Model):
         return self.wallet.get_consumable_currency_balances(
             self.currency, quantity=self.quantity, timestamp=self.transaction.timestamp
         )
+
+    @property
+    def total_value(self):
+        return self.cost_basis * self.quantity
