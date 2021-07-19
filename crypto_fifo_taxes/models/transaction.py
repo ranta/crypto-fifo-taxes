@@ -59,6 +59,9 @@ class Transaction(models.Model):
                 # Nothing left to do
                 break
 
+            assert balance.cost_basis, (
+                f"TransactionDetail (id: {balance.id}, {balance}) is missing its `cost_basis`." f" Unable to continue"
+            )
             if required_quantity >= balance.quantity_left:
                 # Fully consume deposit balance
                 cost_bases.append((balance.quantity_left, balance.cost_basis))
@@ -110,26 +113,48 @@ class Transaction(models.Model):
         self.gain = self.to_detail.total_value - self.from_detail.total_value
         self.save()
 
+    def _handle_transfer_or_swap_cost_basis(self) -> None:
+        """
+        FIXME:
+        If multiple different cost_basis is present on currencies in a transfer, this changes the cost_basis of the
+        coins to the average of all transferred coins. The original cost_basis shouldn't be changed on SWAP or transfer.
+        This shouldn't affect the end result, except in a few very rare cases.
+        """
+        cost_basis = self._get_from_detail_cost_basis()
+
+        self.from_detail.cost_basis = cost_basis
+        self.from_detail.save()
+
+        self.to_detail.cost_basis = cost_basis
+        self.to_detail.save()
+
+        self.gain = Decimal(0)
+        self.save()
+
     @atomic()
     def fill_cost_basis(self) -> None:
         # TODO: Use `deemed acquisition cost` (hankintameno-olettama) when applicable
         # TODO: Reduce fee amount from cost-basis
-        # TODO: Transfer funds to and from another wallet
-        # TODO: Swap currency to another
 
         # Trade / Transfer / Swap
         if self.from_detail is not None and self.to_detail is not None:
-            # Buy Crypto with FIAT
-            if self.from_detail.currency.is_fiat is True and self.to_detail.currency.is_fiat is False:
-                self._handle_buy_crypto_with_fiat_cost_basis()
+            # Trade
+            if self.transaction_type == TransactionType.TRADE:
+                # Buy Crypto with FIAT
+                if self.from_detail.currency.is_fiat is True and self.to_detail.currency.is_fiat is False:
+                    self._handle_buy_crypto_with_fiat_cost_basis()
 
-            # Sell Crypto to FIAT
-            elif self.from_detail.currency.is_fiat is False and self.to_detail.currency.is_fiat is True:
-                self._handle_sell_crypto_to_fiat_cost_basis()
+                # Sell Crypto to FIAT
+                elif self.from_detail.currency.is_fiat is False and self.to_detail.currency.is_fiat is True:
+                    self._handle_sell_crypto_to_fiat_cost_basis()
 
-            # Trade Crypto to Crypto
-            elif self.from_detail.currency.is_fiat is False and self.to_detail.currency.is_fiat is False:
-                self._handle_trade_crypto_to_crypto_cost_basis()
+                # Trade Crypto to Crypto
+                elif self.from_detail.currency.is_fiat is False and self.to_detail.currency.is_fiat is False:
+                    self._handle_trade_crypto_to_crypto_cost_basis()
+
+            # Transfer / SWAP
+            else:
+                self._handle_transfer_or_swap_cost_basis()
 
         # Deposit
         if self.from_detail is None and self.to_detail is not None:

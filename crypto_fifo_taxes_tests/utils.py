@@ -66,7 +66,7 @@ class WalletHelper:
         )
         return tx_creator.create_withdrawal(timestamp=_set_timezone(timestamp) or self.tx_time.next())
 
-    def trade(self, from_currency, from_currency_quantity, to_currency, to_currency_quantity, timestamp=None):
+    def _get_tx_creator(self, from_currency, from_currency_quantity, to_currency, to_currency_quantity, timestamp=None):
         tx_creator = TransactionCreator()
         tx_creator.from_detail = TransactionDetailFactory.build(
             wallet=self.wallet, currency=from_currency, quantity=from_currency_quantity
@@ -74,7 +74,19 @@ class WalletHelper:
         tx_creator.to_detail = TransactionDetailFactory.build(
             wallet=self.wallet, currency=to_currency, quantity=to_currency_quantity
         )
+        return tx_creator
+
+    def trade(self, from_currency, from_currency_quantity, to_currency, to_currency_quantity, timestamp=None):
+        tx_creator = self._get_tx_creator(
+            from_currency, from_currency_quantity, to_currency, to_currency_quantity, timestamp
+        )
         return tx_creator.create_trade(timestamp=_set_timezone(timestamp) or self.tx_time.next())
+
+    def swap(self, from_currency, from_currency_quantity, to_currency, to_currency_quantity, timestamp=None):
+        tx_creator = self._get_tx_creator(
+            from_currency, from_currency_quantity, to_currency, to_currency_quantity, timestamp
+        )
+        return tx_creator.create_swap(timestamp=_set_timezone(timestamp) or self.tx_time.next())
 
 
 def get_currency(currency: Union[Currency, str], is_fiat: bool = False):

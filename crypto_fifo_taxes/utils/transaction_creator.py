@@ -22,9 +22,10 @@ class TransactionCreator:
     >>>TransactionCreator().create_deposit(timestamp=timezone.now(), wallet=wallet, currency=fiat, quantity=500)
 
     Trade:
+    Requires manually adding transaction details e.g. with `add_from_detail` and `add_to_detail` to use
     >>>tx_creator = TransactionCreator()
     >>>tx_creator.add_from_detail(wallet=wallet, currency=fiat, quantity=Decimal(200))
-    >>>tx_creator.add_to_detail(wallet=wallet, currency=fiat, quantity=Decimal(200))
+    >>>tx_creator.add_to_detail(wallet=wallet, currency=crypto, quantity=Decimal(20))
     >>>tx_creator.create_trade(timestamp=timezone.now())
     """
 
@@ -100,13 +101,19 @@ class TransactionCreator:
         return self._create_transaction(timestamp, description)
 
     def create_trade(self, timestamp: datetime, description: str = ""):
-        """Requires manually adding transaction details e.g. with `add_from_detail` and `add_to_detail` to use"""
         self.transaction_type = TransactionType.TRADE
-        transaction = self._create_transaction(timestamp, description)
-        return transaction
+        return self._create_transaction(timestamp, description)
+
+    def create_transfer(self, timestamp: datetime, description: str = ""):
+        self.transaction_type = TransactionType.TRANSFER
+        return self._create_transaction(timestamp, description)
+
+    def create_swap(self, timestamp: datetime, description: str = ""):
+        self.transaction_type = TransactionType.SWAP
+        return self._create_transaction(timestamp, description)
 
     @atomic()
-    def _create_transaction(self, timestamp: datetime, description: Optional[str] = "", **kwargs):
+    def _create_transaction(self, timestamp: datetime, description: str = "", **kwargs):
         assert self.transaction_type is not None
         # Validate correct details are entered for transaction type
         if self.transaction_type == TransactionType.DEPOSIT:
