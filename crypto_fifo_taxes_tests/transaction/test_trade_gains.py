@@ -70,4 +70,4 @@ def test_gain_fiat_crypto_crypto_fiat_trades():
     assert tx.gain == Decimal(-300)  # (100 - 120) * 15
 
     # 2000 + 300 + 1400 + 100 + 300 - 300
-    assert wallet.get_current_balance().get(symbol="EUR").balance == Decimal(3800)
+    assert wallet.get_current_balance("EUR") == Decimal(3800)

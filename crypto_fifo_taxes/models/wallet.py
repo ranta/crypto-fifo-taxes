@@ -1,14 +1,16 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from django.db.models import DecimalField, ExpressionWrapper, F, OuterRef, Q, QuerySet, Sum, Window
+from django.db.models import DecimalField, ExpressionWrapper, F, OuterRef, Q, Sum, Window
 from django.db.models.functions import Coalesce
 from django.utils.translation import gettext as _
 
 from crypto_fifo_taxes.models import Currency, TransactionDetail
+from crypto_fifo_taxes.utils.currency import get_currency
 from crypto_fifo_taxes.utils.db import SQSum
 
 
@@ -45,9 +47,16 @@ class Wallet(models.Model):
         """Returns a list of currencies that have ever passed through this wallet"""
         return self.transaction_details.values_list("currency_id", flat=True).distinct()
 
-    def get_current_balance(self) -> QuerySet[TransactionDetail]:
-        """Returns wallet's current currencies balances"""
-        return (
+    def get_current_balance(
+        self, currency: Optional[Union[Currency, str, int]] = None
+    ) -> Union[Dict[str, Decimal], Decimal]:
+        """
+        Returns wallet's current currencies balances
+        If currency is given, return only it's balance
+        Otherwise return a dict with currency symbols as keys and balances as value:
+        {"EUR": Decimal(1000.0), "BTC": Decimal(5.123123)}
+        """
+        qs = (
             self.transaction_details.annotate(
                 symbol=F("currency__symbol"),
                 deposits=SQSum(
@@ -71,6 +80,12 @@ class Wallet(models.Model):
             .order_by("currency_id")
             .distinct("currency_id")
         )
+        if currency is not None:
+            try:
+                return qs.get(currency=get_currency(currency)).balance
+            except ObjectDoesNotExist:
+                return Decimal(0)
+        return {c.symbol: c.balance for c in qs.values_list("symbol", "balance", named=True)}
 
     def get_consumable_currency_balances(
         self, currency: Currency, timestamp: Optional[datetime] = None, quantity: Optional[Union[Decimal, int]] = None
