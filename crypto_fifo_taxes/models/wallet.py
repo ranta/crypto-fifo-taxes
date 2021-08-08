@@ -69,8 +69,7 @@ class Wallet(models.Model):
                 withdrawals=SQSum(
                     self.transaction_details.filter(
                         currency_id=OuterRef("currency_id"),
-                        from_detail__isnull=False,
-                    ),
+                    ).filter(Q(from_detail__isnull=False) | Q(fee_detail__isnull=False)),
                     sum_field="quantity",
                 ),
                 balance=ExpressionWrapper(
@@ -105,11 +104,13 @@ class Wallet(models.Model):
         # Total amount of currency that has left the wallet
         from_filter = Q()
         to_filter = Q()
+        fee_filter = Q()
         if timestamp is not None:
             from_filter |= Q(from_detail__timestamp__lt=timestamp)
             to_filter |= Q(to_detail__timestamp__lte=timestamp)
-        total_spent = self.transaction_details.filter(
-            from_filter, from_detail__isnull=False, currency=currency
+            fee_filter |= Q(fee_detail__timestamp__lt=timestamp)
+        total_spent = self.transaction_details.filter(currency=currency).filter(
+            (Q(from_detail__isnull=False) & from_filter) | (Q(fee_detail__isnull=False) & fee_filter)
         ).aggregate(total_spent=Sum("quantity"))["total_spent"] or Decimal(0)
 
         # All deposits of currency to the wallet, annotated with
