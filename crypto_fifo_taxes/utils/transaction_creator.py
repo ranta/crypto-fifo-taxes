@@ -26,6 +26,7 @@ class TransactionCreator:
     >>>tx_creator = TransactionCreator()
     >>>tx_creator.add_from_detail(wallet=wallet, currency=fiat, quantity=Decimal(200))
     >>>tx_creator.add_to_detail(wallet=wallet, currency=crypto, quantity=Decimal(20))
+    >>>tx_creator.add_fee_detail(wallet=wallet, currency=crypto, quantity=Decimal(0.01))
     >>>tx_creator.create_trade(timestamp=timezone.now())
     """
 

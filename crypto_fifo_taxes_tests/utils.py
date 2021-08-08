@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from typing import Union
+from decimal import Decimal
+from typing import Optional, Union
 
 import pytz
 
@@ -66,7 +67,15 @@ class WalletHelper:
         )
         return tx_creator.create_withdrawal(timestamp=_set_timezone(timestamp) or self.tx_time.next())
 
-    def _get_tx_creator(self, from_currency, from_currency_quantity, to_currency, to_currency_quantity, timestamp=None):
+    def _get_tx_creator(
+        self,
+        from_currency: Union[Decimal, int],
+        from_currency_quantity: Union[Decimal, int],
+        to_currency: Union[Decimal, int],
+        to_currency_quantity: Union[Decimal, int],
+        fee_currency: Optional[Union[Decimal, int]] = None,
+        fee_currency_quantity: Optional[Union[Decimal, int]] = None,
+    ):
         tx_creator = TransactionCreator()
         tx_creator.from_detail = TransactionDetailFactory.build(
             wallet=self.wallet, currency=from_currency, quantity=from_currency_quantity
@@ -74,17 +83,49 @@ class WalletHelper:
         tx_creator.to_detail = TransactionDetailFactory.build(
             wallet=self.wallet, currency=to_currency, quantity=to_currency_quantity
         )
+        if fee_currency is not None and fee_currency_quantity is not None:
+            tx_creator.fee_detail = TransactionDetailFactory.build(
+                wallet=self.wallet, currency=fee_currency, quantity=fee_currency_quantity
+            )
         return tx_creator
 
-    def trade(self, from_currency, from_currency_quantity, to_currency, to_currency_quantity, timestamp=None):
+    def trade(
+        self,
+        from_currency: Union[Decimal, int],
+        from_currency_quantity: Union[Decimal, int],
+        to_currency: Union[Decimal, int],
+        to_currency_quantity: Union[Decimal, int],
+        fee_currency: Optional[Union[Decimal, int]] = None,
+        fee_currency_quantity: Optional[Union[Decimal, int]] = None,
+        timestamp=None,
+    ):
         tx_creator = self._get_tx_creator(
-            from_currency, from_currency_quantity, to_currency, to_currency_quantity, timestamp
+            from_currency,
+            from_currency_quantity,
+            to_currency,
+            to_currency_quantity,
+            fee_currency,
+            fee_currency_quantity,
         )
         return tx_creator.create_trade(timestamp=_set_timezone(timestamp) or self.tx_time.next())
 
-    def swap(self, from_currency, from_currency_quantity, to_currency, to_currency_quantity, timestamp=None):
+    def swap(
+        self,
+        from_currency: Union[Decimal, int],
+        from_currency_quantity: Union[Decimal, int],
+        to_currency: Union[Decimal, int],
+        to_currency_quantity: Union[Decimal, int],
+        fee_currency: Optional[Union[Decimal, int]] = None,
+        fee_currency_quantity: Optional[Union[Decimal, int]] = None,
+        timestamp=None,
+    ):
         tx_creator = self._get_tx_creator(
-            from_currency, from_currency_quantity, to_currency, to_currency_quantity, timestamp
+            from_currency,
+            from_currency_quantity,
+            to_currency,
+            to_currency_quantity,
+            fee_currency,
+            fee_currency_quantity,
         )
         return tx_creator.create_swap(timestamp=_set_timezone(timestamp) or self.tx_time.next())
 
