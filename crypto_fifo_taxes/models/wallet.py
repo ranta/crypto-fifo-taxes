@@ -107,7 +107,7 @@ class Wallet(models.Model):
         to_filter = Q()
         if timestamp is not None:
             from_filter |= Q(from_detail__timestamp__lt=timestamp)
-            to_filter |= Q(to_detail__timestamp__lt=timestamp)
+            to_filter |= Q(to_detail__timestamp__lte=timestamp)
         total_spent = self.transaction_details.filter(
             from_filter, from_detail__isnull=False, currency=currency
         ).aggregate(total_spent=Sum("quantity"))["total_spent"] or Decimal(0)
