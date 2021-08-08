@@ -38,7 +38,7 @@ class Transaction(models.Model):
     def __repr__(self):
         return f"<{self.__class__.__name__} ({self.id}): {str(self)}>"
 
-    def _get_from_detail_cost_basis(self) -> Decimal:
+    def _get_detail_cost_basis(self, transaction_detail: "TransactionDetail") -> Decimal:
         """
         Use FIFO to get used currency quantities and cost bases.
         Then average them and return the result
@@ -50,8 +50,8 @@ class Transaction(models.Model):
         Cost basis for these currencies would be calculated using:
         (2 BTC * $100 + 3 BTC * $150) / 5 BTC = $130
         """
-        consumable_balances: List["TransactionDetail"] = self.from_detail.get_consumable_balances()
-        required_quantity: Decimal = self.from_detail.quantity
+        consumable_balances: List["TransactionDetail"] = transaction_detail.get_consumable_balances()
+        required_quantity: Decimal = transaction_detail.quantity
         cost_bases: list[tuple] = []  # [(quantity, cost_basis)]
 
         for balance in consumable_balances:
@@ -78,6 +78,12 @@ class Transaction(models.Model):
         total_value = sum(i * j for i, j in cost_bases)
         cost_basis = total_value / sum_quantity
         return Decimal(cost_basis)
+
+    def _get_from_detail_cost_basis(self) -> Decimal:
+        return self._get_detail_cost_basis(transaction_detail=self.from_detail)
+
+    def _get_fee_detail_cost_basis(self) -> Decimal:
+        return self._get_detail_cost_basis(transaction_detail=self.fee_detail)
 
     def _handle_buy_crypto_with_fiat_cost_basis(self) -> None:
         # from_detail cost_basis is simply the amount of FIAT it was bought with
@@ -131,6 +137,14 @@ class Transaction(models.Model):
         self.gain = Decimal(0)
         self.save()
 
+    def _handle_fee_cost_basis(self) -> None:
+        cost_basis = self._get_fee_detail_cost_basis()
+        self.fee_detail.cost_basis = cost_basis
+        self.fee_detail.save()
+
+        self.fee_amount = self.fee_detail.total_value
+        self.save()
+
     @atomic()
     def fill_cost_basis(self) -> None:
         # TODO: Use `deemed acquisition cost` (hankintameno-olettama) when applicable
@@ -163,6 +177,10 @@ class Transaction(models.Model):
         # Withdrawal
         if self.from_detail is not None and self.to_detail is None:
             pass  # TODO
+
+        # Fees
+        if self.fee_detail is not None:
+            self._handle_fee_cost_basis()
 
 
 class TransactionDetail(models.Model):
@@ -197,5 +215,5 @@ class TransactionDetail(models.Model):
         )
 
     @property
-    def total_value(self):
+    def total_value(self) -> Decimal:
         return self.cost_basis * self.quantity

@@ -76,6 +76,10 @@ class TransactionCreator:
         quantity: Union[Decimal, int],
         cost_basis: Optional[Decimal] = None,
     ):
+        """
+        The fee currency should always be the currency you receive unless paid a third currency e.g. BNB.
+        e.g. in a ETH -> EUR trade, the fee currency would be EUR (or BNB)
+        """
         self._add_detail(wallet, currency, quantity, cost_basis, prefix="fee")
 
     def get_details(self) -> Dict[str, TransactionDetail]:
