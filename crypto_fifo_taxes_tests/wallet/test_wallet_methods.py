@@ -1,10 +1,12 @@
 from decimal import Decimal
 
 import pytest
+from django.db.transaction import atomic
 
 from crypto_fifo_taxes.models import Currency
 from crypto_fifo_taxes_tests.factories import (
     CryptoCurrencyFactory,
+    CurrencyPriceFactory,
     TransactionDetailFactory,
     TransactionFactory,
     WalletFactory,
@@ -31,10 +33,11 @@ def test_wallet_get_used_currency_ids():
 def test_wallet_get_current_balance_deposit_and_withdrawal_single_currency():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
+    CurrencyPriceFactory.create(currency="BTC", fiat="EUR", date=wallet_helper.date(), price=1000)
 
     wallet_helper.deposit(currency="BTC", quantity=5)
     wallet_helper.deposit(currency="BTC", quantity=10)
-    wallet_helper.withdraw(currency="BTC", quantity="2.5")
+    wallet_helper.withdraw(currency="BTC", quantity=Decimal("2.5"))
 
     assert len(wallet.get_current_balance()) == 1
     assert wallet.get_current_balance("BTC") == Decimal("12.5")
@@ -44,6 +47,10 @@ def test_wallet_get_current_balance_deposit_and_withdrawal_single_currency():
 def test_wallet_get_current_balance_deposit_and_withdrawal_multiple_currencies():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
+    CurrencyPriceFactory.create(currency="BTC", fiat="EUR", date=wallet_helper.date())
+    CurrencyPriceFactory.create(currency="ETH", fiat="EUR", date=wallet_helper.date())
+    CurrencyPriceFactory.create(currency="NANO", fiat="EUR", date=wallet_helper.date())
+    CurrencyPriceFactory.create(currency="DOGE", fiat="EUR", date=wallet_helper.date())
 
     # Simple deposit + withdrawal
     wallet_helper.deposit(currency="BTC", quantity=8)
@@ -57,21 +64,25 @@ def test_wallet_get_current_balance_deposit_and_withdrawal_multiple_currencies()
     wallet_helper.deposit(currency="NANO", quantity=1000)
 
     # Withdraw more than wallet has balance
-    wallet_helper.withdraw(currency="DOGE", quantity="42069.1337")
+    with pytest.raises(ValueError):
+        with atomic():
+            wallet_helper.withdraw(currency="DOGE", quantity=Decimal("42069.1337"))
 
     balances = wallet.get_current_balance()
-    assert len(balances) == 4
+    assert len(balances) == 3
 
-    assert balances["BTC"] == Decimal(3)
-    assert balances["ETH"] == Decimal(0)
-    assert balances["NANO"] == Decimal(1000)
-    assert balances["DOGE"] == Decimal("-42069.1337")
+    assert balances["BTC"] == 3
+    assert balances["ETH"] == 0
+    assert balances["NANO"] == 1000
+    assert "DOGE" not in balances
 
 
 @pytest.mark.django_db
 def test_get_consumable_currency_balances():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
+
+    CurrencyPriceFactory.create(currency="BTC", fiat="ADA", date=wallet_helper.date())
     crypto = CryptoCurrencyFactory.create(symbol="ADA")
 
     # No deposits, nothing should be returned

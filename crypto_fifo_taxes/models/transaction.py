@@ -123,9 +123,7 @@ class Transaction(models.Model):
 
     def _handle_to_trade_crypto_to_crypto_cost_basis(self) -> None:
         # Use sold price as cost basis
-        currency_value = self.from_detail.currency.get_fiat_price(
-            self.from_detail.transaction.timestamp, self.from_detail.wallet.fiat
-        ).price
+        currency_value = self.from_detail.currency.get_fiat_price(self.timestamp, self.from_detail.wallet.fiat).price
         self.to_detail.cost_basis = (self.from_detail.quantity * currency_value) / self.to_detail.quantity
         self.to_detail.save()
 
@@ -157,6 +155,40 @@ class Transaction(models.Model):
         self.to_detail.save()
 
         self.gain = Decimal(0)
+        self.save()
+
+    def _handle_deposit_cost_basis(self) -> None:
+        """
+        If the funds came from `nowhere`, it 100% gains.
+        Deposits can be from e.g. Staking or Mining.
+        """
+        if self.to_detail.currency.is_fiat:
+            self.to_detail.cost_basis = Decimal(1)
+            self.gain = Decimal(0)
+        else:
+            currency_value = self.to_detail.currency.get_fiat_price(self.timestamp, self.to_detail.wallet.fiat).price
+            self.to_detail.cost_basis = currency_value
+            self.gain = currency_value * self.to_detail.quantity
+
+        self.to_detail.save()
+        self.save()
+
+    def _handle_withdrawal_cost_basis(self) -> None:
+        """
+        Funds are sent to some third party entity.
+        e.g. Paying for goods and services directly with crypto
+        This realizes any profits made from value appreciation
+        """
+        if self.from_detail.currency.is_fiat:
+            self.from_detail.cost_basis = Decimal(1)
+            self.gain = Decimal(0)
+        else:
+            sell_price = self.from_detail.currency.get_fiat_price(self.timestamp, self.from_detail.wallet.fiat).price
+            from_cost_basis, only_hmo_used = self._get_from_detail_cost_basis(sell_price=sell_price)
+            self.from_detail.cost_basis = from_cost_basis
+            self.gain = (sell_price - from_cost_basis) * self.from_detail.quantity
+
+        self.from_detail.save()
         self.save()
 
     def _handle_fee_cost_basis(self) -> None:
@@ -192,11 +224,11 @@ class Transaction(models.Model):
 
         # Deposit
         if self.from_detail is None and self.to_detail is not None:
-            pass  # TODO
+            self._handle_deposit_cost_basis()
 
         # Withdrawal
         if self.from_detail is not None and self.to_detail is None:
-            pass  # TODO
+            self._handle_withdrawal_cost_basis()
 
         # Fees
         if self.fee_detail is not None:
