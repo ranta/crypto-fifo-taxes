@@ -38,7 +38,10 @@ class Transaction(models.Model):
     def __repr__(self):
         return f"<{self.__class__.__name__} ({self.id}): {str(self)}>"
 
-    def _get_detail_cost_basis(self, transaction_detail: "TransactionDetail") -> Decimal:
+    @staticmethod
+    def _get_detail_cost_basis(
+        transaction_detail: "TransactionDetail", sell_price: Optional[Decimal] = None
+    ) -> tuple[Decimal, bool]:
         """
         Use FIFO to get used currency quantities and cost bases.
         Then average them and return the result
@@ -49,10 +52,28 @@ class Transaction(models.Model):
         3 BTC has a cost basis of $150
         Cost basis for these currencies would be calculated using:
         (2 BTC * $100 + 3 BTC * $150) / 5 BTC = $130
+
+        If it's advantageous to use deemed acquisition cost, it is used
+        https://www.vero.fi/henkiloasiakkaat/omaisuus/sijoitukset/osakkeiden_myynt/
         """
         consumable_balances: List["TransactionDetail"] = transaction_detail.get_consumable_balances()
         required_quantity: Decimal = transaction_detail.quantity
         cost_bases: list[tuple] = []  # [(quantity, cost_basis)]
+        only_hmo_used = True
+
+        def apply_hmo(balance_cost_basis):
+            """
+            Apply HMO only if it is advantageous to use it
+            Deemed acquisition cost should be applied if the value has increased over 400%
+
+            It is assumed that the tokens were owned for under 10 years.
+            If they were owned for more than 10 years, HMO is 40% instead of 20%
+            """
+            if sell_price is not None and balance_cost_basis < sell_price / 5:
+                return sell_price / 5
+            nonlocal only_hmo_used  # Modify outer scope variable
+            only_hmo_used = False
+            return balance_cost_basis
 
         for balance in consumable_balances:
             if required_quantity == Decimal(0):
@@ -64,11 +85,11 @@ class Transaction(models.Model):
             )
             if required_quantity >= balance.quantity_left:
                 # Fully consume deposit balance
-                cost_bases.append((balance.quantity_left, balance.cost_basis))
+                cost_bases.append((balance.quantity_left, apply_hmo(balance.cost_basis)))
                 required_quantity -= balance.quantity_left
             else:
                 # Consume only the required quantity
-                cost_bases.append((required_quantity, balance.cost_basis))
+                cost_bases.append((required_quantity, apply_hmo(balance.cost_basis)))
                 required_quantity -= required_quantity
 
         if required_quantity > Decimal(0):
@@ -77,13 +98,14 @@ class Transaction(models.Model):
         sum_quantity = sum(i for i, _ in cost_bases)
         total_value = sum(i * j for i, j in cost_bases)
         cost_basis = total_value / sum_quantity
-        return Decimal(cost_basis)
+        return (Decimal(cost_basis), only_hmo_used)
 
-    def _get_from_detail_cost_basis(self) -> Decimal:
-        return self._get_detail_cost_basis(transaction_detail=self.from_detail)
+    def _get_from_detail_cost_basis(self, sell_price: Optional[Decimal] = None) -> tuple[Decimal, bool]:
+        return self._get_detail_cost_basis(transaction_detail=self.from_detail, sell_price=sell_price)
 
     def _get_fee_detail_cost_basis(self) -> Decimal:
-        return self._get_detail_cost_basis(transaction_detail=self.fee_detail)
+        """TODO Use HMO for trade fees"""
+        return self._get_detail_cost_basis(transaction_detail=self.fee_detail)[0]
 
     def _handle_buy_crypto_with_fiat_cost_basis(self) -> None:
         # from_detail cost_basis is simply the amount of FIAT it was bought with
@@ -94,21 +116,12 @@ class Transaction(models.Model):
         self.to_detail.cost_basis = self.from_detail.quantity / self.to_detail.quantity
         self.to_detail.save()
 
-    def _handle_sell_crypto_to_fiat_cost_basis(self) -> None:
-        self.from_detail.cost_basis = self._get_from_detail_cost_basis()
-        self.from_detail.save()
-
+    def _handle_to_sell_crypto_to_fiat_cost_basis(self) -> None:
         # Use sold price as cost basis
         self.to_detail.cost_basis = Decimal(1)
         self.to_detail.save()
 
-        self.gain = self.to_detail.total_value - self.from_detail.total_value
-        self.save()
-
-    def _handle_trade_crypto_to_crypto_cost_basis(self) -> None:
-        self.from_detail.cost_basis = self._get_from_detail_cost_basis()
-        self.from_detail.save()
-
+    def _handle_to_trade_crypto_to_crypto_cost_basis(self) -> None:
         # Use sold price as cost basis
         currency_value = self.from_detail.currency.get_fiat_price(
             self.from_detail.transaction.timestamp, self.from_detail.wallet.fiat
@@ -116,8 +129,17 @@ class Transaction(models.Model):
         self.to_detail.cost_basis = (self.from_detail.quantity * currency_value) / self.to_detail.quantity
         self.to_detail.save()
 
+    def _handle_from_crypto_cost_basis(self) -> bool:
+        # Sell value is divided for every sold token to find the average price
+        sell_price = self.to_detail.total_value / self.from_detail.quantity
+        from_cost_basis, only_hmo_used = self._get_from_detail_cost_basis(sell_price=sell_price)
+        self.from_detail.cost_basis = from_cost_basis
+        self.from_detail.save()
+
         self.gain = self.to_detail.total_value - self.from_detail.total_value
         self.save()
+
+        return only_hmo_used
 
     def _handle_transfer_or_swap_cost_basis(self) -> None:
         """
@@ -126,7 +148,7 @@ class Transaction(models.Model):
         coins to the average of all transferred coins. The original cost_basis shouldn't be changed on SWAP or transfer.
         This shouldn't affect the end result, except in a few very rare cases.
         """
-        cost_basis = self._get_from_detail_cost_basis()
+        cost_basis = self._get_from_detail_cost_basis()[0]
 
         self.from_detail.cost_basis = cost_basis
         self.from_detail.save()
@@ -142,13 +164,9 @@ class Transaction(models.Model):
         self.fee_detail.cost_basis = cost_basis
         self.fee_detail.save()
 
-        self.fee_amount = self.fee_detail.total_value
-        self.save()
-
     @atomic()
     def fill_cost_basis(self) -> None:
-        # TODO: Use `deemed acquisition cost` (hankintameno-olettama) when applicable
-        # TODO: Reduce fee amount from cost-basis
+        only_hmo_used = False
 
         # Trade / Transfer / Swap
         if self.from_detail is not None and self.to_detail is not None:
@@ -160,11 +178,13 @@ class Transaction(models.Model):
 
                 # Sell Crypto to FIAT
                 elif self.from_detail.currency.is_fiat is False and self.to_detail.currency.is_fiat is True:
-                    self._handle_sell_crypto_to_fiat_cost_basis()
+                    self._handle_to_sell_crypto_to_fiat_cost_basis()
+                    only_hmo_used = self._handle_from_crypto_cost_basis()
 
                 # Trade Crypto to Crypto
                 elif self.from_detail.currency.is_fiat is False and self.to_detail.currency.is_fiat is False:
-                    self._handle_trade_crypto_to_crypto_cost_basis()
+                    self._handle_to_trade_crypto_to_crypto_cost_basis()
+                    only_hmo_used = self._handle_from_crypto_cost_basis()
 
             # Transfer / SWAP
             else:
@@ -181,6 +201,12 @@ class Transaction(models.Model):
         # Fees
         if self.fee_detail is not None:
             self._handle_fee_cost_basis()
+
+            # If deemed acquisition cost (HMO) is used, the fee can not be deducted
+            # refs. https://www.vero.fi/henkiloasiakkaat/omaisuus/sijoitukset/osakkeiden_myynt/
+            # Set fee to zero only if all sold tokens used HMO. If any tokens don't use HMO, fee can be deducted
+            self.fee_amount = self.fee_detail.total_value if not only_hmo_used else Decimal(0)
+            self.save()
 
 
 class TransactionDetail(models.Model):
