@@ -13,6 +13,7 @@ django-enumfields = "^2.1.1"
 Pillow = "^8.2.0"
 psycopg2 = "^2.9.1"
 requests = "^2.26.0"
+python-binance = "^1.0.12"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.3"
