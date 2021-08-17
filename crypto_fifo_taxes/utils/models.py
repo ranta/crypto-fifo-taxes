@@ -10,8 +10,8 @@ class TransactionDecimalField(models.DecimalField):
         verbose_name=None,
         name=None,
         default=Decimal(0),
-        max_digits=20,
-        decimal_places=10,
+        max_digits=32,
+        decimal_places=14,
         validators=None,
         **kwargs
     ):
