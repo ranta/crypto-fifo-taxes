@@ -18,4 +18,4 @@ class WalletFactory(DjangoModelFactory):
     user = factory.SubFactory("crypto_fifo_taxes_tests.factories.UserFactory")
     name = factory.Sequence(lambda n: f"Wallet-{n}: {fake.word()}")
     icon = None
-    fiat = factory.SubFactory("crypto_fifo_taxes_tests.factories.FiatCurrencyFactory")
+    fiat = factory.SubFactory("crypto_fifo_taxes_tests.factories.FiatCurrencyFactory", symbol="EUR")
