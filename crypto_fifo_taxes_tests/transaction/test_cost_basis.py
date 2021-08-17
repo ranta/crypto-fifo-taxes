@@ -103,3 +103,42 @@ def test_cost_basis_fiat_crypto_crypto_fiat_trades_fifo():
     CurrencyPriceFactory.create(currency=eth, fiat=fiat, date=wallet_helper.date(), price=25)
     tx = wallet_helper.trade(eth, 40, fiat, 400)
     assert tx.from_detail.cost_basis == Decimal(25)
+
+
+@pytest.mark.django_db
+def test_cost_basis_deemed_acquisition_cost():
+    """Test that deemed acquisition cost (Hankintameno-olettama) is used whenever applicable"""
+    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    crypto = CryptoCurrencyFactory.create(symbol="BTC")
+    crypto2 = CryptoCurrencyFactory.create(symbol="ETH")
+
+    wallet = WalletFactory.create(fiat=fiat)
+    wallet_helper = WalletHelper(wallet)
+
+    # Deposit FIAT to wallet
+    wallet_helper.deposit(fiat, 1400)
+
+    # Buy 10 BTC with 1000 EUR
+    tx = wallet_helper.trade(fiat, 400, crypto, 4)
+    assert tx.to_detail.cost_basis == 100  # 1 BTC == 100 EUR
+
+    tx = wallet_helper.trade(crypto, 1, fiat, 1000)
+    # Instead of the original cost basis of 100, it is now 200 because of HMO
+    assert tx.from_detail.cost_basis == 200
+
+    tx = wallet_helper.trade(crypto, 1, fiat, 5000)
+    assert tx.from_detail.cost_basis == 1000
+
+    CurrencyPriceFactory.create(currency=crypto, fiat=fiat, date=wallet_helper.date(), price=1000)
+    CurrencyPriceFactory.create(currency=crypto2, fiat=fiat, date=wallet_helper.date(), price=100)
+    tx = wallet_helper.trade(crypto, 1, crypto2, 10, crypto2, 1)
+    assert tx.from_detail.cost_basis == 200
+    assert tx.gain == 800
+    assert tx.fee_amount == 0
+
+    # Buy more BTC at current prices
+    wallet_helper.trade(fiat, 1000, crypto, 1)
+    # Immediately sell the 2 BTC left in wallet. HMO is used only for the first BTC
+    tx = wallet_helper.trade(crypto, 2, fiat, 2000, fiat, 1)
+    assert tx.from_detail.cost_basis == 600  # (200 + 1000) / 2
+    assert tx.fee_amount == 1  # HMO is not used for every token, so fee is able to be deduced from profits

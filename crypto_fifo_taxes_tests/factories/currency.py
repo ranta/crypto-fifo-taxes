@@ -49,7 +49,7 @@ class CurrencyPairFactory(DjangoModelFactory):
 class CurrencyPriceFactory(DjangoModelFactory):
     class Meta:
         model = CurrencyPrice
-        django_get_or_create = ("currency", "date", "fiat")
+        django_get_or_create = ("currency", "fiat", "date")
 
     currency = factory.SubFactory("crypto_fifo_taxes_tests.factories.CryptoCurrencyFactory")
     fiat = factory.SubFactory("crypto_fifo_taxes_tests.factories.FiatCurrencyFactory")
@@ -57,6 +57,26 @@ class CurrencyPriceFactory(DjangoModelFactory):
     price = factory.fuzzy.FuzzyDecimal(1, 1000, precision=8)
     market_cap = 0
     volume = 0
+
+    @staticmethod
+    def handle_currency(kwargs):
+        """Allow passing currency as a string, instead of a Currency object."""
+        from crypto_fifo_taxes_tests.utils import get_currency
+
+        kwargs.update(
+            {"currency": get_currency(kwargs.get("currency"), False), "fiat": get_currency(kwargs.get("fiat"), True)}
+        )
+
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        manager = cls._get_manager(model_class)
+        cls.handle_currency(kwargs)
+        return manager.create(*args, **kwargs)
+
+    @classmethod
+    def _build(cls, model_class, *args, **kwargs):
+        cls.handle_currency(kwargs)  # Currency will be created, even if this object is only built
+        return model_class(**kwargs)
 
 
 class PriceTrend(Enum):
