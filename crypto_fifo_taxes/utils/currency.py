@@ -1,9 +1,14 @@
+import time
+from datetime import datetime
+from decimal import Decimal
 from functools import lru_cache
-from typing import Union
+from typing import Optional, Union
 
+import requests
 from django.conf import settings
+from django.utils.text import slugify
 
-from crypto_fifo_taxes.models import Currency
+from crypto_fifo_taxes.models import Currency, CurrencyPrice
 
 
 @lru_cache()
@@ -19,3 +24,45 @@ def get_currency(currency: Union[Currency, str, int]) -> Currency:
     if type(currency) == int:
         return Currency.objects.get(id=currency)
     return currency
+
+
+def gc_request_price_history(currency: Currency, date: datetime.date) -> Optional[dict]:
+    """Requests and returns all data for given currency and date from CoinGecko API"""
+    api_url = "https://api.coingecko.com/api/v3/coins/{id}/history?date={date}&localization=false".format(
+        id=slugify(currency.name.lower()),
+        date=date.strftime("%d-%m-%Y"),
+    )
+    response = None
+    while response is None:
+        response = requests.get(api_url)
+
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 429:
+            # CoinGecko has a rate limit of 50 calls/minute (In reality seems to be more)
+            # If requests are throttled, wait and retry later
+            time.sleep(int(response.headers["Retry-After"]))
+            continue
+        return None  # Do not loop forever if response status is unexpected
+
+
+def fetch_currency_price(currency: Currency, date: datetime.date):
+    """Update historical prices for given currency and date"""
+    response_json = gc_request_price_history(currency, date)
+
+    if currency.icon is None:
+        currency.icon = response_json["image"]["small"]
+
+    for fiat_symbol in settings.ALL_FIAT_CURRENCIES:
+        fiat_currency = Currency.objects.get(symbol=fiat_symbol)
+        CurrencyPrice.objects.update_or_create(
+            currency=currency,
+            fiat=fiat_currency,
+            date=date,
+            defaults=dict(
+                price=Decimal(str(response_json["market_data"]["current_price"][fiat_symbol.lower()])),
+                market_cap=Decimal(str(response_json["market_data"]["market_cap"][fiat_symbol.lower()])),
+                volume=Decimal(str(response_json["market_data"]["total_volume"][fiat_symbol.lower()])),
+            ),
+        )
+    currency.save()

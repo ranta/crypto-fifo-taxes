@@ -64,16 +64,9 @@ class Currency(models.Model):
 
         # Price was not found for entered FIAT
         if currency_price is None:
-            from crypto_fifo_taxes.utils.currency import get_default_fiat
+            from crypto_fifo_taxes.utils.currency import fetch_currency_price
 
-            fiat = get_default_fiat()
-            currency_price = self.prices.filter(date=date, fiat=fiat).first()
-            if fiat is not None:
-                pass  # TODO: Create price for missed FIAT by converting from default currency
-
-        # Price was not found even in default currency
-        if currency_price is None:
-            pass  # TODO: Fetch coin price from an API
+            fetch_currency_price(self)
 
         return currency_price
 
