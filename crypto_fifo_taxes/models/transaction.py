@@ -26,6 +26,10 @@ class Transaction(models.Model):
     gain = TransactionDecimalField(null=True)  # Calculated field
     fee_amount = TransactionDecimalField(null=True)  # Calculated field
 
+    # Used to identify imported transactions
+    tx_id = models.CharField(max_length=256, blank=True, null=True)
+    order_id = models.CharField(max_length=256, blank=True, null=True)
+
     def __str__(self):
         if self.transaction_type == TransactionType.DEPOSIT:
             detail_str = str(self.to_detail)
