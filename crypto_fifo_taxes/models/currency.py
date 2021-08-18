@@ -23,6 +23,13 @@ class Currency(models.Model):
         verbose_name=_("Name"),
         unique=True,
     )
+    # Unique string identifier for currency. Used for coingecko API
+    cg_id = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        unique=True,
+    )
     icon = models.ImageField(
         upload_to="coin_icons",
         verbose_name=_("Icon"),
