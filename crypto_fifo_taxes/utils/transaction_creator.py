@@ -4,7 +4,7 @@ from typing import Dict, Optional, Union
 
 from django.db.transaction import atomic
 
-from crypto_fifo_taxes.enums import TransactionType
+from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.models import Currency, Transaction, TransactionDetail, Wallet
 
 
@@ -31,14 +31,14 @@ class TransactionCreator:
     """
 
     def __init__(self):
-        self.timestamp = None
-        self.transaction_type = None
-        self.transaction_label = None
-        self.description = None
+        self.timestamp: Optional[datetime] = None
+        self.transaction_type: Optional[TransactionType] = None
+        self.transaction_label: Optional[TransactionLabel] = None
+        self.description: Optional[str] = None
 
-        self.from_detail = None
-        self.to_detail = None
-        self.fee_detail = None
+        self.from_detail: Optional[TransactionDetail] = None
+        self.to_detail: Optional[TransactionDetail] = None
+        self.fee_detail: Optional[TransactionDetail] = None
 
     def _add_detail(
         self,
@@ -117,16 +117,22 @@ class TransactionCreator:
         self.transaction_type = TransactionType.SWAP
         return self._create_transaction(timestamp, description)
 
-    @atomic()
-    def _create_transaction(self, timestamp: datetime, description: str = "", **kwargs):
+    def _validate_transaction_type(self):
         assert self.transaction_type is not None
         # Validate correct details are entered for transaction type
         if self.transaction_type == TransactionType.DEPOSIT:
             assert self.from_detail is None and self.to_detail is not None
         elif self.transaction_type == TransactionType.WITHDRAW:
             assert self.from_detail is not None and self.to_detail is None
+            if self.fee_detail:
+                # Having a larger fee than amount sent makes no sense
+                assert self.from_detail.quantity > self.fee_detail.quantity
         else:
             assert self.from_detail is not None and self.to_detail is not None
+
+    @atomic()
+    def _create_transaction(self, timestamp: datetime, description: str = "", **kwargs):
+        self._validate_transaction_type()
 
         details = self.get_details()
         for key, detail in details.items():

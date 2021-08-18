@@ -3,7 +3,13 @@ from decimal import Decimal
 import pytest
 from django.db.transaction import atomic
 
-from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory, WalletFactory
+from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
+from crypto_fifo_taxes_tests.factories import (
+    CryptoCurrencyFactory,
+    CurrencyPriceFactory,
+    FiatCurrencyFactory,
+    WalletFactory,
+)
 from crypto_fifo_taxes_tests.utils import WalletHelper
 
 
@@ -24,14 +30,16 @@ def test_fees_simple():
     assert tx.fee_detail.cost_basis == Decimal(100)  # 1 BTC == 100 EUR
     assert tx.fee_detail.quantity == Decimal("0.01")
     assert tx.fee_amount == 1  # == 100 * 0.01
+    assert wallet.get_current_balance("BTC") == Decimal("9.99")
 
     # Trade BTC back to EUR fails, because user has less than 10 BTC due to fees
     with pytest.raises(ValueError):
         with atomic():
             wallet_helper.trade(crypto, 10, fiat, 1000)
 
-    wallet_helper.trade(crypto, Decimal("9.99"), fiat, 998, fiat, 1)
+    wallet_helper.trade(crypto, Decimal("9.99"), fiat, 999, fiat, 1)
     assert wallet.get_current_balance("BTC") == Decimal(0)
+    assert wallet.get_current_balance("EUR") == Decimal(998)
 
 
 @pytest.mark.django_db
@@ -59,3 +67,28 @@ def test_fees_with_dedicated_fee_currency():
 
     assert wallet.get_current_balance("BTC") == Decimal(5)
     assert wallet.get_current_balance("BNB") == Decimal("0.8")
+
+
+@pytest.mark.django_db
+def test_fee_withdrawal():
+    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    crypto = CryptoCurrencyFactory.create(symbol="BTC")
+
+    wallet = WalletFactory.create(fiat=fiat)
+    wallet_helper = WalletHelper(wallet)
+
+    # Deposit FIAT to wallet
+    CurrencyPriceFactory.create(currency=crypto, fiat=fiat, date=wallet_helper.date(), price=1000)
+    wallet_helper.deposit(crypto, 10)
+    assert wallet.get_current_balance("BTC") == Decimal(10)
+
+    # Fees should be removed from the `withdrawn amount` instead of from wallet
+    tx_creator = TransactionCreator()
+    tx_creator.add_fee_detail(wallet=wallet, currency=crypto, quantity=Decimal(1))
+    tx_creator.create_withdrawal(
+        timestamp=wallet_helper.tx_time.timestamp,
+        wallet=wallet,
+        currency=crypto,
+        quantity=Decimal(10),
+    )
+    assert wallet.get_current_balance("BTC") == Decimal(0)

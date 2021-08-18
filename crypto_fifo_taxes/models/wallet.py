@@ -9,6 +9,7 @@ from django.db.models import DecimalField, ExpressionWrapper, F, OuterRef, Q, Su
 from django.db.models.functions import Coalesce
 from django.utils.translation import gettext as _
 
+from crypto_fifo_taxes.enums import TransactionType
 from crypto_fifo_taxes.models import Currency, TransactionDetail
 from crypto_fifo_taxes.utils.currency import get_currency
 from crypto_fifo_taxes.utils.db import SQSum
@@ -67,9 +68,10 @@ class Wallet(models.Model):
                     sum_field="quantity",
                 ),
                 withdrawals=SQSum(
-                    self.transaction_details.filter(
-                        currency_id=OuterRef("currency_id"),
-                    ).filter(Q(from_detail__isnull=False) | Q(fee_detail__isnull=False)),
+                    self.transaction_details.filter(currency_id=OuterRef("currency_id"),).filter(
+                        Q(from_detail__isnull=False)
+                        | Q(fee_detail__isnull=False) & ~Q(fee_detail__transaction_type=TransactionType.WITHDRAW)
+                    ),
                     sum_field="quantity",
                 ),
                 balance=ExpressionWrapper(
@@ -99,6 +101,9 @@ class Wallet(models.Model):
         This is overcome by wrapping the query and putting the `WHERE` clause in the outer query.
         refs. https://code.djangoproject.com/ticket/28333
         Another other option would be to filter deposits in Python, but it's not as efficient as filtering in the db.
+
+        Notes:
+        Fees for withdrawals are not consumed from the wallet, but from the sent amount.
         """
 
         # Total amount of currency that has left the wallet
@@ -110,7 +115,8 @@ class Wallet(models.Model):
             to_filter |= Q(to_detail__timestamp__lte=timestamp)
             fee_filter |= Q(fee_detail__timestamp__lt=timestamp)
         total_spent = self.transaction_details.filter(currency=currency).filter(
-            (Q(from_detail__isnull=False) & from_filter) | (Q(fee_detail__isnull=False) & fee_filter)
+            (Q(from_detail__isnull=False) & from_filter)
+            | (Q(fee_detail__isnull=False) & fee_filter & ~Q(fee_detail__transaction_type=TransactionType.WITHDRAW))
         ).aggregate(total_spent=Sum("quantity"))["total_spent"] or Decimal(0)
 
         # All deposits of currency to the wallet, annotated with
