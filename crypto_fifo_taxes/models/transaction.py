@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from django.db import models
 from django.db.transaction import atomic
-from enumfields import EnumField
+from enumfields import EnumIntegerField
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
@@ -13,8 +13,8 @@ class Transaction(models.Model):
     """Contains static values for a transaction"""
 
     timestamp = models.DateTimeField()
-    transaction_type = EnumField(TransactionType)
-    transaction_label = EnumField(TransactionLabel, default=TransactionLabel.UNKNOWN)
+    transaction_type = EnumIntegerField(TransactionType, default=TransactionType.UNKNOWN)
+    transaction_label = EnumIntegerField(TransactionLabel, default=TransactionLabel.UNKNOWN)
     description = models.TextField(blank=True, default="")
     from_detail = models.OneToOneField(
         "TransactionDetail", on_delete=models.CASCADE, related_name="from_detail", null=True
@@ -93,7 +93,10 @@ class Transaction(models.Model):
                 required_quantity -= required_quantity
 
         if required_quantity > Decimal(0):
-            raise ValueError("Transaction from detail quantity is more than wallet has available to consume!")
+            raise ValueError(
+                "Transaction from detail quantity is more than wallet has available to consume! "
+                f"Required: {required_quantity} {transaction_detail.currency}"
+            )
 
         sum_quantity = sum(i for i, _ in cost_bases)
         total_value = sum(i * j for i, j in cost_bases)
