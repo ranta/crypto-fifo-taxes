@@ -4,14 +4,14 @@ from decimal import Decimal
 import pytest
 
 from crypto_fifo_taxes.models import Currency
-from crypto_fifo_taxes.utils.currency import fetch_currency_price, gc_request_price_history
+from crypto_fifo_taxes.utils.currency import coingecko_request_price_history, fetch_currency_price
 from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory
 
 
 @pytest.mark.django_db
 def test_gc_request_history():
     crypto = CryptoCurrencyFactory.create(name="Bitcoin", symbol="BTC")
-    response_json = gc_request_price_history(currency=crypto, date=datetime.date(2020, 1, 1))
+    response_json = coingecko_request_price_history(currency=crypto, date=datetime.date(2020, 1, 1))
 
     assert response_json is not None, "Error connecting to Coingecko API"
 

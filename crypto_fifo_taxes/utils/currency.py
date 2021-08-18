@@ -26,7 +26,36 @@ def get_currency(currency: Union[Currency, str, int]) -> Currency:
     return currency
 
 
-def gc_request_price_history(currency: Currency, date: datetime.date) -> Optional[dict]:
+@lru_cache()
+def get_or_create_currency(currency: str) -> Currency:
+    try:
+        return get_currency(currency)
+    except Currency.DoesNotExist:
+        currency_data = next(filter(lambda x: x["symbol"] == currency, coingecko_get_currency_list()))
+        assert currency_data
+        return Currency.objects.get_or_create(
+            symbol=currency_data["symbol"],
+            defaults=dict(
+                name=currency_data["name"],
+                cg_id=currency_data["id"],
+            ),
+        )[0]
+
+
+@lru_cache()
+def coingecko_get_currency_list() -> dict:
+    """
+    Can be cached because of large output and almost never changing
+
+    Data format:
+    {'id': 'bitcoin', 'symbol': 'btc', 'name': 'Bitcoin'}
+    """
+    api_url = "https://api.coingecko.com/api/v3/coins/list?include_platform=false"
+    response = requests.get(api_url)
+    return response.json()
+
+
+def coingecko_request_price_history(currency: Currency, date: datetime.date) -> Optional[dict]:
     """Requests and returns all data for given currency and date from CoinGecko API"""
     api_url = "https://api.coingecko.com/api/v3/coins/{id}/history?date={date}&localization=false".format(
         id=slugify(currency.name.lower()),
@@ -48,10 +77,11 @@ def gc_request_price_history(currency: Currency, date: datetime.date) -> Optiona
 
 def fetch_currency_price(currency: Currency, date: datetime.date):
     """Update historical prices for given currency and date"""
-    response_json = gc_request_price_history(currency, date)
+    response_json = coingecko_request_price_history(currency, date)
 
-    if currency.icon is None:
-        currency.icon = response_json["image"]["small"]
+    # FIXME: Save image locally
+    # if currency.icon is None:
+    #     currency.icon = response_json["image"]["small"]
 
     for fiat_symbol in settings.ALL_FIAT_CURRENCIES:
         fiat_currency = Currency.objects.get(symbol=fiat_symbol)

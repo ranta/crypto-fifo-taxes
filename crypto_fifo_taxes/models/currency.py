@@ -73,7 +73,7 @@ class Currency(models.Model):
         if currency_price is None:
             from crypto_fifo_taxes.utils.currency import fetch_currency_price
 
-            fetch_currency_price(self)
+            fetch_currency_price(self, date)
 
         return currency_price
 
