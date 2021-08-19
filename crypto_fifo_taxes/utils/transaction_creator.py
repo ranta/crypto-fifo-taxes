@@ -32,9 +32,8 @@ class TransactionCreator:
 
     def __init__(self):
         self.timestamp: Optional[datetime] = None
-        self.transaction_type: Optional[TransactionType] = None
-        self.transaction_label: Optional[TransactionLabel] = None
-        self.description: Optional[str] = None
+        self.transaction_type: TransactionType = TransactionType.UNKNOWN
+        self.transaction_label: TransactionLabel = TransactionLabel.UNKNOWN
 
         self.from_detail: Optional[TransactionDetail] = None
         self.to_detail: Optional[TransactionDetail] = None
@@ -91,31 +90,37 @@ class TransactionCreator:
                 all_details[detail_field] = detail
         return all_details
 
-    def create_deposit(self, timestamp: datetime, description: str = "", **kwargs):
+    def create_deposit(self, timestamp: datetime, **kwargs):
         self.transaction_type = TransactionType.DEPOSIT
+        description = kwargs.pop("description", "")
+        tx_id = kwargs.pop("tx_id", "")
+
         # Accept to_details values in kwargs
         if len(kwargs):
             self.add_to_detail(**kwargs)
-        return self._create_transaction(timestamp, description)
+        return self._create_transaction(timestamp, description=description, tx_id=tx_id)
 
-    def create_withdrawal(self, timestamp: datetime, description: str = "", **kwargs):
+    def create_withdrawal(self, timestamp: datetime, **kwargs):
         self.transaction_type = TransactionType.WITHDRAW
+        description = kwargs.pop("description", "")
+        tx_id = kwargs.pop("tx_id", "")
+
         # Accept from_details values in kwargs
         if len(kwargs):
             self.add_from_detail(**kwargs)
-        return self._create_transaction(timestamp, description)
+        return self._create_transaction(timestamp, description=description, tx_id=tx_id)
 
-    def create_trade(self, timestamp: datetime, description: str = ""):
+    def create_trade(self, timestamp: datetime, **kwargs):
         self.transaction_type = TransactionType.TRADE
-        return self._create_transaction(timestamp, description)
+        return self._create_transaction(timestamp, **kwargs)
 
-    def create_transfer(self, timestamp: datetime, description: str = ""):
+    def create_transfer(self, timestamp: datetime, **kwargs):
         self.transaction_type = TransactionType.TRANSFER
-        return self._create_transaction(timestamp, description)
+        return self._create_transaction(timestamp, **kwargs)
 
-    def create_swap(self, timestamp: datetime, description: str = ""):
+    def create_swap(self, timestamp: datetime, **kwargs):
         self.transaction_type = TransactionType.SWAP
-        return self._create_transaction(timestamp, description)
+        return self._create_transaction(timestamp, **kwargs)
 
     def _validate_transaction_type(self):
         assert self.transaction_type is not None
@@ -131,7 +136,7 @@ class TransactionCreator:
             assert self.from_detail is not None and self.to_detail is not None
 
     @atomic()
-    def _create_transaction(self, timestamp: datetime, description: str = "", **kwargs):
+    def _create_transaction(self, timestamp: datetime, **kwargs):
         self._validate_transaction_type()
 
         details = self.get_details()
@@ -139,7 +144,11 @@ class TransactionCreator:
             detail.save()
 
         transaction = Transaction(
-            timestamp=timestamp, description=description, transaction_type=self.transaction_type, **details, **kwargs
+            timestamp=timestamp,
+            transaction_type=self.transaction_type,
+            transaction_label=self.transaction_label,
+            **details,
+            **kwargs,
         )
         transaction.save()
         transaction.fill_cost_basis()
