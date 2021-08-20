@@ -104,7 +104,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # App settings
 # Default FIAT currency. Used if when no other currency is defined
-DEFAULT_FIAT_CURRENCY = "EUR"
+DEFAULT_FIAT_SYMBOL = "EUR"
 
 # Save records for these currencies
-ALL_FIAT_CURRENCIES = ["EUR", "USD"]
+ALL_FIAT_CURRENCIES = {"EUR": "Euro", "USD": "US Dollar"}
