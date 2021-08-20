@@ -10,6 +10,11 @@ from crypto_fifo_taxes.exceptions import MissingPriceHistoryError
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
 
+class TransactionManager(models.Manager):
+    def get_query_set(self):
+        return super().get_query_set().prefetch_related("from_detail", "to_detail", "fee_detail")
+
+
 class Transaction(models.Model):
     """Contains static values for a transaction"""
 
@@ -30,6 +35,11 @@ class Transaction(models.Model):
     # Used to identify imported transactions
     tx_id = models.CharField(max_length=256, blank=True, null=True)
     order_id = models.CharField(max_length=256, blank=True, null=True)
+
+    objects = TransactionManager()
+
+    class Meta:
+        ordering = ["timestamp"]
 
     def __str__(self):
         if self.transaction_type == TransactionType.DEPOSIT:
@@ -255,11 +265,18 @@ class Transaction(models.Model):
             self.save()
 
 
+class TransactionDetailManager(models.Manager):
+    def get_query_set(self):
+        return super().get_query_set().prefetch_related("from_detail", "to_detail", "fee_detail")
+
+
 class TransactionDetail(models.Model):
     wallet = models.ForeignKey(to="Wallet", on_delete=models.CASCADE, related_name="transaction_details")
     currency = models.ForeignKey(to="Currency", on_delete=models.PROTECT, related_name="+")
     quantity = TransactionDecimalField()
     cost_basis = TransactionDecimalField(null=True)  # Calculated field
+
+    objects = TransactionDetailManager()
 
     def __str__(self):
         return f"{self.currency.symbol} ({self.quantity})"
