@@ -30,14 +30,16 @@ class TransactionCreator:
     >>>tx_creator.create_trade(timestamp=timezone.now())
     """
 
-    def __init__(self):
-        self.timestamp: Optional[datetime] = None
+    def __init__(self, timestamp: Optional[datetime] = None, fill_cost_basis: bool = True):
+        self.timestamp: timestamp
         self.transaction_type: TransactionType = TransactionType.UNKNOWN
         self.transaction_label: TransactionLabel = TransactionLabel.UNKNOWN
 
         self.from_detail: Optional[TransactionDetail] = None
         self.to_detail: Optional[TransactionDetail] = None
         self.fee_detail: Optional[TransactionDetail] = None
+
+        self.fill_cost_basis = fill_cost_basis
 
     def _add_detail(
         self,
@@ -136,7 +138,11 @@ class TransactionCreator:
             assert self.from_detail is not None and self.to_detail is not None
 
     @atomic()
-    def _create_transaction(self, timestamp: datetime, **kwargs):
+    def _create_transaction(self, timestamp: Optional[datetime], **kwargs):
+        if timestamp is not None:
+            self.timestamp = timestamp
+        assert self.timestamp is not None
+
         self._validate_transaction_type()
 
         details = self.get_details()
@@ -144,12 +150,14 @@ class TransactionCreator:
             detail.save()
 
         transaction = Transaction(
-            timestamp=timestamp,
+            timestamp=self.timestamp,
             transaction_type=self.transaction_type,
             transaction_label=self.transaction_label,
             **details,
             **kwargs,
         )
         transaction.save()
-        transaction.fill_cost_basis()
+
+        if self.fill_cost_basis:
+            transaction.fill_cost_basis()
         return transaction
