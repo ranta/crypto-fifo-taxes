@@ -44,6 +44,7 @@ def test_binance_deposit_import():
 
     import_deposits(wallet, deposits)
     assert Transaction.objects.all().count() == 2
+    assert deposits[0]["txId"] in Transaction.objects.values_list("tx_id", flat=True)
 
 
 @pytest.mark.django_db
@@ -87,3 +88,4 @@ def test_binance_withdrawal_import():
 
     for withdrawal in withdrawals:
         assert wallet.get_current_balance(withdrawal["coin"]) == Decimal(0)
+    assert withdrawals[0]["txId"] in Transaction.objects.values_list("tx_id", flat=True)
