@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from functools import lru_cache
 from typing import Iterator
 
+import pytz
 from binance.client import Client
 from django.conf import settings
 
@@ -16,12 +17,12 @@ def to_timestamp(dt: datetime) -> int:
 
 def from_timestamp(stamp: int) -> datetime:
     """datetime from Binance-timestamp"""
-    return datetime.fromtimestamp(stamp / 1000)
+    return datetime.fromtimestamp(stamp / 1000).replace(tzinfo=pytz.UTC)
 
 
 def bstrptime(stamp: str) -> datetime:
     """datetime from Binance datetime string: e.g. `2019-10-12 11:12:02`"""
-    return datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S")
+    return datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S").replace(tzinfo=pytz.UTC)
 
 
 def iterate_history(start_date=datetime(2017, 1, 1)) -> "Interval":
