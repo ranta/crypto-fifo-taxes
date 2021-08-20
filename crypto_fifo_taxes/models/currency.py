@@ -51,7 +51,7 @@ class Currency(models.Model):
         """
         Get the FIAT price for a crypto on a specific date.
 
-        If no `fiat` currency is defined, settings.DEFAULT_FIAT_CURRENCY will be used instead.
+        If no `fiat` currency is defined, settings.DEFAULT_FIAT_SYMBOL will be used instead.
         Fetch price for the crypto if no record for entered fiat and date is found.
         """
         if date is None:
@@ -74,6 +74,7 @@ class Currency(models.Model):
             from crypto_fifo_taxes.utils.currency import fetch_currency_price
 
             fetch_currency_price(self, date)
+            currency_price = self.prices.filter(date=date, fiat=fiat).first()
 
         return currency_price
 

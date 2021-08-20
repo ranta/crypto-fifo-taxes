@@ -1,0 +1,2 @@
+class MissingPriceHistoryError(Exception):
+    pass

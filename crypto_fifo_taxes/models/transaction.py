@@ -6,6 +6,7 @@ from django.db.transaction import atomic
 from enumfields import EnumIntegerField
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
+from crypto_fifo_taxes.exceptions import MissingPriceHistoryError
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
 
@@ -130,8 +131,14 @@ class Transaction(models.Model):
 
     def _handle_to_trade_crypto_to_crypto_cost_basis(self) -> None:
         # Use sold price as cost basis
-        currency_value = self.from_detail.currency.get_fiat_price(self.timestamp, self.from_detail.wallet.fiat).price
-        self.to_detail.cost_basis = (self.from_detail.quantity * currency_value) / self.to_detail.quantity
+        currency_value = self.from_detail.currency.get_fiat_price(self.timestamp, self.from_detail.wallet.fiat)
+        if not currency_value:
+            raise MissingPriceHistoryError(
+                f"Currency: `{self.from_detail.currency}` does not have a price for {self.timestamp.date()} "
+                f"in {self.from_detail.wallet.fiat}"
+            )
+
+        self.to_detail.cost_basis = (self.from_detail.quantity * currency_value.price) / self.to_detail.quantity
         self.to_detail.save()
 
     def _handle_from_crypto_cost_basis(self) -> bool:

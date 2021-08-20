@@ -31,7 +31,7 @@ def get_or_create_currency(currency: str) -> Currency:
     try:
         return get_currency(currency)
     except Currency.DoesNotExist:
-        currency_data = next(filter(lambda x: x["symbol"] == currency, coingecko_get_currency_list()))
+        currency_data = next(filter(lambda x: x["symbol"] == currency.lower(), coingecko_get_currency_list()))
         assert currency_data
         return Currency.objects.get_or_create(
             symbol=currency_data["symbol"],
@@ -75,7 +75,7 @@ def coingecko_request_price_history(currency: Currency, date: datetime.date) -> 
         return None  # Do not loop forever if response status is unexpected
 
 
-def fetch_currency_price(currency: Currency, date: datetime.date):
+def fetch_currency_price(currency: Currency, date: datetime.date) -> CurrencyPrice:
     """Update historical prices for given currency and date"""
     response_json = coingecko_request_price_history(currency, date)
 
@@ -83,7 +83,7 @@ def fetch_currency_price(currency: Currency, date: datetime.date):
     # if currency.icon is None:
     #     currency.icon = response_json["image"]["small"]
 
-    for fiat_symbol in settings.ALL_FIAT_CURRENCIES:
+    for fiat_symbol in settings.ALL_FIAT_CURRENCIES.keys():
         fiat_currency = Currency.objects.get(symbol=fiat_symbol)
         CurrencyPrice.objects.update_or_create(
             currency=currency,
@@ -95,4 +95,3 @@ def fetch_currency_price(currency: Currency, date: datetime.date):
                 volume=Decimal(str(response_json["market_data"]["total_volume"][fiat_symbol.lower()])),
             ),
         )
-    currency.save()
