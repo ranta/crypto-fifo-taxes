@@ -31,7 +31,12 @@ def get_or_create_currency(currency: str) -> Currency:
     try:
         return get_currency(currency)
     except Currency.DoesNotExist:
-        currency_data = next(filter(lambda x: x["symbol"] == currency.lower(), coingecko_get_currency_list()))
+        cg_currency_list = coingecko_get_currency_list()
+        # In most cases symbols will match, but in a few cases where it doesn't the id should match. e.g. IOTA
+        currency_data = next(
+            filter(lambda x: x["symbol"] == currency.lower() or x["id"] == currency.lower(), cg_currency_list)
+        )
+
         assert currency_data
         return Currency.objects.get_or_create(
             symbol=currency_data["symbol"],
@@ -75,7 +80,7 @@ def coingecko_request_price_history(currency: Currency, date: datetime.date) -> 
         return None  # Do not loop forever if response status is unexpected
 
 
-def fetch_currency_price(currency: Currency, date: datetime.date) -> CurrencyPrice:
+def fetch_currency_price(currency: Currency, date: datetime.date):
     """Update historical prices for given currency and date"""
     response_json = coingecko_request_price_history(currency, date)
 
