@@ -61,3 +61,17 @@ def get_binance_withdraws() -> Iterator[list[dict]]:
 def get_binance_dust_log() -> list:
     client = get_binance_client()
     return client.get_dust_log()["userAssetDribblets"]
+
+
+def get_binance_dividends() -> Iterator[list[dict]]:
+    client = get_binance_client()
+    for interval in iterate_history():
+        dividends =  client.get_asset_dividend_history(
+            startTime=interval.startTime,
+            endTime=interval.endTime,
+            limit=500
+        )
+
+        # If batch contains 500 transactions, some data is most likely left out, most likely Interval should be shorter.
+        assert len(dividends["total"]) < 500, "Dividend batch size limit reached, not all data may be included"
+        yield dividends["rows"]

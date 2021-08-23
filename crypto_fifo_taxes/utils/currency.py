@@ -33,9 +33,12 @@ def get_or_create_currency(currency: str) -> Currency:
     except Currency.DoesNotExist:
         cg_currency_list = coingecko_get_currency_list()
         # In most cases symbols will match, but in a few cases where it doesn't the id should match. e.g. IOTA
-        currency_data = next(
-            filter(lambda x: x["symbol"] == currency.lower() or x["id"] == currency.lower(), cg_currency_list)
-        )
+        try:
+            currency_data = next(
+                filter(lambda x: x["symbol"] == currency.lower() or x["id"] == currency.lower(), cg_currency_list)
+            )
+        except StopIteration:
+            raise f"Currency `{currency}` not found in CoinGecko API"
 
         assert currency_data
         return Currency.objects.get_or_create(

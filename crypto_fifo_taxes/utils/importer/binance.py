@@ -103,3 +103,26 @@ def import_dust(wallet: Wallet, converts: list) -> None:
             tx_creator.add_to_detail(wallet=wallet, currency=bnb, quantity=Decimal(detail["transferedAmount"]))
             tx_creator.add_fee_detail(wallet=wallet, currency=bnb, quantity=Decimal(detail["serviceChargeAmount"]))
             tx_creator.create_trade(timestamp=from_timestamp(convert["operateTime"]), order_id=str(convert["transId"]))
+
+
+def import_dividends(wallet: Wallet, dividends: list) -> None:
+    """
+    https://binance-docs.github.io/apidocs/spot/en/#asset-dividend-record-user_data
+    """
+    dividend_ids = set(str(t["tranId"]) for t in dividends)
+    existing_dividends = Transaction.objects.filter(tx_id__in=dividend_ids).values_list("tx_id", flat=True)
+
+    for dividend in dividends:
+        if str(dividend["tranId"]) in existing_dividends:
+            continue
+
+        currency = get_or_create_currency(dividend["asset"])
+        tx_creator = TransactionCreator(fill_cost_basis=False)
+        tx_creator.create_deposit(
+            wallet=wallet,
+            timestamp=from_timestamp(dividend["divTime"]),
+            currency=currency,
+            quantity=Decimal(dividend["amount"]),
+            tx_id=dividend["tranId"],
+            description=dividend["enInfo"],
+        )

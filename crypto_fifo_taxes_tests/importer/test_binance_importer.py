@@ -4,7 +4,7 @@ import pytest
 
 from crypto_fifo_taxes.models import Transaction
 from crypto_fifo_taxes.utils.binance_api import bstrptime, from_timestamp
-from crypto_fifo_taxes.utils.importer.binance import import_deposits, import_dust, import_withdrawals
+from crypto_fifo_taxes.utils.importer.binance import import_deposits, import_dividends, import_dust, import_withdrawals
 from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, CurrencyPriceFactory, WalletFactory
 from crypto_fifo_taxes_tests.utils import WalletHelper
 
@@ -154,3 +154,29 @@ def test_binance_dust_import():
         for detail in convert["userAssetDribbletDetails"]:
             sum_bnb = sum_bnb + Decimal(detail["transferedAmount"]) - Decimal(detail["serviceChargeAmount"])
     assert wallet.get_current_balance("BNB") == sum_bnb
+
+
+@pytest.mark.django_db
+def test_binance_dividend_import():
+    wallet = WalletFactory.create()
+    dividends = [
+        {
+            "amount": "10.00000000",
+            "asset": "BETH",
+            "divTime": 1563189166000,
+            "enInfo": "ETH 2.0 Staking",
+            "tranId": 2968885921,
+        },
+        {
+            "amount": "10.00000000",
+            "asset": "BETH",
+            "divTime": 1563189165000,
+            "enInfo": "ETH 2.0 Staking",
+            "tranId": 2968885920,
+        },
+    ]
+
+    import_dividends(wallet, dividends)
+
+    assert Transaction.objects.count() == 2
+    assert wallet.get_current_balance("BETH") == Decimal(20)
