@@ -73,12 +73,14 @@ def import_pair_trades(wallet: Wallet, trading_pair: CurrencyPair, trades: list)
             continue
 
         fee_currency = get_or_create_currency(trade["commissionAsset"])
-        from_currency = trading_pair.sell if trade["isBuyer"] else trading_pair.buy
-        to_currency = trading_pair.buy if trade["isBuyer"] else trading_pair.sell
 
         tx_creator = TransactionCreator(fill_cost_basis=False)
-        tx_creator.add_from_detail(wallet=wallet, currency=from_currency, quantity=Decimal(trade["quoteQty"]))
-        tx_creator.add_to_detail(wallet=wallet, currency=to_currency, quantity=Decimal(trade["qty"]))
+        if trade["isBuyer"]:
+            tx_creator.add_from_detail(wallet=wallet, currency=trading_pair.sell, quantity=Decimal(trade["quoteQty"]))
+            tx_creator.add_to_detail(wallet=wallet, currency=trading_pair.buy, quantity=Decimal(trade["qty"]))
+        else:
+            tx_creator.add_from_detail(wallet=wallet, currency=trading_pair.buy, quantity=Decimal(trade["qty"]))
+            tx_creator.add_to_detail(wallet=wallet, currency=trading_pair.sell, quantity=Decimal(trade["quoteQty"]))
         tx_creator.add_fee_detail(wallet=wallet, currency=fee_currency, quantity=Decimal(trade["commission"]))
         tx_creator.create_trade(timestamp=from_timestamp(trade["time"]), order_id=str(trade["orderId"]))
 

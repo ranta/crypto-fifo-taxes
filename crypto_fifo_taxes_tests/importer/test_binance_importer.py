@@ -2,14 +2,16 @@ from decimal import Decimal
 
 import pytest
 
-from crypto_fifo_taxes.models import Transaction
+from crypto_fifo_taxes.models import CurrencyPair, Transaction
 from crypto_fifo_taxes.utils.binance.binance_api import bstrptime, from_timestamp
 from crypto_fifo_taxes.utils.binance.binance_importer import (
     import_deposits,
     import_dividends,
     import_dust,
+    import_pair_trades,
     import_withdrawals,
 )
+from crypto_fifo_taxes.utils.currency import get_or_create_currency
 from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, CurrencyPriceFactory, WalletFactory
 from crypto_fifo_taxes_tests.utils import WalletHelper
 
@@ -94,6 +96,55 @@ def test_binance_withdrawal_import():
     for withdrawal in withdrawals:
         assert wallet.get_current_balance(withdrawal["coin"]) == Decimal(0)
     assert withdrawals[0]["txId"] in Transaction.objects.values_list("tx_id", flat=True)
+
+
+@pytest.mark.django_db
+def test_binance_trade_import():
+    wallet = WalletFactory.create()
+    nano_eth_trades = [
+        {
+            "symbol": "NANOETH",
+            "id": 137423,
+            "orderId": 470859,
+            "orderListId": -1,
+            "price": "0.01448100",
+            "qty": "3.00000000",
+            "quoteQty": "0.04344300",
+            "commission": "0.00300000",
+            "commissionAsset": "NANO",
+            "time": 1518002736381,
+            "isBuyer": True,
+            "isMaker": False,
+            "isBestMatch": True,
+        },
+        {
+            "symbol": "NANOETH",
+            "id": 291506,
+            "orderId": 1185932,
+            "orderListId": -1,
+            "price": "0.00935000",
+            "qty": "7.99000000",
+            "quoteQty": "0.07470650",
+            "commission": "0.00002241",
+            "commissionAsset": "ETH",
+            "time": 1518650278882,
+            "isBuyer": False,
+            "isMaker": True,
+            "isBestMatch": True,
+        },
+    ]
+    trading_pair = CurrencyPair.objects.get_or_create(
+        symbol="NANOETH",
+        defaults=dict(
+            buy=get_or_create_currency("NANO"),
+            sell=get_or_create_currency("ETH"),
+        ),
+    )[0]
+
+    import_pair_trades(wallet, trading_pair, nano_eth_trades)
+
+    assert Transaction.objects.count() == 2
+    assert wallet.get_current_balance("NANO") == Decimal("3.00000000") - Decimal("7.99000000") - Decimal("0.00300000")
 
 
 @pytest.mark.django_db

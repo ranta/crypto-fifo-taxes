@@ -108,7 +108,7 @@ class CurrencyPair(models.Model):
         )
 
     def __str__(self):
-        return f"{self.symbol})"
+        return f"{self.symbol}"
 
     def __repr__(self):
         return f"<{self.__class__.__name__} ({self.pk}): {self.symbol}>"
