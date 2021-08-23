@@ -88,7 +88,7 @@ def import_dust(wallet: Wallet, converts: list) -> None:
     https://binance-docs.github.io/apidocs/spot/en/#dustlog-user_data
     """
     convert_ids = set(str(t["transId"]) for t in converts)
-    existing_converts = Transaction.objects.filter(order_id__in=convert_ids).values_list("tx_id", flat=True)
+    existing_converts = Transaction.objects.filter(order_id__in=convert_ids).values_list("order_id", flat=True)
 
     bnb = get_or_create_currency("BNB")
 
