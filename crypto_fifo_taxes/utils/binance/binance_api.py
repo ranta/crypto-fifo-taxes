@@ -4,8 +4,9 @@ from functools import lru_cache
 from typing import Iterator
 
 import pytz
-from binance.client import Client
 from django.conf import settings
+
+from crypto_fifo_taxes.utils.binance.binance_client import BinanceClient
 
 Interval = namedtuple("Interval", "startTime endTime")
 
@@ -25,24 +26,22 @@ def bstrptime(stamp: str) -> datetime:
     return datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S").replace(tzinfo=pytz.UTC)
 
 
-def iterate_history(start_date=datetime(2017, 1, 1)) -> "Interval":
+def iterate_history(start_date=datetime(2017, 1, 1), delta_days: int = 90) -> "Interval":
     """
-    Binance allows fetching from the history at most 90 days at a time
+    Binance allows fetching from the trade history at most 90 days at a time
     This function makes it easier to get all required intervals
     """
-    i = 0
     while start_date < datetime.now():
-        start_date = start_date + timedelta(days=90)
+        start_date = start_date + timedelta(days=delta_days)
         yield Interval(
             to_timestamp(start_date),
-            to_timestamp(start_date + timedelta(days=90)),
+            to_timestamp(start_date + timedelta(days=delta_days)),
         )
-        i += 1
 
 
 @lru_cache()
-def get_binance_client() -> Client:
-    client = Client(settings.BINANCE_API_KEY, settings.BINANCE_API_SECRET)
+def get_binance_client() -> BinanceClient:
+    client = BinanceClient(settings.BINANCE_API_KEY, settings.BINANCE_API_SECRET)
     return client
 
 
@@ -69,5 +68,5 @@ def get_binance_dividends() -> Iterator[list[dict]]:
         dividends = client.get_asset_dividend_history(startTime=interval.startTime, endTime=interval.endTime, limit=500)
 
         # If batch contains 500 transactions, some data is most likely left out, most likely Interval should be shorter.
-        assert len(dividends["total"]) < 500, "Dividend batch size limit reached, not all data may be included"
+        assert dividends["total"] < 500, "Dividend batch size limit reached, not all data may be included"
         yield dividends["rows"]

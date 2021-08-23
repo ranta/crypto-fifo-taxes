@@ -42,7 +42,7 @@ def get_or_create_currency(currency: str) -> Currency:
 
         assert currency_data
         return Currency.objects.get_or_create(
-            symbol=currency_data["symbol"],
+            symbol=currency_data["symbol"].upper(),
             defaults=dict(
                 name=currency_data["name"],
                 cg_id=currency_data["id"],
