@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from django.conf import settings
+
 from crypto_fifo_taxes.models import CurrencyPair, Transaction, Wallet
 from crypto_fifo_taxes.utils.binance.binance_api import bstrptime, from_timestamp
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
@@ -114,6 +116,9 @@ def import_dividends(wallet: Wallet, dividends: list) -> None:
 
     for dividend in dividends:
         if str(dividend["tranId"]) in existing_dividends:
+            continue
+
+        if dividend["asset"] in settings.IGNORED_TOKENS:
             continue
 
         currency = get_or_create_currency(dividend["asset"])

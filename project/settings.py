@@ -108,3 +108,8 @@ DEFAULT_FIAT_SYMBOL = "EUR"
 
 # Save records for these currencies
 ALL_FIAT_CURRENCIES = {"EUR": "Euro", "USD": "US Dollar"}
+
+# The following symbols are ignored when importing dividends
+IGNORED_TOKENS = [
+    "JEX",  # Not worth anything, Coingecko doesn't even have any price history data on this
+]
