@@ -4,7 +4,7 @@ import pytest
 
 from crypto_fifo_taxes.models import Transaction
 from crypto_fifo_taxes.utils.binance_api import bstrptime, from_timestamp
-from crypto_fifo_taxes.utils.importer.binance import import_deposits, import_withdrawals
+from crypto_fifo_taxes.utils.importer.binance import import_deposits, import_dust, import_withdrawals
 from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, CurrencyPriceFactory, WalletFactory
 from crypto_fifo_taxes_tests.utils import WalletHelper
 
@@ -89,3 +89,68 @@ def test_binance_withdrawal_import():
     for withdrawal in withdrawals:
         assert wallet.get_current_balance(withdrawal["coin"]) == Decimal(0)
     assert withdrawals[0]["txId"] in Transaction.objects.values_list("tx_id", flat=True)
+
+
+@pytest.mark.django_db
+def test_binance_dust_import():
+    wallet = WalletFactory.create()
+    converts = [
+        {
+            "operateTime": 1615985535000,
+            "totalTransferedAmount": "0.00132256",  # Total transferred BNB amount for this exchange.
+            "totalServiceChargeAmount": "0.00002699",  # Total service charge amount for this exchange.
+            "transId": 45178372831,
+            "userAssetDribbletDetails": [  # Details of  this exchange.
+                {
+                    "transId": 4359321,
+                    "serviceChargeAmount": "0.000009",
+                    "amount": "0.0009",
+                    "operateTime": 1615985535000,
+                    "transferedAmount": "0.000441",
+                    "fromAsset": "USDT",
+                },
+                {
+                    "transId": 4359321,
+                    "serviceChargeAmount": "0.00001799",
+                    "amount": "0.0009",
+                    "operateTime": 1615985535000,
+                    "transferedAmount": "0.00088156",
+                    "fromAsset": "ETH",
+                },
+            ],
+        },
+        {
+            "operateTime": 1616203180000,
+            "totalTransferedAmount": "0.00058795",
+            "totalServiceChargeAmount": "0.000012",
+            "transId": 4357015,
+            "userAssetDribbletDetails": [
+                {
+                    "transId": 4357015,
+                    "serviceChargeAmount": "0.00001",
+                    "amount": "0.001",
+                    "operateTime": 1616203180000,
+                    "transferedAmount": "0.00049",
+                    "fromAsset": "USDT",
+                },
+                {
+                    "transId": 4357015,
+                    "serviceChargeAmount": "0.000002",
+                    "amount": "0.0001",
+                    "operateTime": 1616203180000,
+                    "transferedAmount": "0.00009795",
+                    "fromAsset": "ETH",
+                },
+            ],
+        },
+    ]
+
+    import_dust(wallet, converts)
+
+    assert Transaction.objects.count() == 4
+
+    sum_bnb = Decimal(0)
+    for convert in converts:
+        for detail in convert["userAssetDribbletDetails"]:
+            sum_bnb = sum_bnb + Decimal(detail["transferedAmount"]) - Decimal(detail["serviceChargeAmount"])
+    assert wallet.get_current_balance("BNB") == sum_bnb

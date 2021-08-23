@@ -56,3 +56,8 @@ def get_binance_withdraws() -> Iterator[list[dict]]:
     client = get_binance_client()
     for interval in iterate_history():
         yield client.get_withdraw_history(startTime=interval.startTime, endTime=interval.endTime)
+
+
+def get_binance_dust_log() -> list:
+    client = get_binance_client()
+    return client.get_dust_log()["userAssetDribblets"]

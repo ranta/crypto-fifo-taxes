@@ -20,7 +20,7 @@ def get_default_fiat() -> Currency:
 @lru_cache()
 def get_currency(currency: Union[Currency, str, int]) -> Currency:
     if type(currency) == str:
-        return Currency.objects.get(symbol=currency)
+        return Currency.objects.get(symbol__iexact=currency)
     if type(currency) == int:
         return Currency.objects.get(id=currency)
     return currency

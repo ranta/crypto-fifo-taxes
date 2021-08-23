@@ -79,3 +79,27 @@ def import_pair_trades(wallet: Wallet, trading_pair: CurrencyPair, trades: list)
         tx_creator.add_to_detail(wallet=wallet, currency=to_currency, quantity=Decimal(trade["qty"]))
         tx_creator.add_fee_detail(wallet=wallet, currency=fee_currency, quantity=Decimal(trade["commission"]))
         tx_creator.create_trade(timestamp=from_timestamp(trade["time"]), order_id=str(trade["orderId"]))
+
+
+def import_dust(wallet: Wallet, converts: list) -> None:
+    """
+    https://binance-docs.github.io/apidocs/spot/en/#dustlog-user_data
+    """
+    convert_ids = set(str(t["transId"]) for t in converts)
+    existing_converts = Transaction.objects.filter(order_id__in=convert_ids).values_list("tx_id", flat=True)
+
+    bnb = get_or_create_currency("BNB")
+
+    for convert in converts:
+        # If order has already been imported, skip it
+        if str(convert["transId"]) in existing_converts:
+            continue
+
+        for detail in convert["userAssetDribbletDetails"]:
+            from_currency = get_or_create_currency(detail["fromAsset"])
+
+            tx_creator = TransactionCreator(fill_cost_basis=False)
+            tx_creator.add_from_detail(wallet=wallet, currency=from_currency, quantity=Decimal(detail["amount"]))
+            tx_creator.add_to_detail(wallet=wallet, currency=bnb, quantity=Decimal(detail["transferedAmount"]))
+            tx_creator.add_fee_detail(wallet=wallet, currency=bnb, quantity=Decimal(detail["serviceChargeAmount"]))
+            tx_creator.create_trade(timestamp=from_timestamp(convert["operateTime"]), order_id=str(convert["transId"]))
