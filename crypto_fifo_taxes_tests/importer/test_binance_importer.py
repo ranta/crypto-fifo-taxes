@@ -3,8 +3,13 @@ from decimal import Decimal
 import pytest
 
 from crypto_fifo_taxes.models import Transaction
-from crypto_fifo_taxes.utils.binance_api import bstrptime, from_timestamp
-from crypto_fifo_taxes.utils.importer.binance import import_deposits, import_dividends, import_dust, import_withdrawals
+from crypto_fifo_taxes.utils.binance.binance_api import bstrptime, from_timestamp
+from crypto_fifo_taxes.utils.binance.binance_importer import (
+    import_deposits,
+    import_dividends,
+    import_dust,
+    import_withdrawals,
+)
 from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, CurrencyPriceFactory, WalletFactory
 from crypto_fifo_taxes_tests.utils import WalletHelper
 

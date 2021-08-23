@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from crypto_fifo_taxes.models import CurrencyPair, Transaction, Wallet
-from crypto_fifo_taxes.utils.binance_api import bstrptime, from_timestamp
+from crypto_fifo_taxes.utils.binance.binance_api import bstrptime, from_timestamp
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 
