@@ -14,6 +14,13 @@ class TransactionManager(models.Manager):
     def get_query_set(self):
         return super().get_query_set().prefetch_related("from_detail", "to_detail", "fee_detail")
 
+    def delete(self, *args, **kwargs):
+        for obj in self.all():
+            obj.from_detail.delete()
+            obj.to_detail.delete()
+            obj.fee_detail.delete()
+        super().delete(*args, **kwargs)
+
 
 class Transaction(models.Model):
     """Contains static values for a transaction"""
@@ -51,6 +58,12 @@ class Transaction(models.Model):
 
     def __repr__(self):
         return f"<{self.__class__.__name__} ({self.id}): {str(self)}>"
+
+    def delete(self, *args, **kwargs):
+        self.from_detail.delete()
+        self.to_detail.delete()
+        self.fee_detail.delete()
+        super().delete(*args, **kwargs)
 
     @staticmethod
     def _get_detail_cost_basis(
