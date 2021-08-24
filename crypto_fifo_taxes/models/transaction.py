@@ -34,7 +34,6 @@ class Transaction(models.Model):
 
     # Used to identify imported transactions
     tx_id = models.CharField(max_length=256, blank=True, null=True)
-    order_id = models.CharField(max_length=256, blank=True, null=True)
 
     objects = TransactionManager()
 
