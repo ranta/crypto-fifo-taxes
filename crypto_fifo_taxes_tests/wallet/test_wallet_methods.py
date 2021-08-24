@@ -68,7 +68,7 @@ def test_wallet_get_current_balance_deposit_and_withdrawal_multiple_currencies()
         with atomic():
             wallet_helper.withdraw(currency="DOGE", quantity=Decimal("42069.1337"))
 
-    balances = wallet.get_current_balance()
+    balances = wallet.get_current_balance(exclude_zero_balances=False)
     assert len(balances) == 3
 
     assert balances["BTC"] == 3

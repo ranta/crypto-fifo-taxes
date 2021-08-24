@@ -49,7 +49,7 @@ class Wallet(models.Model):
         return self.transaction_details.values_list("currency_id", flat=True).distinct()
 
     def get_current_balance(
-        self, currency: Optional[Union[Currency, str, int]] = None
+        self, currency: Optional[Union[Currency, str, int]] = None, exclude_zero_balances: bool = True
     ) -> Union[Dict[str, Decimal], Decimal]:
         """
         Returns wallet's current currencies balances
@@ -86,6 +86,9 @@ class Wallet(models.Model):
                 return qs.get(currency=get_currency(currency)).balance
             except ObjectDoesNotExist:
                 return Decimal(0)
+        if exclude_zero_balances:
+            qs = qs.exclude(balance=0)
+
         return {c.symbol: c.balance for c in qs.values_list("symbol", "balance", named=True)}
 
     def get_consumable_currency_balances(
