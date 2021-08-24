@@ -29,6 +29,7 @@ class Command(BaseCommand):
             admin_user.save()
             Wallet.objects.create(
                 user=admin_user,
-                name="Default Wallet",
+                name="Binance",
                 fiat=get_default_fiat(),
             )
+            print("Project initialized!")

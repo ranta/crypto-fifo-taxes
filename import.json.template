@@ -1,0 +1,25 @@
+[
+   {
+      "__":"Trade within the same wallet",
+      "___":"Type options: DEPOSIT, WITHDRAW, TRADE, TRANSFER, SWAP",
+      "type":"TRADE",
+      "timestamp":"2021-02-02 17:26:40",
+      "wallet":"Binance",
+      "from_symbol":"ETH",
+      "from_amount":1,
+      "to_symbol":"BETH",
+      "to_amount":1
+   },
+   {
+      "__":"Transfer from one wallet to another",
+      "type":"TRANSFER",
+      "timestamp":"2019-08-24 12:39:53",
+      "from_wallet":"Binance",
+      "from_symbol":"BTC",
+      "from_amount":1,
+      "to_wallet":"Coinbase",
+      "to_symbol":"BTC",
+      "to_amount":0.995,
+      "fee_amount":0.005
+   }
+]
