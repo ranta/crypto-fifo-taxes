@@ -30,16 +30,18 @@ class TransactionCreator:
     >>>tx_creator.create_trade(timestamp=timezone.now())
     """
 
-    def __init__(self, timestamp: Optional[datetime] = None, fill_cost_basis: bool = True):
-        self.timestamp: timestamp
-        self.transaction_type: TransactionType = TransactionType.UNKNOWN
+    def __init__(
+        self, timestamp: Optional[datetime] = None, type=TransactionType.UNKNOWN, fill_cost_basis: bool = True
+    ):
+        self.timestamp: Optional[datetime] = timestamp
+        self.transaction_type: TransactionType = type
         self.transaction_label: TransactionLabel = TransactionLabel.UNKNOWN
 
         self.from_detail: Optional[TransactionDetail] = None
         self.to_detail: Optional[TransactionDetail] = None
         self.fee_detail: Optional[TransactionDetail] = None
 
-        self.fill_cost_basis = fill_cost_basis
+        self.fill_cost_basis: bool = fill_cost_basis
 
     def _add_detail(
         self,
@@ -92,7 +94,7 @@ class TransactionCreator:
                 all_details[detail_field] = detail
         return all_details
 
-    def create_deposit(self, timestamp: datetime, **kwargs):
+    def create_deposit(self, timestamp: Optional[datetime] = None, **kwargs):
         self.transaction_type = TransactionType.DEPOSIT
         description = kwargs.pop("description", "")
         tx_id = kwargs.pop("tx_id", "")
@@ -100,9 +102,9 @@ class TransactionCreator:
         # Accept to_details values in kwargs
         if len(kwargs):
             self.add_to_detail(**kwargs)
-        return self._create_transaction(timestamp, description=description, tx_id=tx_id)
+        return self.create_transaction(timestamp, description=description, tx_id=tx_id)
 
-    def create_withdrawal(self, timestamp: datetime, **kwargs):
+    def create_withdrawal(self, timestamp: Optional[datetime] = None, **kwargs):
         self.transaction_type = TransactionType.WITHDRAW
         description = kwargs.pop("description", "")
         tx_id = kwargs.pop("tx_id", "")
@@ -110,22 +112,24 @@ class TransactionCreator:
         # Accept from_details values in kwargs
         if len(kwargs):
             self.add_from_detail(**kwargs)
-        return self._create_transaction(timestamp, description=description, tx_id=tx_id)
+        return self.create_transaction(timestamp, description=description, tx_id=tx_id)
 
-    def create_trade(self, timestamp: datetime, **kwargs):
+    def create_trade(self, timestamp: Optional[datetime] = None, **kwargs):
         self.transaction_type = TransactionType.TRADE
-        return self._create_transaction(timestamp, **kwargs)
+        return self.create_transaction(timestamp, **kwargs)
 
-    def create_transfer(self, timestamp: datetime, **kwargs):
+    def create_transfer(self, timestamp: Optional[datetime] = None, **kwargs):
         self.transaction_type = TransactionType.TRANSFER
-        return self._create_transaction(timestamp, **kwargs)
+        return self.create_transaction(timestamp, **kwargs)
 
-    def create_swap(self, timestamp: datetime, **kwargs):
+    def create_swap(self, timestamp: Optional[datetime] = None, **kwargs):
         self.transaction_type = TransactionType.SWAP
-        return self._create_transaction(timestamp, **kwargs)
+        return self.create_transaction(timestamp, **kwargs)
 
     def _validate_transaction_type(self):
         assert self.transaction_type is not None
+        assert self.transaction_type != TransactionType.UNKNOWN
+
         # Validate correct details are entered for transaction type
         if self.transaction_type == TransactionType.DEPOSIT:
             assert self.from_detail is None and self.to_detail is not None
@@ -138,7 +142,7 @@ class TransactionCreator:
             assert self.from_detail is not None and self.to_detail is not None
 
     @atomic()
-    def _create_transaction(self, timestamp: Optional[datetime], **kwargs):
+    def create_transaction(self, timestamp: Optional[datetime] = None, **kwargs):
         if timestamp is not None:
             self.timestamp = timestamp
         assert self.timestamp is not None

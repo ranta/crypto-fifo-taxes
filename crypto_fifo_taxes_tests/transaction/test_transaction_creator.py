@@ -37,3 +37,14 @@ def test_transaction_creator():
     assert Transaction.objects.count() == 3
     assert TransactionDetail.objects.count() == 5
     assert tx.transaction_type == TransactionType.TRADE
+
+    # Trade using create_transaction
+    tx_creator = TransactionCreator(timestamp=timezone.now(), type=TransactionType.TRADE)
+    tx_creator.add_from_detail(wallet=wallet, currency=fiat, quantity=200)
+    tx_creator.add_to_detail(wallet=wallet, currency=crypto, quantity=2)
+    tx_creator.add_fee_detail(wallet=wallet, currency=crypto, quantity=Decimal("0.0001"))
+    tx = tx_creator.create_transaction()
+
+    assert Transaction.objects.count() == 4
+    assert TransactionDetail.objects.count() == 8
+    assert tx.transaction_type == TransactionType.TRADE
