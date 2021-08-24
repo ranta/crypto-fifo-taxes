@@ -21,7 +21,7 @@ from crypto_fifo_taxes.utils.binance.binance_importer import (
     import_pair_trades,
     import_withdrawals,
 )
-from crypto_fifo_taxes.utils.currency import get_or_create_currency
+from crypto_fifo_taxes.utils.currency import get_or_create_currency_pair
 
 
 class Command(BaseCommand):
@@ -59,13 +59,11 @@ class Command(BaseCommand):
                     trades = self.client.get_my_trades(symbol=pair["symbol"])
                     trading_pair = None
                     if trades != []:
-                        trading_pair = CurrencyPair.objects.get_or_create(
+                        trading_pair = get_or_create_currency_pair(
                             symbol=pair["symbol"],
-                            defaults=dict(
-                                buy=get_or_create_currency(pair["baseAsset"]),
-                                sell=get_or_create_currency(pair["quoteAsset"]),
-                            ),
-                        )[0]
+                            buy=pair["baseAsset"],
+                            sell=pair["quoteAsset"],
+                        )
                 # Fast sync
                 else:
                     trades = self.client.get_my_trades(symbol=pair)

@@ -8,7 +8,7 @@ import requests
 from django.conf import settings
 from django.utils.text import slugify
 
-from crypto_fifo_taxes.models import Currency, CurrencyPrice
+from crypto_fifo_taxes.models import Currency, CurrencyPair, CurrencyPrice
 
 
 @lru_cache()
@@ -48,6 +48,17 @@ def get_or_create_currency(currency: str) -> Currency:
                 cg_id=currency_data["id"],
             ),
         )[0]
+
+
+@lru_cache()
+def get_or_create_currency_pair(symbol: str, buy: Union[Currency, str], sell: Union[Currency, str]) -> CurrencyPair:
+    return CurrencyPair.objects.get_or_create(
+        symbol=symbol,
+        defaults=dict(
+            buy=get_or_create_currency(buy) if type(buy) == str else buy,
+            sell=get_or_create_currency(sell) if type(sell) == str else sell,
+        ),
+    )[0]
 
 
 @lru_cache()
