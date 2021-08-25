@@ -124,12 +124,20 @@ def import_dividends(wallet: Wallet, dividends: list) -> None:
             continue
 
         currency = get_or_create_currency(dividend["asset"])
-        tx_creator = TransactionCreator(fill_cost_basis=False)
-        tx_creator.create_deposit(
-            wallet=wallet,
+        tx_creator = TransactionCreator(
             timestamp=from_timestamp(dividend["divTime"]),
-            currency=currency,
-            quantity=Decimal(dividend["amount"]),
+            fill_cost_basis=False,
             tx_id=dividend["tranId"],
             description=dividend["enInfo"],
         )
+        tx_creator.add_to_detail(wallet=wallet, currency=currency, quantity=Decimal(dividend["amount"]))
+
+        if dividend["enInfo"] == "VEN/VET Mainnet Swap(1:100) ":
+            # VEN/VET Swap is included in dividends, so VET is added to wallet, but VEN is not removed.
+            tx_creator.add_from_detail(
+                wallet=wallet, currency=get_or_create_currency("VEN"), quantity=Decimal(dividend["amount"]) / 100
+            )
+            tx_creator.create_swap()
+            continue
+
+        tx_creator.create_deposit()
