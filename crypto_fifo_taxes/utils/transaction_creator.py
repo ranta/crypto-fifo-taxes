@@ -31,11 +31,18 @@ class TransactionCreator:
     """
 
     def __init__(
-        self, timestamp: Optional[datetime] = None, type=TransactionType.UNKNOWN, fill_cost_basis: bool = True
+        self,
+        timestamp: Optional[datetime] = None,
+        type=TransactionType.UNKNOWN,
+        fill_cost_basis: bool = True,
+        description: Optional[str] = "",
+        tx_id: Optional[str] = "",
     ):
         self.timestamp: Optional[datetime] = timestamp
         self.transaction_type: TransactionType = type
         self.transaction_label: TransactionLabel = TransactionLabel.UNKNOWN
+        self.description = description
+        self.tx_id = tx_id
 
         self.from_detail: Optional[TransactionDetail] = None
         self.to_detail: Optional[TransactionDetail] = None
@@ -94,37 +101,37 @@ class TransactionCreator:
                 all_details[detail_field] = detail
         return all_details
 
-    def create_deposit(self, timestamp: Optional[datetime] = None, **kwargs):
+    def create_deposit(self, **kwargs):
         self.transaction_type = TransactionType.DEPOSIT
-        description = kwargs.pop("description", "")
-        tx_id = kwargs.pop("tx_id", "")
+        self.description = kwargs.pop("description", self.description)
+        self.tx_id = kwargs.pop("tx_id", self.tx_id)
 
         # Accept to_details values in kwargs
         if len(kwargs):
             self.add_to_detail(**kwargs)
-        return self.create_transaction(timestamp, description=description, tx_id=tx_id)
+        return self.create_transaction()
 
-    def create_withdrawal(self, timestamp: Optional[datetime] = None, **kwargs):
+    def create_withdrawal(self, **kwargs):
         self.transaction_type = TransactionType.WITHDRAW
-        description = kwargs.pop("description", "")
-        tx_id = kwargs.pop("tx_id", "")
+        self.description = kwargs.pop("description", self.description)
+        self.tx_id = kwargs.pop("tx_id", self.tx_id)
 
         # Accept from_details values in kwargs
         if len(kwargs):
             self.add_from_detail(**kwargs)
-        return self.create_transaction(timestamp, description=description, tx_id=tx_id)
+        return self.create_transaction()
 
-    def create_trade(self, timestamp: Optional[datetime] = None, **kwargs):
+    def create_trade(self, **kwargs):
         self.transaction_type = TransactionType.TRADE
-        return self.create_transaction(timestamp, **kwargs)
+        return self.create_transaction(**kwargs)
 
-    def create_transfer(self, timestamp: Optional[datetime] = None, **kwargs):
+    def create_transfer(self, **kwargs):
         self.transaction_type = TransactionType.TRANSFER
-        return self.create_transaction(timestamp, **kwargs)
+        return self.create_transaction(**kwargs)
 
-    def create_swap(self, timestamp: Optional[datetime] = None, **kwargs):
+    def create_swap(self, **kwargs):
         self.transaction_type = TransactionType.SWAP
-        return self.create_transaction(timestamp, **kwargs)
+        return self.create_transaction(**kwargs)
 
     def _validate_transaction_type(self):
         assert self.transaction_type is not None
@@ -142,10 +149,11 @@ class TransactionCreator:
             assert self.from_detail is not None and self.to_detail is not None
 
     @atomic()
-    def create_transaction(self, timestamp: Optional[datetime] = None, **kwargs):
-        if timestamp is not None:
-            self.timestamp = timestamp
-        assert self.timestamp is not None
+    def create_transaction(self, **kwargs):
+        kwargs.setdefault("timestamp", self.timestamp)
+        kwargs.setdefault("description", self.description)
+        kwargs.setdefault("tx_id", self.tx_id)
+        assert kwargs["timestamp"] is not None
 
         self._validate_transaction_type()
 
@@ -154,7 +162,6 @@ class TransactionCreator:
             detail.save()
 
         transaction = Transaction(
-            timestamp=self.timestamp,
             transaction_type=self.transaction_type,
             transaction_label=self.transaction_label,
             **details,
