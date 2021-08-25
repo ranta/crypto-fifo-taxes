@@ -9,7 +9,7 @@ from django.db.transaction import atomic
 
 from crypto_fifo_taxes.enums import TransactionType
 from crypto_fifo_taxes.models import Transaction, Wallet
-from crypto_fifo_taxes.utils.binance.binance_api import bstrptime
+from crypto_fifo_taxes.utils.binance.binance_api import bstrptime, to_timestamp
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 
@@ -31,13 +31,28 @@ class Command(BaseCommand):
         wallet = Wallet.objects.get(name=row["wallet"])
         return wallet, wallet, wallet
 
-    def handle_imported_rows(self, data):
+    def build_transaction_id(self, row: dict) -> str:
+        wallet = row["wallet"] if "wallet" in row else row["to_wallet"] if "to_wallet" in row else row["from_wallet"]
+        symbol = row["to_symbol"] if "to_symbol" in row else row["from_symbol"]
+        return f"{wallet}_{to_timestamp(bstrptime(row['timestamp']))}_{symbol}"
+
+    def handle_imported_rows(self, data: list) -> None:
+        tx_ids = set(self.build_transaction_id(row) for row in data)
+        existing_transactions = Transaction.objects.filter(tx_id__in=tx_ids).values_list("tx_id", flat=True)
+
         for row in data:
+            tx_id = self.build_transaction_id(row)
+
+            # Skip already imported transactions
+            if tx_id in existing_transactions:
+                continue
+
             wallets = self.get_wallets(row)
             tx_creator = TransactionCreator(
                 fill_cost_basis=False,
                 timestamp=bstrptime(row["timestamp"]),
                 type=TransactionType[row["type"]],
+                tx_id=tx_id,
             )
 
             if "from_symbol" in row:
