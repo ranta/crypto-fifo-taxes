@@ -103,6 +103,7 @@ class TransactionCreator:
 
     def create_deposit(self, **kwargs):
         self.transaction_type = TransactionType.DEPOSIT
+        self.timestamp = kwargs.pop("timestamp", self.timestamp)
         self.description = kwargs.pop("description", self.description)
         self.tx_id = kwargs.pop("tx_id", self.tx_id)
 
@@ -113,6 +114,7 @@ class TransactionCreator:
 
     def create_withdrawal(self, **kwargs):
         self.transaction_type = TransactionType.WITHDRAW
+        self.timestamp = kwargs.pop("timestamp", self.timestamp)
         self.description = kwargs.pop("description", self.description)
         self.tx_id = kwargs.pop("tx_id", self.tx_id)
 

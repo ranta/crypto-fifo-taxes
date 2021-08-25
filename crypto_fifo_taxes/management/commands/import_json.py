@@ -68,7 +68,7 @@ class Command(BaseCommand):
                     quantity=Decimal(str(row["to_amount"])),
                 )
             if "fee_symbol" in row:
-                tx_creator.add_to_detail(
+                tx_creator.add_fee_detail(
                     wallet=wallets[2],
                     currency=get_or_create_currency(row["fee_symbol"]),
                     quantity=Decimal(str(row["fee_amount"])),

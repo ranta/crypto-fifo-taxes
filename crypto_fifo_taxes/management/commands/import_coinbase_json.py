@@ -52,7 +52,7 @@ class Command(BaseCommand):
                 )
 
             if row["fee"] > 0:
-                tx_creator.add_to_detail(
+                tx_creator.add_fee_detail(
                     wallet=self.wallet,
                     currency=get_or_create_currency(row["price/fee/total unit"]),
                     quantity=Decimal(str(row["fee"])),
