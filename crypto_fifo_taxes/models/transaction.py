@@ -13,12 +13,7 @@ from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
 
 class TransactionQuerySet(models.QuerySet):
-    def delete(self):
-        for obj in list(self):
-            obj.from_detail.delete()
-            obj.to_detail.delete()
-            obj.fee_detail.delete()
-        super().delete()
+    pass
 
 
 class TransactionManager(models.Manager):
