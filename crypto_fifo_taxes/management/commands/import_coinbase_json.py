@@ -20,7 +20,14 @@ class Command(BaseCommand):
         parser.add_argument("--file", type=str)
 
     def handle_imported_rows(self, data):
+        trade_ids = set(str(row["trade id"]) for row in data)
+        existing_orders = Transaction.objects.filter(tx_id__in=trade_ids).values_list("tx_id", flat=True)
+
         for row in data:
+            # Skip already imported trades
+            if str(row["trade id"]) in existing_orders:
+                continue
+
             tx_creator = TransactionCreator(
                 fill_cost_basis=False,
                 timestamp=datetime.strptime(row["created at"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=pytz.UTC),
