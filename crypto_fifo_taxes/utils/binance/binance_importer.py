@@ -141,3 +141,33 @@ def import_dividends(wallet: Wallet, dividends: list) -> None:
             continue
 
         tx_creator.create_deposit()
+
+
+def import_interest(wallet: Wallet, interests: list) -> None:
+    """
+    https://binance-docs.github.io/apidocs/spot/en/#get-interest-history-user_data-2
+    """
+
+    def build_transaction_id(row: dict) -> str:
+        return f"{wallet.name}_{row['time']}_{row['asset']}"
+
+    interest_ids = set(build_transaction_id(i) for i in interests)
+    existing_interests = Transaction.objects.filter(tx_id__in=interest_ids).values_list("tx_id", flat=True)
+
+    for row in interests:
+        tx_id = build_transaction_id(row)
+        if tx_id in existing_interests:
+            continue
+
+        if row["asset"] in settings.IGNORED_TOKENS:
+            continue
+
+        currency = get_or_create_currency(row["asset"])
+        tx_creator = TransactionCreator(
+            timestamp=from_timestamp(row["time"]),
+            fill_cost_basis=False,
+            tx_id=build_transaction_id(row),
+            description="Interest payout",
+        )
+        tx_creator.add_to_detail(wallet=wallet, currency=currency, quantity=Decimal(row["interest"]))
+        tx_creator.create_deposit()

@@ -70,3 +70,12 @@ def get_binance_dividends() -> Iterator[list[dict]]:
         # If batch contains 500 transactions, some data is most likely left out, most likely Interval should be shorter.
         assert dividends["total"] < 500, "Dividend batch size limit reached, not all data may be included"
         yield dividends["rows"]
+
+
+def get_binance_interest_history() -> Iterator[list[dict]]:
+    client = get_binance_client()
+    for type in ("DAILY", "ACTIVITY", "CUSTOMIZED_FIXED"):
+        for interval in iterate_history(delta_days=30):
+            yield client.get_lending_interest_history(
+                startTime=interval.startTime, endTime=interval.endTime, limit=100, lendingType=type
+            )

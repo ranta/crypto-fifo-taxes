@@ -12,12 +12,14 @@ from crypto_fifo_taxes.utils.binance.binance_api import (
     get_binance_deposits,
     get_binance_dividends,
     get_binance_dust_log,
+    get_binance_interest_history,
     get_binance_withdraws,
 )
 from crypto_fifo_taxes.utils.binance.binance_importer import (
     import_deposits,
     import_dividends,
     import_dust,
+    import_interest,
     import_pair_trades,
     import_withdrawals,
 )
@@ -36,6 +38,9 @@ class Command(BaseCommand):
             type=int,
             help="Mode this sync will be run in. 0=fast, 1=full",
         )
+
+    def print_dot(self):
+        print(".", end="", flush=True)
 
     def get_all_pairs(self) -> list:
         """
@@ -70,10 +75,10 @@ class Command(BaseCommand):
                     trading_pair = CurrencyPair.objects.get(symbol=pair)
 
                 if trading_pair is not None:
-                    print(f"\nSyncing trades for pair: {trading_pair}", end="")
+                    print(trading_pair, end=", ", flush=True)
                     import_pair_trades(wallet=self.wallet, trading_pair=trading_pair, trades=trades)
                 else:
-                    print(".", end="")
+                    self.print_dot()
                 break
             except BinanceAPIException as e:
                 if "Too much request weight used" in str(e):
@@ -82,12 +87,12 @@ class Command(BaseCommand):
 
     def sync_deposits(self) -> None:
         for deposits in get_binance_deposits():
-            print(".", end="")
+            self.print_dot()
             import_deposits(self.wallet, deposits)
 
     def sync_withdrawals(self) -> None:
         for withdraws in get_binance_withdraws():
-            print(".", end="")
+            self.print_dot()
             import_withdrawals(self.wallet, withdraws)
 
     def sync_dust(self):
@@ -95,8 +100,13 @@ class Command(BaseCommand):
 
     def sync_dividends(self):
         for dividends in get_binance_dividends():
-            print(".", end="")
+            self.print_dot()
             import_dividends(self.wallet, dividends)
+
+    def sync_interest(self):
+        for dividends in get_binance_interest_history():
+            self.print_dot()
+            import_interest(self.wallet, dividends)
 
     def sync_trades(self, mode: int) -> None:
         if mode is None or mode == 0:
@@ -104,24 +114,24 @@ class Command(BaseCommand):
             # Sync only trading pairs which already have records
             pairs = CurrencyPair.objects.values_list("symbol", flat=True)
             if len(pairs) > 1:
-                print(f"Syncing trades using FAST mode for {len(pairs)} pairs...")
+                print(f"Syncing trades using FAST mode for {len(pairs)} pairs...", end="")
             else:
                 print("No existing currency pairs found for FAST mode sync. Manually run FULL sync.")
         else:
             # FULL sync
             # Fetch any new trading pairs from Binance
             pairs = self.get_all_pairs()
-            print(f"Syncing trades using FULL mode for {len(pairs)} pairs...")
+            print(f"Syncing trades using FULL mode for {len(pairs)} pairs...", end="")
 
+        print("Syncing trades for pair: ", end="")
         for pair in pairs:
             self.sync_pair(pair)
-        print()
 
     def print_time_elapsed(self, func, **kwargs):
-        print(f"Starting {func.__name__}.", end="")
+        print(f"Starting {func.__name__}. ", end="", flush=True)
         part_start_time = datetime.now()
         func(**kwargs)
-        print(f" Complete! Time elapsed: {datetime.now() - part_start_time}")
+        print(f"\n{func.__name__} sync complete! Time elapsed: {datetime.now() - part_start_time}")
 
     @atomic
     def handle(self, *args, **kwargs):
@@ -134,6 +144,7 @@ class Command(BaseCommand):
         self.print_time_elapsed(self.sync_withdrawals)
         self.print_time_elapsed(self.sync_dust)
         self.print_time_elapsed(self.sync_dividends)
+        self.print_time_elapsed(self.sync_interest)
 
         print(f"Total time elapsed: {datetime.now() - sync_start_time}")
         print(f"New transactions created: {Transaction.objects.count() - transactions_count}")
