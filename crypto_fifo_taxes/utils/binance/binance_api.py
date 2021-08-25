@@ -31,11 +31,11 @@ def iterate_history(start_date=datetime(2017, 1, 1), delta_days: int = 90) -> "I
     Binance allows fetching from the trade history at most 90 days at a time
     This function makes it easier to get all required intervals
     """
-    while start_date < datetime.now():
+    while start_date + timedelta(days=delta_days) < datetime.now():
         start_date = start_date + timedelta(days=delta_days)
         yield Interval(
             to_timestamp(start_date),
-            to_timestamp(start_date + timedelta(days=delta_days)),
+            to_timestamp(min(start_date + timedelta(days=delta_days), datetime.now())),
         )
 
 
