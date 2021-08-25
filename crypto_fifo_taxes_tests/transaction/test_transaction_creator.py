@@ -32,7 +32,7 @@ def test_transaction_creator():
     tx_creator.add_from_detail(wallet=wallet, currency=fiat, quantity=200)
     tx_creator.add_to_detail(wallet=wallet, currency=crypto, quantity=2)
     tx_creator.add_fee_detail(wallet=wallet, currency=crypto, quantity=Decimal("0.0001"))
-    tx = tx_creator.create_trade(timezone.now())
+    tx = tx_creator.create_trade(timestamp=timezone.now())
 
     assert Transaction.objects.count() == 3
     assert TransactionDetail.objects.count() == 5

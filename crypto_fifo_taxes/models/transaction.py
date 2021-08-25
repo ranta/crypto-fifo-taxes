@@ -2,6 +2,8 @@ from decimal import Decimal
 from typing import List, Optional
 
 from django.db import models
+from django.db.models import F
+from django.db.models.functions import Coalesce
 from django.db.transaction import atomic
 from enumfields import EnumIntegerField
 
@@ -10,16 +12,18 @@ from crypto_fifo_taxes.exceptions import MissingPriceHistoryError
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
 
-class TransactionManager(models.Manager):
-    def get_query_set(self):
-        return super().get_query_set().prefetch_related("from_detail", "to_detail", "fee_detail")
-
-    def delete(self, *args, **kwargs):
-        for obj in self.all():
+class TransactionQuerySet(models.QuerySet):
+    def delete(self):
+        for obj in list(self):
             obj.from_detail.delete()
             obj.to_detail.delete()
             obj.fee_detail.delete()
-        super().delete(*args, **kwargs)
+        super().delete()
+
+
+class TransactionManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().select_related("from_detail", "to_detail", "fee_detail")
 
 
 class Transaction(models.Model):
@@ -42,7 +46,7 @@ class Transaction(models.Model):
     # Used to identify imported transactions
     tx_id = models.CharField(max_length=256, blank=True, null=True)
 
-    objects = TransactionManager()
+    objects = TransactionManager.from_queryset(TransactionQuerySet)()
 
     class Meta:
         ordering = ["timestamp"]
@@ -128,7 +132,7 @@ class Transaction(models.Model):
         sum_quantity = sum(i for i, _ in cost_bases)
         total_value = sum(i * j for i, j in cost_bases)
         cost_basis = total_value / sum_quantity
-        return (Decimal(cost_basis), only_hmo_used)
+        return Decimal(cost_basis), only_hmo_used
 
     def _get_from_detail_cost_basis(self, sell_price: Optional[Decimal] = None) -> tuple[Decimal, bool]:
         return self._get_detail_cost_basis(transaction_detail=self.from_detail, sell_price=sell_price)
@@ -277,9 +281,16 @@ class Transaction(models.Model):
             self.save()
 
 
+class TransactionDetailQuerySet(models.QuerySet):
+    def order_by_timestamp(self):
+        return self.annotate(
+            timestamp=Coalesce(F("from_detail__timestamp"), F("to_detail__timestamp"), F("fee_detail__timestamp"))
+        ).order_by("timestamp")
+
+
 class TransactionDetailManager(models.Manager):
-    def get_query_set(self):
-        return super().get_query_set().prefetch_related("from_detail", "to_detail", "fee_detail")
+    def get_queryset(self):
+        return super().get_queryset().select_related("from_detail", "to_detail", "fee_detail").order_by_timestamp()
 
 
 class TransactionDetail(models.Model):
@@ -288,7 +299,7 @@ class TransactionDetail(models.Model):
     quantity = TransactionDecimalField()
     cost_basis = TransactionDecimalField(null=True)  # Calculated field
 
-    objects = TransactionDetailManager()
+    objects = TransactionDetailManager.from_queryset(TransactionDetailQuerySet)()
 
     def __str__(self):
         return f"{self.currency.symbol} ({self.quantity})"
