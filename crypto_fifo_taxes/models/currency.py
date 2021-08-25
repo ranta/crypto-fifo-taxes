@@ -2,7 +2,7 @@ import datetime
 from typing import Union
 
 from django.db import models
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
 

@@ -7,7 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import DecimalField, ExpressionWrapper, F, OuterRef, Q, Sum, Window
 from django.db.models.functions import Coalesce
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 from crypto_fifo_taxes.enums import TransactionType
 from crypto_fifo_taxes.models import Currency, TransactionDetail
