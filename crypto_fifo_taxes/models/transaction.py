@@ -1,3 +1,4 @@
+import typing
 from decimal import Decimal
 from typing import List, Optional
 
@@ -10,6 +11,9 @@ from enumfields import EnumIntegerField
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.exceptions import MissingPriceHistoryError
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
+
+if typing.TYPE_CHECKING:
+    from crypto_fifo_taxes.models import Currency, Wallet
 
 
 class TransactionQuerySet(models.QuerySet):
@@ -275,12 +279,19 @@ class Transaction(models.Model):
             self.fee_amount = self.fee_detail.total_value if not only_hmo_used else Decimal(0)
             self.save()
 
+    @atomic()
+    def add_detail(self, type: str, wallet: "Wallet", currency: "Currency", quantity: Decimal):
+        assert type in ["from_detail", "to_detail", "fee_detail"]
+        detail = TransactionDetail.objects.create(wallet=wallet, currency=currency, quantity=quantity)
+        setattr(self, type, detail)
+        self.save()
+
 
 class TransactionDetailQuerySet(models.QuerySet):
     def order_by_timestamp(self):
         return self.annotate(
-            timestamp=Coalesce(F("from_detail__timestamp"), F("to_detail__timestamp"), F("fee_detail__timestamp"))
-        ).order_by("timestamp")
+            tx_timestamp=Coalesce(F("from_detail__timestamp"), F("to_detail__timestamp"), F("fee_detail__timestamp"))
+        ).order_by("tx_timestamp")
 
 
 class TransactionDetailManager(models.Manager):
