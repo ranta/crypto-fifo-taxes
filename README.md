@@ -56,3 +56,4 @@ an endpoint for and, which means they need to be imported manually, such as:
     The only way to find details about them is to export Transaction History 3 months at a time to find the converts
     then manually import them to this app. Exporting Transaction History is restricted to 4 times a month and at most
     3 months at a time which makes this a very cumbersome process.
+- Any tokens in `Locked Staking` will not be reported in `wallet.get_binance_wallet_balance` due to API Limitations

@@ -1,11 +1,13 @@
 from collections import namedtuple
 from datetime import datetime, timedelta
+from decimal import Decimal
 from functools import lru_cache
 from typing import Iterator
 
 import pytz
 from django.conf import settings
 
+from crypto_fifo_taxes.models import Wallet
 from crypto_fifo_taxes.utils.binance.binance_client import BinanceClient
 
 Interval = namedtuple("Interval", "startTime endTime")
@@ -79,3 +81,48 @@ def get_binance_interest_history() -> Iterator[list[dict]]:
             yield client.get_lending_interest_history(
                 startTime=interval.startTime, endTime=interval.endTime, limit=100, lendingType=type
             )
+
+
+def get_binance_wallet_balance() -> dict[str:Decimal]:
+    def filter_spot_balances(row):
+        if row["asset"] in settings.IGNORED_TOKENS:
+            return False
+        if len(row["asset"]) >= 5 and row["asset"].startswith("LD"):
+            # Lending asset
+            return False
+        return Decimal(row["free"]) > 0 or Decimal(row["locked"]) > 0
+
+    def filter_savings_balances(row):
+        return Decimal(row["totalAmount"]) > 0
+
+    client = get_binance_client()
+
+    # Get positive balances from binance SPOT and SAVINGS accounts
+    spot_wallet = filter(filter_spot_balances, client.get_account()["balances"])
+    savings_wallet = filter(filter_savings_balances, client.get_lending_position())
+
+    # Combine balances
+    balances = {}
+    for row in spot_wallet:
+        balances[row["asset"]] = Decimal(row["free"]) + Decimal(row["locked"])
+    for row in savings_wallet:
+        if row["asset"] in balances.keys():
+            balances[row["asset"]] = balances["asset"] + Decimal(row["totalAmount"])
+        else:
+            balances[row["asset"]] = Decimal(row["totalAmount"])
+    return balances
+
+
+def get_binance_wallet_differences() -> dict[str, Decimal]:
+    live_wallet = get_binance_wallet_balance()
+    local_wallet = Wallet.objects.get(name="Binance").get_current_balance()
+
+    for symbol, quantity in local_wallet.items():
+        if symbol in live_wallet:
+            if live_wallet[symbol] == quantity:
+                live_wallet.pop(symbol)
+            else:
+                live_wallet[symbol] = live_wallet[symbol] - quantity
+        else:
+            live_wallet[symbol] = -quantity
+    return live_wallet

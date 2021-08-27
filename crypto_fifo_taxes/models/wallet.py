@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
@@ -50,7 +50,7 @@ class Wallet(models.Model):
 
     def get_current_balance(
         self, currency: Optional[Union[Currency, str, int]] = None, exclude_zero_balances: bool = True
-    ) -> Union[Dict[str, Decimal], Decimal]:
+    ) -> Union[dict[str, Decimal], Decimal]:
         """
         Returns wallet's current currencies balances
         If currency is given, return only it's balance
@@ -93,7 +93,7 @@ class Wallet(models.Model):
 
     def get_consumable_currency_balances(
         self, currency: Currency, timestamp: Optional[datetime] = None, quantity: Optional[Union[Decimal, int]] = None
-    ) -> List[TransactionDetail]:
+    ) -> list[TransactionDetail]:
         """
         Returns a list of "deposits" to the wallet after excluding any deposits,
         which have already been withdrawn from older to newer.
