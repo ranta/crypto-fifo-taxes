@@ -69,11 +69,11 @@ class WalletHelper:
 
     def _get_tx_creator(
         self,
-        from_currency: Union[Decimal, int],
+        from_currency: Union[Currency, str],
         from_currency_quantity: Union[Decimal, int],
-        to_currency: Union[Decimal, int],
+        to_currency: Union[Currency, str],
         to_currency_quantity: Union[Decimal, int],
-        fee_currency: Optional[Union[Decimal, int]] = None,
+        fee_currency: Optional[Union[Currency, str]] = None,
         fee_currency_quantity: Optional[Union[Decimal, int]] = None,
     ):
         tx_creator = TransactionCreator()
@@ -91,11 +91,11 @@ class WalletHelper:
 
     def trade(
         self,
-        from_currency: Union[Decimal, int],
+        from_currency: Union[Currency, str],
         from_currency_quantity: Union[Decimal, int],
-        to_currency: Union[Decimal, int],
+        to_currency: Union[Currency, str],
         to_currency_quantity: Union[Decimal, int],
-        fee_currency: Optional[Union[Decimal, int]] = None,
+        fee_currency: Optional[Union[Currency, str]] = None,
         fee_currency_quantity: Optional[Union[Decimal, int]] = None,
         timestamp=None,
     ):
@@ -111,11 +111,11 @@ class WalletHelper:
 
     def swap(
         self,
-        from_currency: Union[Decimal, int],
+        from_currency: Union[Currency, str],
         from_currency_quantity: Union[Decimal, int],
-        to_currency: Union[Decimal, int],
+        to_currency: Union[Currency, str],
         to_currency_quantity: Union[Decimal, int],
-        fee_currency: Optional[Union[Decimal, int]] = None,
+        fee_currency: Optional[Union[Currency, str]] = None,
         fee_currency_quantity: Optional[Union[Decimal, int]] = None,
         timestamp=None,
     ):
