@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import List, Optional
 
 from django.db import models
-from django.db.models import F
+from django.db.models import F, Q
 from django.db.models.functions import Coalesce
 from django.db.transaction import atomic
 from enumfields import EnumIntegerField
@@ -17,7 +17,8 @@ if typing.TYPE_CHECKING:
 
 
 class TransactionQuerySet(models.QuerySet):
-    pass
+    def filter_currency(self, symbol: str):
+        return self.filter(Q(from_detail__currency__symbol=symbol) | Q(to_detail__currency__symbol=symbol))
 
 
 class TransactionManager(models.Manager):
