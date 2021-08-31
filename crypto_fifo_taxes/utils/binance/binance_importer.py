@@ -47,12 +47,13 @@ def import_withdrawals(wallet: Wallet, deposits: list) -> None:
 
         currency = get_or_create_currency(withdrawal["coin"])
         tx_creator = TransactionCreator(fill_cost_basis=False)
-        tx_creator.add_fee_detail(wallet=wallet, currency=currency, quantity=Decimal(withdrawal["transactionFee"]))
         tx_creator.create_withdrawal(
             timestamp=bstrptime(withdrawal["applyTime"]),
             wallet=wallet,
             currency=currency,
-            quantity=Decimal(withdrawal["amount"]),
+            # Binance maye have withdrawal fees, which are additionally deducted from the wallet balance
+            # This fee is separate from network transfer fees
+            quantity=Decimal(withdrawal["amount"]) + Decimal(withdrawal["transactionFee"]),
             tx_id=withdrawal["txId"],
         )
 

@@ -94,7 +94,7 @@ def test_binance_withdrawal_import():
     import_withdrawals(wallet, withdrawals)
 
     for withdrawal in withdrawals:
-        assert wallet.get_current_balance(withdrawal["coin"]) == Decimal(0)
+        assert wallet.get_current_balance(withdrawal["coin"]) == -Decimal(withdrawal["transactionFee"])
     assert withdrawals[0]["txId"] in Transaction.objects.values_list("tx_id", flat=True)
 
 
