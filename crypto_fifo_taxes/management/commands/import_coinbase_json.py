@@ -31,6 +31,7 @@ class Command(BaseCommand):
             tx_creator = TransactionCreator(
                 fill_cost_basis=False,
                 timestamp=datetime.strptime(row["created at"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=pytz.UTC),
+                description="Manually imported Coinbase transaction",
             )
 
             pair = get_or_create_currency_pair(

@@ -46,6 +46,7 @@ class Command(BaseCommand):
             )
             return
 
+        transaction.description = "Manually updated transaction"
         wallets = self.get_wallets(row)
         if "from_symbol" in row and transaction.from_detail is None:
             transaction.add_detail(
@@ -93,6 +94,7 @@ class Command(BaseCommand):
                 timestamp=bstrptime(row["timestamp"]),
                 type=TransactionType[row["type"]],
                 tx_id=tx_id,
+                description="Manually imported transaction",
             )
 
             if "from_symbol" in row:
