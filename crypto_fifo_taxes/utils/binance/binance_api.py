@@ -37,7 +37,7 @@ def iterate_history(start_date=datetime(2017, 1, 1), delta_days: int = 90) -> "I
         start_date = start_date + timedelta(days=delta_days)
         yield Interval(
             to_timestamp(start_date),
-            to_timestamp(min(start_date + timedelta(days=delta_days), datetime.now())),
+            to_timestamp(min(start_date + timedelta(days=delta_days), datetime.now().replace(hour=23, minute=59, second=59))),
         )
 
 
@@ -78,9 +78,21 @@ def get_binance_interest_history() -> Iterator[list[dict]]:
     client = get_binance_client()
     for type in ("DAILY", "ACTIVITY", "CUSTOMIZED_FIXED"):
         for interval in iterate_history(delta_days=30):
-            yield client.get_lending_interest_history(
-                startTime=interval.startTime, endTime=interval.endTime, limit=100, lendingType=type
+            interest_history = client.get_lending_interest_history(
+                startTime=interval.startTime, endTime=interval.endTime, size=100, lendingType=type
             )
+            if len(interest_history) == 100:
+                # Too many interests returned in timeframe, try to retrieve interests in two parts
+                for delta_split in range(0, 2):
+                    interest_history = client.get_lending_interest_history(
+                        startTime=to_timestamp(from_timestamp(interval.startTime) + timedelta(days=15) * delta_split),
+                        endTime=to_timestamp(from_timestamp(interval.endTime) + timedelta(days=15) * (delta_split - 1)),
+                        size=100,
+                        lendingType=type,
+                    )
+                    assert len(interest_history) != 100
+                    yield interest_history
+            yield interest_history
 
 
 def get_binance_wallet_balance() -> dict[str:Decimal]:
