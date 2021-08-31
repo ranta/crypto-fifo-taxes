@@ -282,9 +282,16 @@ class Transaction(models.Model):
     @atomic()
     def add_detail(self, type: str, wallet: "Wallet", currency: "Currency", quantity: Decimal):
         assert type in ["from_detail", "to_detail", "fee_detail"]
-        detail = TransactionDetail.objects.create(wallet=wallet, currency=currency, quantity=quantity)
-        setattr(self, type, detail)
-        self.save()
+        detail = getattr(self, type, None)
+        if detail is not None:
+            detail.wallet = wallet
+            detail.currency = currency
+            detail.quantity = quantity
+            detail.save()
+        else:
+            detail = TransactionDetail.objects.create(wallet=wallet, currency=currency, quantity=quantity)
+            setattr(self, type, detail)
+            self.save()
 
 
 class TransactionDetailQuerySet(models.QuerySet):

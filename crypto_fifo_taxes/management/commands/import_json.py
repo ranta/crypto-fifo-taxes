@@ -48,21 +48,21 @@ class Command(BaseCommand):
 
         transaction.description = "Manually updated transaction"
         wallets = self.get_wallets(row)
-        if "from_symbol" in row and transaction.from_detail is None:
+        if "from_symbol" in row:
             transaction.add_detail(
                 "from_detail",
                 wallet=wallets[0],
                 currency=get_or_create_currency(row["from_symbol"]),
                 quantity=Decimal(str(row["from_amount"])),
             )
-        if "to_symbol" in row and transaction.to_detail is None:
+        if "to_symbol" in row:
             transaction.add_detail(
                 "to_detail",
                 wallet=wallets[1],
                 currency=get_or_create_currency(row["to_symbol"]),
                 quantity=Decimal(str(row["to_amount"])),
             )
-        if "fee_symbol" in row and transaction.fee_detail is None:
+        if "fee_symbol" in row:
             transaction.add_detail(
                 "fee_detail",
                 wallet=wallets[2],
