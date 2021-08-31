@@ -116,7 +116,7 @@ class Wallet(models.Model):
         if timestamp is not None:
             from_filter |= Q(from_detail__timestamp__lt=timestamp)
             to_filter |= Q(to_detail__timestamp__lte=timestamp)
-            fee_filter |= Q(fee_detail__timestamp__lt=timestamp)
+            fee_filter |= Q(fee_detail__timestamp__lte=timestamp)
         total_spent = self.transaction_details.filter(currency=currency).filter(
             (Q(from_detail__isnull=False) & from_filter)
             | (Q(fee_detail__isnull=False) & fee_filter & ~Q(fee_detail__transaction_type=TransactionType.WITHDRAW))
