@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.conf import settings
 
 from crypto_fifo_taxes.models import CurrencyPair, Transaction, Wallet
-from crypto_fifo_taxes.utils.binance.binance_api import bstrptime, from_timestamp
+from crypto_fifo_taxes.utils.binance.binance_api import bstrptime, from_timestamp, to_timestamp
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 
@@ -113,29 +113,35 @@ def import_dividends(wallet: Wallet, dividends: list) -> None:
     """
     https://binance-docs.github.io/apidocs/spot/en/#asset-dividend-record-user_data
     """
-    dividend_ids = set(str(t["tranId"]) for t in dividends)
+
+    def build_transaction_id(row: dict) -> str:
+        timestamp = to_timestamp(from_timestamp(row["divTime"]).replace(hour=0, minute=0, second=0))
+        return f"{wallet.name}_{timestamp}_{row['amount']}_{row['asset']}"
+
+    dividend_ids = set(build_transaction_id(t) for t in dividends)
     existing_dividends = Transaction.objects.filter(tx_id__in=dividend_ids).values_list("tx_id", flat=True)
 
-    for dividend in dividends:
-        if str(dividend["tranId"]) in existing_dividends:
+    for row in dividends:
+        tx_id = build_transaction_id(row)
+        if tx_id in existing_dividends:
             continue
 
-        if dividend["asset"] in settings.IGNORED_TOKENS:
+        if row["asset"] in settings.IGNORED_TOKENS:
             continue
 
-        currency = get_or_create_currency(dividend["asset"])
+        currency = get_or_create_currency(row["asset"])
         tx_creator = TransactionCreator(
-            timestamp=from_timestamp(dividend["divTime"]),
+            timestamp=from_timestamp(row["divTime"]),
             fill_cost_basis=False,
-            tx_id=dividend["tranId"],
-            description=dividend["enInfo"],
+            tx_id=build_transaction_id(row),
+            description=row["enInfo"],
         )
-        tx_creator.add_to_detail(wallet=wallet, currency=currency, quantity=Decimal(dividend["amount"]))
+        tx_creator.add_to_detail(wallet=wallet, currency=currency, quantity=Decimal(row["amount"]))
 
-        if dividend["enInfo"] == "VEN/VET Mainnet Swap(1:100) ":
+        if row["enInfo"] == "VEN/VET Mainnet Swap(1:100) ":
             # VEN/VET Swap is included in dividends, so VET is added to wallet, but VEN is not removed.
             tx_creator.add_from_detail(
-                wallet=wallet, currency=get_or_create_currency("VEN"), quantity=Decimal(dividend["amount"]) / 100
+                wallet=wallet, currency=get_or_create_currency("VEN"), quantity=Decimal(row["amount"]) / 100
             )
             tx_creator.create_swap()
             continue
@@ -149,7 +155,8 @@ def import_interest(wallet: Wallet, interests: list) -> None:
     """
 
     def build_transaction_id(row: dict) -> str:
-        return f"{wallet.name}_{row['time']}_{row['asset']}"
+        timestamp = to_timestamp(from_timestamp(row["time"]).replace(hour=0, minute=0, second=0))
+        return f"{wallet.name}_{timestamp}_{row['interest']}_{row['asset']}"
 
     interest_ids = set(build_transaction_id(i) for i in interests)
     existing_interests = Transaction.objects.filter(tx_id__in=interest_ids).values_list("tx_id", flat=True)

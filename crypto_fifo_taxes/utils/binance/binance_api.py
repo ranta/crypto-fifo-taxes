@@ -20,7 +20,7 @@ def to_timestamp(dt: datetime) -> int:
 
 def from_timestamp(stamp: int) -> datetime:
     """datetime from Binance-timestamp"""
-    return datetime.fromtimestamp(stamp / 1000).replace(tzinfo=pytz.UTC)
+    return datetime.fromtimestamp(stamp / 1000).replace(tzinfo=pytz.UTC, microsecond=0)
 
 
 def bstrptime(stamp: str) -> datetime:
@@ -37,7 +37,9 @@ def iterate_history(start_date=datetime(2017, 1, 1), delta_days: int = 90) -> "I
         start_date = start_date + timedelta(days=delta_days)
         yield Interval(
             to_timestamp(start_date),
-            to_timestamp(min(start_date + timedelta(days=delta_days), datetime.now().replace(hour=23, minute=59, second=59))),
+            to_timestamp(
+                min(start_date + timedelta(days=delta_days), datetime.now().replace(hour=23, minute=59, second=59))
+            ),
         )
 
 
