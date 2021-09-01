@@ -1,0 +1,15 @@
+[
+  {
+    "portfolio": "default",
+    "trade id": 4002525,
+    "product": "ETH-EUR",
+    "side": "BUY",
+    "created at": "2018-03-07T12:12:12.123Z",
+    "size": 1,
+    "size unit": "ETH",
+    "price": 650,
+    "fee": 0,
+    "total": -650,
+    "price/fee/total unit": "EUR"
+  }
+]

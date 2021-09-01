@@ -9,7 +9,7 @@ from crypto_fifo_taxes_tests.factories import WalletFactory
 
 
 @pytest.mark.django_db
-def test_binance_deposit_import():
+def test_json_import_management_command():
     wallet_binance = WalletFactory.create(name="Binance")
     wallet_coinbase = WalletFactory.create(name="Coinbase")
 

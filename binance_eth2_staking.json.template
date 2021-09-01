@@ -1,0 +1,16 @@
+[
+   {
+      "userId":null,
+      "positionToken":"BETH",
+      "amount":"0.00250000",
+      "position":"10.21477499",
+      "day":"1612857988000"
+   },
+   {
+      "userId":null,
+      "positionToken":"BETH",
+      "amount":"0.00300000",
+      "position":"9.25445831",
+      "day":"1612773398000"
+   }
+]
