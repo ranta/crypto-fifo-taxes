@@ -1,4 +1,5 @@
 import os
+from decimal import Decimal
 
 import dj_database_url
 import environ
@@ -113,3 +114,11 @@ ALL_FIAT_CURRENCIES = {"EUR": "Euro", "USD": "US Dollar"}
 IGNORED_TOKENS = [
     "JEX",  # Not worth anything, Coingecko doesn't even have any price history data on this
 ]
+
+# Add coins currently in locked staking / locked savings, as they are not retrievable from any api endpoint
+# These values are added to `get_binance_wallet_balance` output
+# https://www.binance.com/en/my/wallet/account/saving
+LOCKED_STAKING = {
+    "BTC": Decimal("0.0"),
+    "BNB": Decimal("0.0"),
+}
