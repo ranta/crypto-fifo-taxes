@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.management import BaseCommand
 from django.db.transaction import atomic
 
-from crypto_fifo_taxes.enums import TransactionType
+from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.models import Transaction, Wallet
 from crypto_fifo_taxes.utils.binance.binance_api import from_timestamp, to_timestamp
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
@@ -36,6 +36,7 @@ class Command(BaseCommand):
                 fill_cost_basis=False,
                 timestamp=from_timestamp(int(row["day"])),
                 type=TransactionType.DEPOSIT,
+                label=TransactionLabel.REWARD,
                 tx_id=tx_id,
                 description="Manually Imported ETH 2.0 Staking Transaction",
             )

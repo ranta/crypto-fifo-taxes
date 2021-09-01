@@ -22,13 +22,11 @@ class TransactionType(Enum):
 class TransactionLabel(Enum):
     UNKNOWN = 0
     MINING = 1
-    AIRDROP = 2
     REWARD = 3  # Staking, interest etc.
     SPENDING = 4  # Paying for things with crypto
 
     class Labels:
         UNKNOWN = _("Unknown")
         MINING = _("Mining")
-        AIRDROP = _("Airdrop")
         REWARD = _("Reward")
         SPENDING = _("Spending")

@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.conf import settings
 
+from crypto_fifo_taxes.enums import TransactionLabel
 from crypto_fifo_taxes.models import CurrencyPair, Transaction, Wallet
 from crypto_fifo_taxes.utils.binance.binance_api import bstrptime, from_timestamp, to_timestamp
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
@@ -133,6 +134,7 @@ def import_dividends(wallet: Wallet, dividends: list) -> None:
         currency = get_or_create_currency(row["asset"])
         tx_creator = TransactionCreator(
             timestamp=from_timestamp(row["divTime"]),
+            label=TransactionLabel.REWARD,
             fill_cost_basis=False,
             tx_id=build_transaction_id(row),
             description=row["enInfo"],
@@ -173,6 +175,7 @@ def import_interest(wallet: Wallet, interests: list) -> None:
         currency = get_or_create_currency(row["asset"])
         tx_creator = TransactionCreator(
             timestamp=from_timestamp(row["time"]),
+            label=TransactionLabel.REWARD,
             fill_cost_basis=False,
             tx_id=build_transaction_id(row),
             description="Interest payout",

@@ -34,13 +34,14 @@ class TransactionCreator:
         self,
         timestamp: Optional[datetime] = None,
         type=TransactionType.UNKNOWN,
+        label=TransactionLabel.UNKNOWN,
         fill_cost_basis: bool = True,
         description: Optional[str] = "",
         tx_id: Optional[str] = "",
     ):
         self.timestamp: Optional[datetime] = timestamp
         self.transaction_type: TransactionType = type
-        self.transaction_label: TransactionLabel = TransactionLabel.UNKNOWN
+        self.transaction_label: TransactionLabel = label
         self.description = description
         self.tx_id = tx_id
 
