@@ -2,10 +2,12 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Dict, Optional, Union
 
+from django.conf import settings
 from django.db.transaction import atomic
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.models import Currency, Transaction, TransactionDetail, Wallet
+from crypto_fifo_taxes.utils.ethplorer import get_ethplorer_client
 
 
 class TransactionCreator:
@@ -151,14 +153,29 @@ class TransactionCreator:
         else:
             assert self.from_detail is not None and self.to_detail is not None
 
+    def _set_mining_label(self):
+        """
+        Set mining label for ETH deposits that originate from mining pools.
+        """
+        if (
+            self.tx_id
+            and self.transaction_type == TransactionType.DEPOSIT
+            and self.to_detail.currency.symbol == "ETH"
+            and settings.ETHPLORER_API_KEY is not None
+        ):
+            client = get_ethplorer_client()
+            is_mining = client.is_tx_from_mining_pool(self.tx_id)
+            if is_mining:
+                self.transaction_label = TransactionLabel.MINING
+
     @atomic()
     def create_transaction(self, **kwargs):
         kwargs.setdefault("timestamp", self.timestamp)
         kwargs.setdefault("description", self.description)
-        kwargs.setdefault("tx_id", self.tx_id)
         assert kwargs["timestamp"] is not None
 
         self._validate_transaction_type()
+        self._set_mining_label()
 
         details = self.get_details()
         for key, detail in details.items():
@@ -167,6 +184,7 @@ class TransactionCreator:
         transaction = Transaction(
             transaction_type=self.transaction_type,
             transaction_label=self.transaction_label,
+            tx_id=self.tx_id,
             **details,
             **kwargs,
         )
