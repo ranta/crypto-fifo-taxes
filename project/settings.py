@@ -22,8 +22,8 @@ STATIC_URL = env("STATIC_URL", default="/static/")
 MEDIA_ROOT = root(env("MEDIA_LOCATION", default=os.path.join(BASE_DIR, "var", "media")))
 STATIC_ROOT = root(env("STATIC_LOCATION", default=os.path.join(BASE_DIR, "var", "static")))
 
-BINANCE_API_KEY = env("BINANCE_API_KEY")
-BINANCE_API_SECRET = env("BINANCE_API_SECRET")
+BINANCE_API_KEY = env("BINANCE_API_KEY", None)
+BINANCE_API_SECRET = env("BINANCE_API_SECRET", None)
 
 # Application definition
 

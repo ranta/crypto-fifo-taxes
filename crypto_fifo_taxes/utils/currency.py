@@ -61,6 +61,23 @@ def get_or_create_currency_pair(symbol: str, buy: Union[Currency, str], sell: Un
     )[0]
 
 
+def retry_get_request_until_ok(url: str) -> Optional[dict]:
+    while True:
+        response = requests.get(url)
+
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 429:
+            # CoinGecko has a rate limit of 50 calls/minute, but In reality it seems to be more than that
+            # If requests are throttled, wait and retry later
+            sleep_time = int(response.headers["Retry-After"])
+            print(f"Too Many Requests sent. Waiting {sleep_time}s until trying again")
+            time.sleep(sleep_time)
+            continue
+        # Do not loop forever if response status is unexpected
+        return None
+
+
 @lru_cache()
 def coingecko_get_currency_list() -> dict:
     """
@@ -70,8 +87,7 @@ def coingecko_get_currency_list() -> dict:
     {'id': 'bitcoin', 'symbol': 'btc', 'name': 'Bitcoin'}
     """
     api_url = "https://api.coingecko.com/api/v3/coins/list?include_platform=false"
-    response = requests.get(api_url)
-    return response.json()
+    return retry_get_request_until_ok(api_url)
 
 
 def coingecko_request_price_history(currency: Currency, date: datetime.date) -> Optional[dict]:
@@ -80,18 +96,7 @@ def coingecko_request_price_history(currency: Currency, date: datetime.date) -> 
         id=slugify(currency.name.lower()),
         date=date.strftime("%d-%m-%Y"),
     )
-    response = None
-    while response is None:
-        response = requests.get(api_url)
-
-        if response.status_code == 200:
-            return response.json()
-        elif response.status_code == 429:
-            # CoinGecko has a rate limit of 50 calls/minute (In reality seems to be more)
-            # If requests are throttled, wait and retry later
-            time.sleep(int(response.headers["Retry-After"]))
-            continue
-        return None  # Do not loop forever if response status is unexpected
+    return retry_get_request_until_ok(api_url)
 
 
 def fetch_currency_price(currency: Currency, date: datetime.date):
