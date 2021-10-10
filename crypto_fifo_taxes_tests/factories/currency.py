@@ -10,6 +10,15 @@ from factory.django import DjangoModelFactory
 
 from crypto_fifo_taxes.models import Currency, CurrencyPair, CurrencyPrice
 
+# Commonly used Coingecko currency ids, to reduce the need for API calls
+CG_IDS = {
+    "btc": "bitcoin",
+    "eth": "ethereum",
+    "doge": "dogecoin",
+    "bnb": "binancecoin",
+    "usdt": "tether",
+}
+
 
 class CryptoCurrencyFactory(DjangoModelFactory):
     class Meta:
@@ -27,6 +36,7 @@ class CryptoCurrencyFactory(DjangoModelFactory):
         return "".join(random.choices(string.ascii_uppercase, k=3)) + f".{n}"
 
     name = factory.LazyAttribute(lambda self: f"CRYPTO-{self.symbol}")
+    cg_id = factory.LazyAttribute(lambda self: CG_IDS[self.symbol.lower()] if self.symbol.lower() in CG_IDS else None)
     icon = None
     is_fiat = False
 

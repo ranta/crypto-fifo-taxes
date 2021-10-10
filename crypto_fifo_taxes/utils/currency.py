@@ -6,7 +6,6 @@ from typing import Optional, Union
 
 import requests
 from django.conf import settings
-from django.utils.text import slugify
 
 from crypto_fifo_taxes.models import Currency, CurrencyPair, CurrencyPrice
 
@@ -92,8 +91,9 @@ def coingecko_get_currency_list() -> dict:
 
 def coingecko_request_price_history(currency: Currency, date: datetime.date) -> Optional[dict]:
     """Requests and returns all data for given currency and date from CoinGecko API"""
+    assert currency.cg_id is not None
     api_url = "https://api.coingecko.com/api/v3/coins/{id}/history?date={date}&localization=false".format(
-        id=slugify(currency.name.lower()),
+        id=currency.cg_id,
         date=date.strftime("%d-%m-%Y"),
     )
     return retry_get_request_until_ok(api_url)
@@ -102,13 +102,14 @@ def coingecko_request_price_history(currency: Currency, date: datetime.date) -> 
 def fetch_currency_price(currency: Currency, date: datetime.date):
     """Update historical prices for given currency and date"""
     response_json = coingecko_request_price_history(currency, date)
+    assert response_json is not None
 
     # FIXME: Save image locally
     # if currency.icon is None:
     #     currency.icon = response_json["image"]["small"]
 
     for fiat_symbol in settings.ALL_FIAT_CURRENCIES.keys():
-        fiat_currency = Currency.objects.get(symbol=fiat_symbol)
+        fiat_currency = get_or_create_currency(currency=fiat_symbol)
         CurrencyPrice.objects.update_or_create(
             currency=currency,
             fiat=fiat_currency,
