@@ -23,11 +23,11 @@ def test_transfer():
     wallet_helper.deposit(fiat, 1000)
     wallet_helper.trade(fiat, 1000, btc, 10)
 
-    tx_creator = TransactionCreator()
+    tx_creator = TransactionCreator(timestamp=now)
     tx_creator.add_from_detail(wallet=wallet_from, currency=btc, quantity=10)
     tx_creator.add_to_detail(wallet=wallet_to, currency=btc, quantity=10)
     tx_creator.add_fee_detail(wallet=wallet_to, currency=btc, quantity=1)
-    tx = tx_creator.create_transfer(timestamp=now)
+    tx = tx_creator.create_transfer()
 
     assert tx.transaction_type == TransactionType.TRANSFER
     assert tx.from_detail.cost_basis == tx.to_detail.cost_basis

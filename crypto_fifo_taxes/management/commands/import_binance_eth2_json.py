@@ -33,12 +33,12 @@ class Command(BaseCommand):
                 continue
 
             tx_creator = TransactionCreator(
-                fill_cost_basis=False,
                 timestamp=from_timestamp(int(row["day"])),
-                type=TransactionType.DEPOSIT,
-                label=TransactionLabel.REWARD,
                 tx_id=tx_id,
                 description="Manually Imported ETH 2.0 Staking Transaction",
+                type=TransactionType.DEPOSIT,
+                label=TransactionLabel.REWARD,
+                fill_cost_basis=False,
             )
             tx_creator.add_to_detail(
                 wallet=self.wallet,

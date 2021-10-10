@@ -16,23 +16,19 @@ def test_transaction_creator():
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
 
     # Deposit
-    TransactionCreator().create_deposit(
-        timestamp=timezone.now(), description="Deposit", wallet=wallet, currency=fiat, quantity=500
-    )
+    TransactionCreator(timestamp=timezone.now()).create_deposit(wallet=wallet, currency=fiat, quantity=500)
 
     # Withdrawal
-    TransactionCreator().create_withdrawal(
-        timestamp=timezone.now(), description="Withdrawal", wallet=wallet, currency=fiat, quantity=200
-    )
+    TransactionCreator(timestamp=timezone.now()).create_withdrawal(wallet=wallet, currency=fiat, quantity=200)
     assert Transaction.objects.count() == 2
     assert TransactionDetail.objects.count() == 2
 
     # Trade
-    tx_creator = TransactionCreator()
+    tx_creator = TransactionCreator(timestamp=timezone.now())
     tx_creator.add_from_detail(wallet=wallet, currency=fiat, quantity=200)
     tx_creator.add_to_detail(wallet=wallet, currency=crypto, quantity=2)
     tx_creator.add_fee_detail(wallet=wallet, currency=crypto, quantity=Decimal("0.0001"))
-    tx = tx_creator.create_trade(timestamp=timezone.now())
+    tx = tx_creator.create_trade()
 
     assert Transaction.objects.count() == 3
     assert TransactionDetail.objects.count() == 5
