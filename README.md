@@ -38,10 +38,17 @@ https://community.chocolatey.org/packages/make OR http://gnuwin32.sourceforge.ne
 
 If you don't want to use Make, you can simply look up the commands from the `Makefile` and use those manually.
 
-### Using the Binance API
+### Binance API
 
 Create an API key on the [Binance website](https://binance.com) with read permissions and save the API Key
 and API Secret to the `.env` file.
+
+### Ethplorer API
+
+Ethplorer is used to determine if some ETH deposits were rewards from mining by comparing the sender to a list of mining
+pool wallets
+
+Create an Ethplorer account and an API key and save the API Key to the `.env` file.
 
 #### Note:
 

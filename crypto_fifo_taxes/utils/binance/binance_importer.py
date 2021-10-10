@@ -22,12 +22,14 @@ def import_deposits(wallet: Wallet, deposits: list) -> None:
             continue
 
         currency = get_or_create_currency(deposit["coin"])
-        TransactionCreator(fill_cost_basis=False).create_deposit(
-            wallet=wallet,
+        TransactionCreator(
             timestamp=from_timestamp(deposit["insertTime"]),
+            tx_id=deposit["txId"],
+            fill_cost_basis=False,
+        ).create_deposit(
+            wallet=wallet,
             currency=currency,
             quantity=Decimal(deposit["amount"]),
-            tx_id=deposit["txId"],
         )
 
 
@@ -47,15 +49,17 @@ def import_withdrawals(wallet: Wallet, deposits: list) -> None:
             continue
 
         currency = get_or_create_currency(withdrawal["coin"])
-        tx_creator = TransactionCreator(fill_cost_basis=False)
-        tx_creator.create_withdrawal(
+        tx_creator = TransactionCreator(
             timestamp=bstrptime(withdrawal["applyTime"]),
+            tx_id=withdrawal["txId"],
+            fill_cost_basis=False,
+        )
+        tx_creator.create_withdrawal(
             wallet=wallet,
             currency=currency,
             # Binance maye have withdrawal fees, which are additionally deducted from the wallet balance
             # This fee is separate from network transfer fees
             quantity=Decimal(withdrawal["amount"]) + Decimal(withdrawal["transactionFee"]),
-            tx_id=withdrawal["txId"],
         )
 
 
@@ -76,7 +80,11 @@ def import_pair_trades(wallet: Wallet, trading_pair: CurrencyPair, trades: list)
 
         fee_currency = get_or_create_currency(trade["commissionAsset"])
 
-        tx_creator = TransactionCreator(fill_cost_basis=False)
+        tx_creator = TransactionCreator(
+            timestamp=from_timestamp(trade["time"]),
+            tx_id=str(trade["orderId"]),
+            fill_cost_basis=False,
+        )
         if trade["isBuyer"]:
             tx_creator.add_from_detail(wallet=wallet, currency=trading_pair.sell, quantity=Decimal(trade["quoteQty"]))
             tx_creator.add_to_detail(wallet=wallet, currency=trading_pair.buy, quantity=Decimal(trade["qty"]))
@@ -84,7 +92,7 @@ def import_pair_trades(wallet: Wallet, trading_pair: CurrencyPair, trades: list)
             tx_creator.add_from_detail(wallet=wallet, currency=trading_pair.buy, quantity=Decimal(trade["qty"]))
             tx_creator.add_to_detail(wallet=wallet, currency=trading_pair.sell, quantity=Decimal(trade["quoteQty"]))
         tx_creator.add_fee_detail(wallet=wallet, currency=fee_currency, quantity=Decimal(trade["commission"]))
-        tx_creator.create_trade(timestamp=from_timestamp(trade["time"]), tx_id=str(trade["orderId"]))
+        tx_creator.create_trade()
 
 
 def import_dust(wallet: Wallet, converts: list) -> None:
@@ -104,11 +112,15 @@ def import_dust(wallet: Wallet, converts: list) -> None:
         for detail in convert["userAssetDribbletDetails"]:
             from_currency = get_or_create_currency(detail["fromAsset"])
 
-            tx_creator = TransactionCreator(fill_cost_basis=False)
+            tx_creator = TransactionCreator(
+                timestamp=from_timestamp(convert["operateTime"]),
+                tx_id=str(convert["transId"]),
+                fill_cost_basis=False,
+            )
             tx_creator.add_from_detail(wallet=wallet, currency=from_currency, quantity=Decimal(detail["amount"]))
             tx_creator.add_to_detail(wallet=wallet, currency=bnb, quantity=Decimal(detail["transferedAmount"]))
             tx_creator.add_fee_detail(wallet=wallet, currency=bnb, quantity=Decimal(detail["serviceChargeAmount"]))
-            tx_creator.create_trade(timestamp=from_timestamp(convert["operateTime"]), tx_id=str(convert["transId"]))
+            tx_creator.create_trade()
 
 
 def import_dividends(wallet: Wallet, dividends: list) -> None:
@@ -134,10 +146,10 @@ def import_dividends(wallet: Wallet, dividends: list) -> None:
         currency = get_or_create_currency(row["asset"])
         tx_creator = TransactionCreator(
             timestamp=from_timestamp(row["divTime"]),
+            description=row["enInfo"],
+            tx_id=build_transaction_id(row),
             label=TransactionLabel.REWARD,
             fill_cost_basis=False,
-            tx_id=build_transaction_id(row),
-            description=row["enInfo"],
         )
         tx_creator.add_to_detail(wallet=wallet, currency=currency, quantity=Decimal(row["amount"]))
 
@@ -175,10 +187,10 @@ def import_interest(wallet: Wallet, interests: list) -> None:
         currency = get_or_create_currency(row["asset"])
         tx_creator = TransactionCreator(
             timestamp=from_timestamp(row["time"]),
+            description="Interest payout",
+            tx_id=build_transaction_id(row),
             label=TransactionLabel.REWARD,
             fill_cost_basis=False,
-            tx_id=build_transaction_id(row),
-            description="Interest payout",
         )
         tx_creator.add_to_detail(wallet=wallet, currency=currency, quantity=Decimal(row["interest"]))
         tx_creator.create_deposit()

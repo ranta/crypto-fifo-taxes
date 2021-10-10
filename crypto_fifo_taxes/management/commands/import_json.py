@@ -90,11 +90,11 @@ class Command(BaseCommand):
 
             wallets = self.get_wallets(row)
             tx_creator = TransactionCreator(
-                fill_cost_basis=False,
                 timestamp=bstrptime(row["timestamp"]),
-                type=TransactionType[row["type"]],
-                tx_id=tx_id,
                 description="Manually imported transaction",
+                tx_id=tx_id,
+                type=TransactionType[row["type"]],
+                fill_cost_basis=False,
             )
 
             if "from_symbol" in row:

@@ -29,9 +29,10 @@ class Command(BaseCommand):
                 continue
 
             tx_creator = TransactionCreator(
-                fill_cost_basis=False,
                 timestamp=datetime.strptime(row["created at"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=pytz.UTC),
                 description="Manually imported Coinbase transaction",
+                tx_id=row["trade id"],
+                fill_cost_basis=False,
             )
 
             pair = get_or_create_currency_pair(
@@ -59,7 +60,7 @@ class Command(BaseCommand):
                     quantity=Decimal(str(row["fee"])),
                 )
 
-            tx_creator.create_trade(tx_id=row["trade id"])
+            tx_creator.create_trade()
 
     @atomic
     def handle(self, *args, **kwargs):
