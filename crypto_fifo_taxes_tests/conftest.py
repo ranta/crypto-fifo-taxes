@@ -1,19 +1,17 @@
 import pytest
 
+from crypto_fifo_taxes.utils.currency import (
+    get_currency,
+    get_default_fiat,
+    get_or_create_currency,
+    get_or_create_currency_pair,
+)
+
 
 @pytest.fixture(autouse=True)
 def clear_cache_between_tests(db):
-    # Clear Django's cache
-    from django.core.cache import cache
-
-    cache.clear()
-
-    # Clear all LRU method caches
-    # refs. https://stackoverflow.com/a/50699209
-    import functools
-    import gc
-
-    gc.collect()
-    wrappers = [a for a in gc.get_objects() if isinstance(a, functools._lru_cache_wrapper)]
-    for wrapper in wrappers:
-        wrapper.cache_clear()
+    """Clear the caches or functions that's cache will impact tests"""
+    get_default_fiat.cache_clear()
+    get_currency.cache_clear()
+    get_or_create_currency.cache_clear()
+    get_or_create_currency_pair.cache_clear()

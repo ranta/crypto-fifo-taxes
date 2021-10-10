@@ -89,6 +89,7 @@ def coingecko_get_currency_list() -> dict:
     return retry_get_request_until_ok(api_url)
 
 
+@lru_cache()
 def coingecko_request_price_history(currency: Currency, date: datetime.date) -> Optional[dict]:
     """Requests and returns all data for given currency and date from CoinGecko API"""
     assert currency.cg_id is not None
