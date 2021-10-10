@@ -62,4 +62,5 @@ jobs:
       env:
         SECRET_KEY: xxx
         DATABASE_URL: postgres://postgres:postgres@localhost:5432/github_actions
+        ETHPLORER_API_KEY: freekey
       run: pytest -vvv --cov=. .

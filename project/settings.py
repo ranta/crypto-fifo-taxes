@@ -25,6 +25,8 @@ STATIC_ROOT = root(os.environ.get("STATIC_LOCATION", os.path.join(BASE_DIR, "sta
 BINANCE_API_KEY = os.environ.get("BINANCE_API_KEY", None)
 BINANCE_API_SECRET = os.environ.get("BINANCE_API_SECRET", None)
 
+ETHPLORER_API_KEY = os.environ.get("ETHPLORER_API_KEY", None)
+
 # Application definition
 
 BASE_APPS = [
