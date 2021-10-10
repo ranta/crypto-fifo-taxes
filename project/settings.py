@@ -5,25 +5,25 @@ import dj_database_url
 import environ
 
 env = environ.Env(DEBUG=(bool, False))
-root = environ.Path(__file__) - 3
+root = environ.Path(__file__) - 2
 BASE_DIR = root()
 DEBUG = env("DEBUG")
-env.read_env(os.path.join(BASE_DIR, "app", ".env"))
+env.read_env(os.path.join(BASE_DIR, ".env"))
 
-SECRET_KEY = env("SECRET_KEY")
+SECRET_KEY = os.environ.get("SECRET_KEY", "xxx")
 
-ALLOWED_HOSTS = env("ALLOWED_HOSTS", default="*").split(",")
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 
 DATABASES = {"default": dj_database_url.config()}
 
-MEDIA_URL = env("MEDIA_URL", default="/media/")
-STATIC_URL = env("STATIC_URL", default="/static/")
+MEDIA_URL = os.environ.get("MEDIA_URL", "/media/")
+STATIC_URL = os.environ.get("STATIC_URL", "/static/")
 
-MEDIA_ROOT = root(env("MEDIA_LOCATION", default=os.path.join(BASE_DIR, "var", "media")))
-STATIC_ROOT = root(env("STATIC_LOCATION", default=os.path.join(BASE_DIR, "var", "static")))
+MEDIA_ROOT = root(os.environ.get("MEDIA_LOCATION", os.path.join(BASE_DIR, "media")))
+STATIC_ROOT = root(os.environ.get("STATIC_LOCATION", os.path.join(BASE_DIR, "static")))
 
-BINANCE_API_KEY = env("BINANCE_API_KEY", None)
-BINANCE_API_SECRET = env("BINANCE_API_SECRET", None)
+BINANCE_API_KEY = os.environ.get("BINANCE_API_KEY", None)
+BINANCE_API_SECRET = os.environ.get("BINANCE_API_SECRET", None)
 
 # Application definition
 

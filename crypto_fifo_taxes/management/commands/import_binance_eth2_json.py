@@ -52,7 +52,7 @@ class Command(BaseCommand):
         transactions_count = Transaction.objects.count()
 
         filename = kwargs.pop("file") or "binance_eth2_staking.json"
-        filepath = os.path.join(settings.BASE_DIR, "app", filename)
+        filepath = os.path.join(settings.BASE_DIR, filename)
 
         with open(filepath) as json_file:
             data = json.load(json_file)

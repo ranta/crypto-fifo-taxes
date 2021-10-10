@@ -13,7 +13,7 @@ def test_json_import_management_command():
     wallet_binance = WalletFactory.create(name="Binance")
     wallet_coinbase = WalletFactory.create(name="Coinbase")
 
-    filepath = os.path.join(settings.BASE_DIR, "app", "import.json.template")
+    filepath = os.path.join(settings.BASE_DIR, "import.json.template")
     call_command("import_json", file=filepath)
 
     assert wallet_binance.get_current_balance("BETH") == 1

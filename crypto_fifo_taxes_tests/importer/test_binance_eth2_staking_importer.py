@@ -13,7 +13,7 @@ from crypto_fifo_taxes_tests.factories import WalletFactory
 def test_binance_eth2_staking_importer_management_command():
     wallet_binance = WalletFactory.create(name="Binance")
 
-    filepath = os.path.join(settings.BASE_DIR, "app", "binance_eth2_staking.json.template")
+    filepath = os.path.join(settings.BASE_DIR, "binance_eth2_staking.json.template")
     call_command("import_binance_eth2_json", file=filepath)
 
     assert Transaction.objects.all().count() == 2
