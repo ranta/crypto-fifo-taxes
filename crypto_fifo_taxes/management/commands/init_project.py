@@ -27,9 +27,8 @@ class Command(BaseCommand):
         if admin_created:
             admin_user.set_password("admin")
             admin_user.save()
-            Wallet.objects.create(
-                user=admin_user,
-                name="Binance",
-                fiat=get_default_fiat(),
-            )
-            print("Project initialized!")
+
+        wallets = ["Binance", "Binance Hold", "Coinbase"]
+        for wallet_name in wallets:
+            Wallet.objects.get_or_create(user=admin_user, name=wallet_name, fiat=get_default_fiat())
+        print("Project initialized!")
