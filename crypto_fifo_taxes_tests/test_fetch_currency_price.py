@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 
 from crypto_fifo_taxes.models import Currency
-from crypto_fifo_taxes.utils.currency import coingecko_request_price_history, fetch_currency_price
+from crypto_fifo_taxes.utils.coingecko import coingecko_request_price_history, fetch_currency_price
 from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory
 
 

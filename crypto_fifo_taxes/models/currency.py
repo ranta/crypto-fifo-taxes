@@ -71,7 +71,7 @@ class Currency(models.Model):
 
         # Price was not found for entered FIAT
         if currency_price is None:
-            from crypto_fifo_taxes.utils.currency import fetch_currency_price
+            from crypto_fifo_taxes.utils.coingecko import fetch_currency_price
 
             fetch_currency_price(self, date)
             currency_price = self.prices.filter(date=date, fiat=fiat).first()
