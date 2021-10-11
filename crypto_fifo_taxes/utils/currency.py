@@ -4,7 +4,6 @@ from typing import Union
 from django.conf import settings
 
 from crypto_fifo_taxes.models import Currency, CurrencyPair
-from crypto_fifo_taxes.utils.coingecko import CoinGeckoMissingCurrency
 
 
 @lru_cache()
@@ -36,7 +35,12 @@ def get_or_create_currency(symbol: str) -> Currency:
                 filter(lambda x: x["symbol"] == symbol.lower() or x["id"] == symbol.lower(), cg_currency_list)
             )
         except StopIteration:
-            raise f"Currency `{symbol}` not found in CoinGecko API"
+            if symbol.lower() in settings.DEPRECATED_TOKENS:
+                currency_data = settings.DEPRECATED_TOKENS[symbol.lower()]
+            else:
+                from crypto_fifo_taxes.utils.coingecko import CoinGeckoMissingCurrency
+
+                raise CoinGeckoMissingCurrency(f"Currency `{symbol}` not found in CoinGecko API")
 
         assert currency_data
         return Currency.objects.get_or_create(

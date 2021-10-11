@@ -30,5 +30,7 @@ class EtherscanClient:
 
     def is_tx_from_mining_pool(self, tx_id: str) -> bool:
         tx_info = self.get_tx_info(tx_id)
-        from_address = tx_info["from"]
-        return from_address in self.known_pool_addresses
+        if "from" in tx_info:
+            from_address = tx_info["from"]
+            return from_address in self.known_pool_addresses
+        return False
