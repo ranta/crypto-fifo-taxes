@@ -69,13 +69,14 @@ class Command(BaseCommand):
                             buy=pair["baseAsset"],
                             sell=pair["quoteAsset"],
                         )
+                    time.sleep(0.1)  # Reduce the frequency of cooldowns
                 # Fast sync
                 else:
                     trades = self.client.get_my_trades(symbol=pair)
                     trading_pair = CurrencyPair.objects.get(symbol=pair)
 
                 if trading_pair is not None:
-                    print(trading_pair, end=", ", flush=True)
+                    print(trading_pair, end=".", flush=True)
                     import_pair_trades(wallet=self.wallet, trading_pair=trading_pair, trades=trades)
                 else:
                     self.print_dot()
@@ -83,7 +84,7 @@ class Command(BaseCommand):
             except BinanceAPIException as e:
                 if "Too much request weight used" in str(e):
                     print("\nToo much Binance API weight used, on cooldown", end="")
-                    time.sleep(20)  # API cool down time is not accessible. Try again in 20s
+                    time.sleep(15)  # API cool down time is not accessible. Try again soon
 
     def sync_deposits(self) -> None:
         for deposits in get_binance_deposits():
@@ -109,6 +110,7 @@ class Command(BaseCommand):
             import_interest(self.wallet, dividends)
 
     def sync_trades(self, mode: int) -> None:
+        pairs = []
         if mode is None or mode == 0:
             # FAST sync
             # Sync only trading pairs which already have records
@@ -116,12 +118,14 @@ class Command(BaseCommand):
             if len(pairs) > 1:
                 print(f"Syncing trades using FAST mode for {len(pairs)} pairs...", end="")
             else:
-                print("No existing currency pairs found for FAST mode sync. Manually run FULL sync.")
-        else:
+                print("No existing currency pairs found for FAST mode sync. Running in FULL sync.")
+                mode = 1
+
+        if mode == 1:
             # FULL sync
             # Fetch any new trading pairs from Binance
             pairs = self.get_all_pairs()
-            print(f"Syncing trades using FULL mode for {len(pairs)} pairs...", end="")
+            print(f"Syncing trades using FULL mode for {len(pairs)} pairs. This will take over ten minutes...")
 
         print("Syncing trades for pair: ", end="")
         for pair in pairs:
