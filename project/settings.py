@@ -106,6 +106,7 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # App settings
+
 # Default FIAT currency. Used if when no other currency is defined
 DEFAULT_FIAT_SYMBOL = "EUR"
 
@@ -116,6 +117,12 @@ ALL_FIAT_CURRENCIES = {"EUR": "Euro", "USD": "US Dollar"}
 IGNORED_TOKENS = [
     "JEX",  # Not worth anything, Coingecko doesn't even have any price history data on this
 ]
+
+# Tokens that have been deprecated and are not found in CoinGecko anymore, but still have trades that should be imported
+DEPRECATED_TOKENS = {
+    "ven": {"id": "vechain-old", "symbol": "vem", "name": "VeChain OLD"},
+}
+
 
 # Add coins currently in locked staking / locked savings, as they are not retrievable from any api endpoint
 # These values are added to `get_binance_wallet_balance` output
