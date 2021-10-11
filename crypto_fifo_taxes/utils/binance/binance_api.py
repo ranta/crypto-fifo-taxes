@@ -69,7 +69,11 @@ def get_binance_dust_log() -> list:
 def get_binance_dividends() -> Iterator[list[dict]]:
     client = get_binance_client()
     for interval in iterate_history():
-        dividends = client.get_asset_dividend_history(startTime=interval.startTime, endTime=interval.endTime, limit=500)
+        dividends = client.get_asset_dividend_history(
+            startTime=interval.startTime,
+            endTime=interval.endTime,
+            limit=500,
+        )
 
         # If batch contains 500 transactions, some data is most likely left out, most likely Interval should be shorter.
         assert dividends["total"] < 500, "Dividend batch size limit reached, not all data may be included"
@@ -80,21 +84,19 @@ def get_binance_interest_history() -> Iterator[list[dict]]:
     client = get_binance_client()
     for type in ("DAILY", "ACTIVITY", "CUSTOMIZED_FIXED"):
         for interval in iterate_history(delta_days=30):
-            interest_history = client.get_lending_interest_history(
-                startTime=interval.startTime, endTime=interval.endTime, size=100, lendingType=type
-            )
-            if len(interest_history) == 100:
-                # Too many interests returned in timeframe, try to retrieve interests in two parts
-                for delta_split in range(0, 2):
-                    interest_history = client.get_lending_interest_history(
-                        startTime=to_timestamp(from_timestamp(interval.startTime) + timedelta(days=15) * delta_split),
-                        endTime=to_timestamp(from_timestamp(interval.endTime) + timedelta(days=15) * (delta_split - 1)),
-                        size=100,
-                        lendingType=type,
-                    )
-                    assert len(interest_history) != 100
-                    yield interest_history
-            yield interest_history
+            page = 1
+            while True:
+                interest_history = client.get_lending_interest_history(
+                    startTime=interval.startTime,
+                    endTime=interval.endTime,
+                    size=100,
+                    lendingType=type,
+                    current=page,
+                )
+                yield interest_history
+                if len(interest_history) < 100:
+                    break
+                page += 1
 
 
 def get_binance_wallet_balance() -> dict[str:Decimal]:
