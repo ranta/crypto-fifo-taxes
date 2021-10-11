@@ -120,7 +120,7 @@ IGNORED_TOKENS = [
 
 # Tokens that have been deprecated and are not found in CoinGecko anymore, but still have trades that should be imported
 DEPRECATED_TOKENS = {
-    "ven": {"id": "vechain-old", "symbol": "vem", "name": "VeChain OLD"},
+    "ven": {"id": "vechain-old", "symbol": "ven", "name": "VeChain OLD"},
 }
 
 
