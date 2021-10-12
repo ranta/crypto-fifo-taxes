@@ -62,19 +62,22 @@ class Currency(models.Model):
         if date is None:
             raise TypeError("Date must be entered!")
 
+        if fiat is None:
+            from crypto_fifo_taxes.utils.currency import get_default_fiat
+
+            fiat = get_default_fiat()
+        assert isinstance(fiat, Currency) and fiat.is_fiat is True
+
         if isinstance(date, datetime.datetime):
             date = date.date()
 
         if self.is_fiat is True:
             raise TypeError("Getting a FIAT currency's price in another FIAT currency is not supported yet.")
 
-        currency_price = None
-        # Get crypto price in entered FIAT currency
-        if fiat is not None:
-            assert isinstance(fiat, Currency) and fiat.is_fiat is True
-            currency_price = self.prices.filter(date=date, fiat=fiat).first()
+        # Get crypto price from db
+        currency_price = self.prices.filter(date=date, fiat=fiat).first()
 
-        # Price was not found for entered FIAT
+        # Price was not found for entered FIAT, fetch from the API instead
         if currency_price is None:
             from crypto_fifo_taxes.utils.coingecko import fetch_currency_price
 

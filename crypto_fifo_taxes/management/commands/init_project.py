@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management import BaseCommand
@@ -28,7 +30,7 @@ class Command(BaseCommand):
             admin_user.set_password("admin")
             admin_user.save()
 
-        wallets = ["Binance", "Binance Hold", "Coinbase"]
-        for wallet_name in wallets:
+        wallet_names = [w.strip() for w in os.environ.get("WALLET_NAMES").split(",")]
+        for wallet_name in wallet_names:
             Wallet.objects.get_or_create(user=admin_user, name=wallet_name, fiat=get_default_fiat())
         print("Project initialized!")

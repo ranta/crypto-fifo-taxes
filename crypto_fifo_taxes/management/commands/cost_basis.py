@@ -8,6 +8,7 @@ class Command(BaseCommand):
     @atomic
     def handle(self, *args, **options):
         transactions = Transaction.objects.all().order_by("timestamp", "pk")
-
-        for t in transactions:
+        count = transactions.count()
+        for i, t in enumerate(transactions):
+            print(f"Calculating cost basis for transactions. {i / count * 100:>5.2f}% ({t.timestamp.date()})", end="\r")
             t.fill_cost_basis()

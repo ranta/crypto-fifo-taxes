@@ -157,11 +157,12 @@ class Transaction(models.Model):
         self.to_detail.save()
 
     def _handle_to_trade_crypto_to_crypto_cost_basis(self) -> None:
-        # Get currency's real price
-        currency_value = self.from_detail.currency.get_fiat_price(self.timestamp, self.from_detail.wallet.fiat)
+        # Get currency's FIAT price
+        currency_value = self.to_detail.currency.get_fiat_price(self.timestamp, self.to_detail.wallet.fiat)
+
         if currency_value is None:
-            if self.from_detail.currency.symbol.lower() in settings.DEPRECATED_TOKENS:
-                # Token is deprecated and not available in the API, use closest possible known value instead
+            # Token is deprecated and not available in the API, use closest possible known value instead
+            if self.to_detail.currency.symbol.lower() in settings.DEPRECATED_TOKENS:
                 self.to_detail.cost_basis = (
                     self.from_detail.quantity * self._get_detail_cost_basis(self.from_detail)[0]
                 ) / self.to_detail.quantity
@@ -172,8 +173,7 @@ class Transaction(models.Model):
                 f"Currency: `{self.from_detail.currency}` does not have a price for {self.timestamp.date()} "
                 f"in {self.from_detail.wallet.fiat}"
             )
-
-        self.to_detail.cost_basis = (self.from_detail.quantity * currency_value.price) / self.to_detail.quantity
+        self.to_detail.cost_basis = currency_value.price
         self.to_detail.save()
 
     def _handle_from_crypto_cost_basis(self) -> bool:
@@ -196,11 +196,12 @@ class Transaction(models.Model):
         This shouldn't affect the end result, except in a few very rare cases.
         """
         cost_basis = self._get_from_detail_cost_basis()[0]
+        ratio = Decimal(self.from_detail.quantity / self.to_detail.quantity)
 
         self.from_detail.cost_basis = cost_basis
         self.from_detail.save()
 
-        self.to_detail.cost_basis = cost_basis
+        self.to_detail.cost_basis = cost_basis * ratio
         self.to_detail.save()
 
         self.gain = Decimal(0)
@@ -320,7 +321,7 @@ class TransactionDetail(models.Model):
     wallet = models.ForeignKey(to="Wallet", on_delete=models.CASCADE, related_name="transaction_details")
     currency = models.ForeignKey(to="Currency", on_delete=models.PROTECT, related_name="+")
     quantity = TransactionDecimalField()
-    cost_basis = TransactionDecimalField(null=True)  # Calculated field
+    cost_basis = TransactionDecimalField(null=True)  # Price for one crypto currency in FIAT
 
     objects = TransactionDetailManager.from_queryset(TransactionDetailQuerySet)()
 
