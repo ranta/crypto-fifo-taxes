@@ -1,10 +1,16 @@
+from datetime import datetime
+from decimal import Decimal
+
+from django.contrib.auth.models import User
 from django.core.management import BaseCommand
 from django.db.models import F, Sum
 from django.db.transaction import atomic
 
-from crypto_fifo_taxes.enums import TransactionLabel
+from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.models import Transaction, Wallet
-from crypto_fifo_taxes.models.transaction import TransactionQuerySet
+from crypto_fifo_taxes.models.transaction import TransactionDetail, TransactionQuerySet
+from crypto_fifo_taxes.utils.currency import get_currency
+from crypto_fifo_taxes.utils.wallet import get_wallet_balance_sum
 
 
 class Command(BaseCommand):
@@ -70,3 +76,31 @@ class Command(BaseCommand):
 
         for year in years:
             self.handle_year(year)
+
+        deposits = (
+            TransactionDetail.objects.filter(to_detail__transaction_type=TransactionType.DEPOSIT)
+            .exclude(to_detail__transaction_label=TransactionLabel.REWARD)
+            .annotate(cost=F("cost_basis") * F("quantity"))
+            .aggregate(sum=Sum("cost"))["sum"]
+        )
+        withdrawals = (
+            TransactionDetail.objects.filter(from_detail__transaction_type=TransactionType.WITHDRAW)
+            .annotate(cost=F("cost_basis") * F("quantity"))
+            .aggregate(sum=Sum("cost"))["sum"]
+        )
+
+        combined_wallet_balance = get_wallet_balance_sum(User.objects.first())
+        total_wallet_sum = Decimal()
+        for symbol, quantity in combined_wallet_balance.items():
+            currency = get_currency(symbol)
+            if currency.is_fiat:
+                total_wallet_sum += quantity
+                continue
+            price = currency.get_fiat_price(date=datetime.now().date()).price
+            total_wallet_sum += price
+
+        print("\nDeposits", deposits)
+        print("Withdrawals", withdrawals)
+        print("Current wallet balance", total_wallet_sum)
+        print("Profit €", (withdrawals + total_wallet_sum) - deposits)
+        print("Profit %", ((withdrawals + total_wallet_sum) / deposits - 1) * 100, "%")
