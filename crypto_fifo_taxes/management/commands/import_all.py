@@ -9,6 +9,7 @@ class Command(BaseCommand):
         call_command("sync_binance")
         call_command("import_coinbase_json")
         call_command("import_binance_eth2_json")
+        call_command("import_nicehash")
         call_command("import_json")
 
         # Calculate cost basis, gains, losses
