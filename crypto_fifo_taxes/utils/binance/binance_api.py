@@ -123,7 +123,7 @@ def get_binance_wallet_balance() -> dict[str:Decimal]:
         balances[row["asset"]] = Decimal(row["free"]) + Decimal(row["locked"])
     for row in savings_wallet:
         if row["asset"] in balances.keys():
-            balances[row["asset"]] = balances["asset"] + Decimal(row["totalAmount"])
+            balances[row["asset"]] = balances[row["asset"]] + Decimal(row["totalAmount"])
         else:
             balances[row["asset"]] = Decimal(row["totalAmount"])
     for symbol, quantity in settings.LOCKED_STAKING.items():
