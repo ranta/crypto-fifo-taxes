@@ -50,6 +50,26 @@ pool wallets
 
 Create an Ethplorer account and an API key and save the API Key to the `.env` file.
 
+### File importers
+It is recommended you back up these files somewhere to prevent data loss
+
+#### Nicehash
+Generate a report from Nicehash where you include all of your mining history. Save the `.csv` file to `nicehash_report.csv`
+
+#### Binance ETH2 Staking
+This is required because Binance does not list early ETH2 staking rewards through their API.
+However, these rewards can be retrieved through the website. Easiest way is to open developer tools and manually copy
+the returned responses in the network tab to a `binance_eth2_staking.json` file.
+
+#### Coinbase
+Trades made in Coinbase. Coinbase does offer an API, but it was deemed not super reliable, because the data might be 
+available in Coinbase or Coinbase PRO.  
+
+#### Import JSON
+Some transactions are not possible to get through an API. These weird ones can be manually imported through `import.json` file.
+You can also override existing transactions in case of incorrect data, e.g. transfers between your wallets and currency swaps
+may not be imported properly through the API.
+
 #### Note:
 
 While most transactions can be retrieved through the Binance API, there are some things that Binance doesn't offer
@@ -58,7 +78,7 @@ an endpoint for and, which means they need to be imported manually, such as:
 - [Convert History](https://www.binance.com/en/my/orders/convert/history)
 - [ETH 2.0 Staking (Swapping ETH to BETH)](https://www.binance.com/en/my/saving/history/tokenStaking?tab=2)
 - Certain rewards e.g. referrals and [coupons](https://www.binance.com/en/my/coupon)
-- Dust to BNB converts in same cases
+- Dust to BNB converts in some cases
   - Certain converts are not visible even through [Binance website](https://www.binance.com/en/my/wallet/history/bnbconvert).
     The only way to find details about them is to export Transaction History 3 months at a time to find the converts
     then manually import them to this app. Exporting Transaction History is restricted to 4 times a month and at most
