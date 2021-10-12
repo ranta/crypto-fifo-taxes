@@ -2,6 +2,7 @@ import typing
 from decimal import Decimal
 from typing import List, Optional
 
+from django.conf import settings
 from django.db import models
 from django.db.models import F, Q
 from django.db.models.functions import Coalesce
@@ -156,9 +157,17 @@ class Transaction(models.Model):
         self.to_detail.save()
 
     def _handle_to_trade_crypto_to_crypto_cost_basis(self) -> None:
-        # Use sold price as cost basis
+        # Get currency's real price
         currency_value = self.from_detail.currency.get_fiat_price(self.timestamp, self.from_detail.wallet.fiat)
-        if not currency_value:
+        if currency_value is None:
+            if self.from_detail.currency.symbol.lower() in settings.DEPRECATED_TOKENS:
+                # Token is deprecated and not available in the API, use closest possible known value instead
+                self.to_detail.cost_basis = (
+                    self.from_detail.quantity * self._get_detail_cost_basis(self.from_detail)[0]
+                ) / self.to_detail.quantity
+                self.to_detail.save()
+                return
+
             raise MissingPriceHistoryError(
                 f"Currency: `{self.from_detail.currency}` does not have a price for {self.timestamp.date()} "
                 f"in {self.from_detail.wallet.fiat}"
