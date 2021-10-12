@@ -1,0 +1,10 @@
+Date time,Purpose,Amount (BTC),* Exchange rate,Amount (EUR)
+2020-07-31 00:00:00 GMT,Hashpower mining,0.00020000,1000,5
+2020-07-31 00:00:00 GMT,Hashpower mining fee,-0.00000200,1000,-0.05
+2020-08-01 00:00:00 GMT,Hashpower mining,0.00030000,1000,5
+2020-08-01 00:00:00 GMT,Hashpower mining fee,-0.00000300,1000,-0.05
+2020-08-02 00:00:00 GMT,Hashpower mining,0.00050000,1000,5
+2020-08-02 00:00:00 GMT,Hashpower mining fee,-0.00000500,1000,-0.05
+,Hashpower mining fee,-0.00000123,,-1.23
+,Hashpower mining,0.02000555,,5.55
+∑,Total,0.00000444,,444
