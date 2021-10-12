@@ -9,7 +9,7 @@ from django.db.transaction import atomic
 from enumfields import EnumIntegerField
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
-from crypto_fifo_taxes.exceptions import MissingPriceHistoryError
+from crypto_fifo_taxes.exceptions import MissingCostBasis, MissingPriceHistoryError
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
 if typing.TYPE_CHECKING:
@@ -111,9 +111,9 @@ class Transaction(models.Model):
                 # Nothing left to do
                 break
 
-            assert balance.cost_basis, (
-                f"TransactionDetail (id: {balance.id}, {balance}) is missing its `cost_basis`." f" Unable to continue"
-            )
+            if balance.cost_basis is None:
+                raise MissingCostBasis(f"TransactionDetail (id: {balance.id}, {balance}) is missing its `cost_basis`.")
+
             if required_quantity >= balance.quantity_left:
                 # Fully consume deposit balance
                 cost_bases.append((balance.quantity_left, apply_hmo(balance.cost_basis)))
