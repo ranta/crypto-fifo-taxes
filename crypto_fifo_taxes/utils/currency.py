@@ -31,9 +31,13 @@ def get_or_create_currency(symbol: str) -> Currency:
         cg_currency_list = coingecko_get_currency_list()
         # In most cases symbols will match, but in a few cases where it doesn't the id should match. e.g. IOTA
         try:
-            currency_data = next(
-                filter(lambda x: x["symbol"] == symbol.lower() or x["id"] == symbol.lower(), cg_currency_list)
-            )
+
+            def currency_filter(x):
+                if "binance-peg" in x["id"]:
+                    return False
+                return x["symbol"] == symbol.lower() or x["id"] == symbol.lower()
+
+            currency_data = next(filter(currency_filter, cg_currency_list))
         except StopIteration:
             if symbol.lower() in settings.DEPRECATED_TOKENS:
                 currency_data = settings.DEPRECATED_TOKENS[symbol.lower()]
