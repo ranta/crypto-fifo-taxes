@@ -106,7 +106,8 @@ class Wallet(models.Model):
         Another other option would be to filter deposits in Python, but it's not as efficient as filtering in the db.
 
         Notes:
-        Fees for withdrawals are not consumed from the wallet, but from the sent amount.
+        - Fees for withdrawals are not consumed from the wallet, but from the sent amount.
+        - When iterating through transactions qs ordered by `timestamp` and using this method, also order them by `pk`.
         """
 
         # Total amount of currency that has left the wallet
@@ -130,7 +131,7 @@ class Wallet(models.Model):
                 accum_quantity=Window(Sum(F("quantity")), order_by=F("to_detail__timestamp").asc()),
                 quantity_left=ExpressionWrapper(F("accum_quantity") - total_spent, output_field=DecimalField()),
             )
-            .order_by("to_detail__timestamp")
+            .order_by("to_detail__timestamp", "pk")
         )
 
         # Convert to SQL to allow filtering by `accum_quantity`.
