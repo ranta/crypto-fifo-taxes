@@ -1,6 +1,7 @@
 import datetime
-from typing import Union
+from typing import Optional, Union
 
+from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -47,12 +48,16 @@ class Currency(models.Model):
     def __repr__(self):
         return f"<{self.__class__.__name__} ({self.pk}): {self.name} [{'FIAT' if self.is_fiat else 'NON-FIAT'}]>"
 
-    def get_fiat_price(self, date: Union[datetime.date, datetime.datetime], fiat: "Currency" = None) -> "CurrencyPrice":
+    def get_fiat_price(
+        self, date: Union[datetime.date, datetime.datetime], fiat: "Currency" = None
+    ) -> Optional["CurrencyPrice"]:
         """
         Get the FIAT price for a crypto on a specific date.
 
         If no `fiat` currency is defined, settings.DEFAULT_FIAT_SYMBOL will be used instead.
         Fetch price for the crypto if no record for entered fiat and date is found.
+
+        Only way for this method to return None, is if the price is unable to fetched from the API e.g. it's deprecated
         """
         if date is None:
             raise TypeError("Date must be entered!")
@@ -73,6 +78,11 @@ class Currency(models.Model):
         if currency_price is None:
             from crypto_fifo_taxes.utils.coingecko import fetch_currency_price
 
+            # No reason to try to fetch deprecated token price from the API
+            if self.symbol.lower() in settings.DEPRECATED_TOKENS:
+                return None
+
+            # Fetch prices from an API
             fetch_currency_price(self, date)
             currency_price = self.prices.filter(date=date, fiat=fiat).first()
 
