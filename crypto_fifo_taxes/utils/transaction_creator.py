@@ -61,6 +61,10 @@ class TransactionCreator:
         cost_basis: Optional[Decimal] = None,
         prefix: str = "",
     ) -> None:
+        if quantity == 0:
+            # TODO: Logging
+            return
+
         detail = TransactionDetail(wallet=wallet, currency=currency, quantity=quantity, cost_basis=cost_basis)
         setattr(self, f"{prefix}_detail", detail)
 
