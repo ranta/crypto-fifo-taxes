@@ -53,7 +53,7 @@ def test_swap():
 
     tx = wallet.transaction_details.last().transaction
     assert tx.transaction_type == TransactionType.SWAP
-    assert tx.from_detail.cost_basis == tx.to_detail.cost_basis
+    assert tx.from_detail.cost_basis == tx.to_detail.cost_basis * 100
     assert wallet.get_current_balance("VEN") == Decimal(0)
     assert wallet.get_current_balance("VET") == Decimal(100000)
 

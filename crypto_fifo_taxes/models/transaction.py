@@ -196,11 +196,12 @@ class Transaction(models.Model):
         This shouldn't affect the end result, except in a few very rare cases.
         """
         cost_basis = self._get_from_detail_cost_basis()[0]
+        ratio = Decimal(self.from_detail.quantity / self.to_detail.quantity)
 
         self.from_detail.cost_basis = cost_basis
         self.from_detail.save()
 
-        self.to_detail.cost_basis = cost_basis
+        self.to_detail.cost_basis = cost_basis * ratio
         self.to_detail.save()
 
         self.gain = Decimal(0)
