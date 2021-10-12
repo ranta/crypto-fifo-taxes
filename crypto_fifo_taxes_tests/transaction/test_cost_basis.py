@@ -86,17 +86,17 @@ def test_cost_basis_fiat_crypto_crypto_fiat_trades_fifo():
     wallet_helper.trade(fiat, 400, btc, 2)  # 1 BTC == 200 EUR
 
     # Trade 4*100 = 400 EUR BTC to ETH
-    CurrencyPriceFactory.create(currency=btc, fiat=fiat, date=wallet_helper.date(), price=100)
+    CurrencyPriceFactory.create(currency=eth, fiat=fiat, date=wallet_helper.date(), price=20)
     tx = wallet_helper.trade(btc, 4, eth, 20)
     assert tx.from_detail.cost_basis == Decimal(100)
-    assert tx.to_detail.cost_basis == Decimal(20)  # 1 ETH == 20 EUR
+    assert tx.to_detail.cost_basis == Decimal(20)
 
     # Trade 2*100 + 2*200 = 600 EUR to ETH
     wallet_helper.tx_time.next_day()
-    CurrencyPriceFactory.create(currency=btc, fiat=fiat, date=wallet_helper.date(), price=150)
+    CurrencyPriceFactory.create(currency=eth, fiat=fiat, date=wallet_helper.date(), price=30)
     tx = wallet_helper.trade(btc, 4, eth, 20)
     assert tx.from_detail.cost_basis == Decimal(150)
-    assert tx.to_detail.cost_basis == Decimal(30)  # 1 ETH == 10 EUR
+    assert tx.to_detail.cost_basis == Decimal(30)
 
     # Sell all 40 ETH to FIAT
     wallet_helper.tx_time.next_day()
