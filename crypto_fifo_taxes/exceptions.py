@@ -4,3 +4,7 @@ class MissingPriceHistoryError(Exception):
 
 class MissingCostBasis(Exception):
     pass
+
+
+class PdfException(Exception):
+    pass
