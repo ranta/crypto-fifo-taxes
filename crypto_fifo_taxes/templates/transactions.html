@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}{{ section.title }}{% endblock %}
+
+{% block content %}
+    <h1>{{ section.title }}</h1>
+
+    {% if transaction_list %}
+        <table class="table table-striped table-bordered table-hover table-sm">
+            <thead>
+            <tr>
+                <th scope="col">Timestamp</th>
+                <th scope="col">Type</th>
+
+                <th scope="col">From</th>
+                <th scope="col">From cost basis</th>
+                <th scope="col">To</th>
+                <th scope="col">To cost basis</th>
+
+                <th scope="col">Gains</th>
+                <th scope="col">Fees</th>
+                <th scope="col">Profit</th>
+
+                <th scope="col">Description</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for transaction in transaction_list %}
+                <tr>
+                    <td>{{ transaction.timestamp|date:'Y-m-d H:i:s' }}</td>
+                    <td>{{ transaction.transaction_type.label }}
+                    {% if transaction.transaction_label.label != "Unknown" %}
+                        ({{ transaction.transaction_label.label }})
+                    {% endif %}
+                    </td>
+
+
+                    {% if transaction.from_detail %}
+                        <td>{{ transaction.from_detail.currency.symbol }} {{ transaction.from_detail.quantity.normalize }}</td>
+                        <td>EUR {{ transaction.from_detail.cost_basis|floatformat:8 }}</td>
+                    {% else %}
+                        <td></td>
+                        <td></td>
+                    {% endif %}
+                    {% if transaction.to_detail %}
+                        <td>{{ transaction.to_detail.currency.symbol }} {{ transaction.to_detail.quantity.normalize }}</td>
+                        <td>EUR {{ transaction.to_detail.cost_basis|floatformat:8 }}</td>
+                    {% else %}
+                        <td></td>
+                        <td></td>
+                    {% endif %}
+
+                    <td>{% if transaction.gain %}EUR {{ transaction.gain|floatformat:8 }}{% endif %}</td>
+                    <td>{% if transaction.fee_amount %}EUR {{ transaction.fee_amount|floatformat:8 }}{% endif %}</td>
+                    <td>{% if transaction.profit %}EUR {{ transaction.profit|floatformat:8 }}{% endif %}</td>
+
+                    <td>{{ transaction.description }}</td>
+                </tr>
+            {% endfor %}
+
+            <tr>
+                <td>Total</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+
+                <td>{% if totals.sum_gain %}EUR {{ totals.sum_gain|floatformat:2 }}{% endif %}</td>
+                <td>{% if totals.sum_fee_amount %}EUR {{ totals.sum_fee_amount|floatformat:2 }}{% endif %}</td>
+                <td>{% if totals.sum_profit %}EUR {{ totals.sum_profit|floatformat:2 }}{% endif %}</td>
+
+                <td></td>
+            </tr>
+            </tbody>
+        </table>
+    {% else %}
+        <p>No polls are available.</p>
+    {% endif %}
+
+{% endblock %}
