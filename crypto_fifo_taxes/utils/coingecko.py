@@ -61,7 +61,9 @@ def fetch_currency_price(currency: Currency, date: datetime.date):
 
     # Coin was unable to retrieved for some reason. e.g. deprecated (VEN)
     if response_json is None:
-        return
+        if currency.symbol in settings.DEPRECATED_TOKENS:
+            return
+        raise Exception(f"Price not returned for {currency} on {date}")
 
     # Coin was returned, but has no market data for the date. Maybe the coin is "too new"? (VTHO)
     if "market_data" not in response_json:

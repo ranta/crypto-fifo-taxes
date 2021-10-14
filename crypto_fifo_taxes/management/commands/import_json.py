@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.management import BaseCommand
 from django.db.transaction import atomic
 
-from crypto_fifo_taxes.enums import TransactionType
+from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.models import Transaction, Wallet
 from crypto_fifo_taxes.utils.binance.binance_api import bstrptime, to_timestamp
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
@@ -72,6 +72,9 @@ class Command(BaseCommand):
         if "type" in row:
             transaction.transaction_type = TransactionType[row["type"]]
             transaction.save()
+        if "label" in row:
+            transaction.transaction_label = TransactionLabel[row["label"]]
+            transaction.save()
 
     def handle_imported_rows(self, data: list) -> None:
         tx_ids = set(self.build_transaction_id(row) for row in data)
@@ -96,6 +99,8 @@ class Command(BaseCommand):
                 type=TransactionType[row["type"]],
                 fill_cost_basis=False,
             )
+            if "label" in row:
+                tx_creator.label = TransactionLabel[row["label"]]
 
             if "from_symbol" in row:
                 tx_creator.add_from_detail(

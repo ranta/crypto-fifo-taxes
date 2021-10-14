@@ -24,6 +24,7 @@ def import_deposits(wallet: Wallet, deposits: list) -> None:
         currency = get_or_create_currency(deposit["coin"])
         TransactionCreator(
             timestamp=from_timestamp(deposit["insertTime"]),
+            description="Deposit (Imported from Binance API)",
             tx_id=deposit["txId"],
             fill_cost_basis=False,
         ).create_deposit(
@@ -51,6 +52,7 @@ def import_withdrawals(wallet: Wallet, deposits: list) -> None:
         currency = get_or_create_currency(withdrawal["coin"])
         tx_creator = TransactionCreator(
             timestamp=bstrptime(withdrawal["applyTime"]),
+            description="Withdrawal (Imported from Binance API)",
             tx_id=withdrawal["txId"],
             fill_cost_basis=False,
         )
@@ -82,6 +84,7 @@ def import_pair_trades(wallet: Wallet, trading_pair: CurrencyPair, trades: list)
 
         tx_creator = TransactionCreator(
             timestamp=from_timestamp(trade["time"]),
+            description="Trade (Imported from Binance API)",
             tx_id=str(trade["orderId"]),
             fill_cost_basis=False,
         )
@@ -114,6 +117,7 @@ def import_dust(wallet: Wallet, converts: list) -> None:
 
             tx_creator = TransactionCreator(
                 timestamp=from_timestamp(convert["operateTime"]),
+                description="Dust convert (Imported from Binance API)",
                 tx_id=str(convert["transId"]),
                 fill_cost_basis=False,
             )
@@ -146,7 +150,7 @@ def import_dividends(wallet: Wallet, dividends: list) -> None:
         currency = get_or_create_currency(row["asset"])
         tx_creator = TransactionCreator(
             timestamp=from_timestamp(row["divTime"]),
-            description=row["enInfo"],
+            description=f"{row['enInfo']} (Imported from Binance API)",
             tx_id=build_transaction_id(row),
             label=TransactionLabel.REWARD,
             fill_cost_basis=False,
@@ -187,7 +191,7 @@ def import_interest(wallet: Wallet, interests: list) -> None:
         currency = get_or_create_currency(row["asset"])
         tx_creator = TransactionCreator(
             timestamp=from_timestamp(row["time"]),
-            description="Interest payout",
+            description="Interest payout (Imported from Binance API)",
             tx_id=build_transaction_id(row),
             label=TransactionLabel.REWARD,
             fill_cost_basis=False,

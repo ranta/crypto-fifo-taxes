@@ -1,13 +1,11 @@
 from datetime import datetime
 
 from django.core.management import BaseCommand, call_command
-from django.db.transaction import atomic
 
 from crypto_fifo_taxes.models import Transaction
 
 
 class Command(BaseCommand):
-    @atomic
     def handle(self, *args, **kwargs):
         transactions_count = Transaction.objects.count()
         start_time = datetime.now()
