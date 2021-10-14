@@ -159,7 +159,7 @@ class CurrencyPrice(models.Model):
         )
 
     def __str__(self):
-        return f"{self.currency.symbol}'s  price in {self.fiat.symbol} on {self.date} ({self.price})"
+        return f"{self.currency.symbol}'s price in {self.fiat.symbol} on {self.date} ({self.price})"
 
     def __repr__(self):
         return (

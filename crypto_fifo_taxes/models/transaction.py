@@ -326,7 +326,7 @@ class TransactionDetail(models.Model):
     objects = TransactionDetailManager.from_queryset(TransactionDetailQuerySet)()
 
     def __str__(self):
-        return f"{self.currency.symbol} ({self.quantity})"
+        return f"{self.currency.symbol} ({str(self.quantity).rstrip('0').rstrip('.')})"
 
     def __repr__(self):
         if self.transaction is not None:
