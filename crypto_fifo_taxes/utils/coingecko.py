@@ -7,6 +7,7 @@ from typing import Optional
 import requests
 from django.conf import settings
 
+from crypto_fifo_taxes.exceptions import MissingPriceError
 from crypto_fifo_taxes.models import Currency, CurrencyPrice
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
 
@@ -63,7 +64,7 @@ def fetch_currency_price(currency: Currency, date: datetime.date):
     if response_json is None:
         if currency.symbol in settings.DEPRECATED_TOKENS:
             return
-        raise Exception(f"Price not returned for {currency} on {date}")
+        raise MissingPriceError(f"Price not returned for {currency} on {date}")
 
     # Coin was returned, but has no market data for the date. Maybe the coin is "too new"? (VTHO)
     if "market_data" not in response_json:
