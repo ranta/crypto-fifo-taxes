@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Graph{% endblock %}
+
+{% block head %}
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/data.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
+{% endblock %}
+
+{% block content %}
+    <div id="container" style="width:100%; height:600px;"></div>
+
+    <script>
+        var worth = {{ snapshot_worth }};
+        var cost_basis = {{ snapshot_cost_basis }};
+
+        Highcharts.stockChart('container', {
+            chart: {
+                zoomType: 'x'
+            },
+
+            rangeSelector: {
+                buttons: [{
+                    type: 'day',
+                    count: 3,
+                    text: '3d'
+                }, {
+                    type: 'week',
+                    count: 1,
+                    text: '1w'
+                }, {
+                    type: 'month',
+                    count: 1,
+                    text: '1m'
+                }, {
+                    type: 'month',
+                    count: 6,
+                    text: '6m'
+                }, {
+                    type: 'year',
+                    count: 1,
+                    text: '1y'
+                }, {
+                    type: 'all',
+                    text: 'All'
+                }],
+                selected: 3
+            },
+
+            title: {
+                text: 'Daily portfolio worth and cost basis',
+                align: 'left'
+            },
+
+            series: [{
+                name: 'Worth',
+                data: worth,
+                pointStart: {{ point_start }},
+                pointInterval: 86400000,  // 1 day
+                tooltip: {
+                    valueDecimals: 2,
+                    valueSuffix: ' €'
+                }
+            }, {
+                name: 'Cost basis',
+                data: cost_basis,
+                pointStart: {{ point_start }},
+                pointInterval: 86400000,  // 1 day
+                tooltip: {
+                    valueDecimals: 2,
+                    valueSuffix: ' €'
+                }
+            }]
+        });
+    </script>
+{% endblock %}
