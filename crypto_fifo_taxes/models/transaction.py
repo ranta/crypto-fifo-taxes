@@ -1,19 +1,19 @@
-import typing
 from decimal import Decimal
-from typing import List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from django.conf import settings
 from django.db import models
-from django.db.models import F, Q
-from django.db.models.functions import Coalesce
+from django.db.models import Case, DateField, DecimalField, ExpressionWrapper, F, OuterRef, Q, Subquery, When
+from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
 from enumfields import EnumIntegerField
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.exceptions import MissingCostBasis, MissingPriceHistoryError
+from crypto_fifo_taxes.utils.db import SQAvg, SQSum
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from crypto_fifo_taxes.models import Currency, Wallet
 
 
@@ -310,6 +310,64 @@ class TransactionDetailQuerySet(models.QuerySet):
         return self.annotate(
             tx_timestamp=Coalesce(F("from_detail__timestamp"), F("to_detail__timestamp"), F("fee_detail__timestamp"))
         ).order_by("tx_timestamp")
+
+    def get_balances_for_snapshot(self) -> list[dict[str, Any]]:
+        from crypto_fifo_taxes.models import SnapshotBalance
+
+        snapshot_balance_qs = SnapshotBalance.objects.filter(
+            currency_id=OuterRef("currency_id"), snapshot__date__lt=OuterRef("tx_timestamp_date")
+        ).order_by("-snapshot__date")
+        return (
+            self.annotate(
+                tx_timestamp_date=Cast("tx_timestamp", DateField()),
+                # Currency coming in
+                deposits=SQSum(
+                    self.filter(currency_id=OuterRef("currency_id"), to_detail__isnull=False),
+                    sum_field="quantity",
+                ),
+                # Currency going out
+                withdrawals=SQSum(
+                    self.filter(currency_id=OuterRef("currency_id")).filter(
+                        Q(from_detail__isnull=False)
+                        # Is fee and not a withdrawal to a third party (fee is included in from_detail amount)
+                        | Q(fee_detail__isnull=False) & ~Q(fee_detail__transaction_type=TransactionType.WITHDRAW)
+                    ),
+                    sum_field="quantity",
+                ),
+                # Difference between deposits and withdrawals
+                delta=ExpressionWrapper(
+                    Coalesce(F("deposits"), 0) - Coalesce(F("withdrawals"), 0), output_field=DecimalField()
+                ),
+                # Avg cost basis if deposits
+                avg_cost_basis=Coalesce(
+                    SQAvg(
+                        self.filter(currency_id=OuterRef("currency_id"), to_detail__isnull=False),
+                        avg_field="cost_basis",
+                    ),
+                    Decimal(0),
+                ),
+                last_balance=Coalesce(Subquery(snapshot_balance_qs.values_list("quantity")[:1]), Decimal(0)),
+                last_cost_basis=Coalesce(Subquery(snapshot_balance_qs.values_list("cost_basis")[:1]), Decimal(0)),
+                new_balance=ExpressionWrapper(Coalesce(F("last_balance"), 0) + F("delta"), output_field=DecimalField()),
+                new_cost_basis=Case(
+                    # Balance emptied or no last known cost basis
+                    When(Q(new_balance=0) | Q(last_cost_basis=0), then=F("avg_cost_basis")),
+                    # Negative delta, cost basis should not be changed from the last known value
+                    When(delta__lt=0, then=F("last_cost_basis")),
+                    # Calculate new cost basis weighted by quantity
+                    default=ExpressionWrapper(
+                        (F("last_balance") * F("last_cost_basis") + F("delta") * F("avg_cost_basis"))
+                        / F("new_balance"),
+                        output_field=DecimalField(),
+                    ),
+                    output_field=DecimalField(),
+                ),
+            )
+            # Group by currency
+            .order_by("currency_id")
+            .distinct("currency_id")
+            .values("currency_id", "new_balance", "new_cost_basis")
+        )
 
 
 class TransactionDetailManager(models.Manager):

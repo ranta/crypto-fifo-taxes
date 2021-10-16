@@ -1,3 +1,7 @@
+class MissingPriceError(Exception):
+    pass
+
+
 class MissingPriceHistoryError(Exception):
     pass
 
