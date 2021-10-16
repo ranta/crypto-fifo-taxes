@@ -25,7 +25,8 @@ def retry_get_request_until_ok(url: str) -> Optional[dict]:
         elif response.status_code == 429:
             # CoinGecko has a rate limit of 50 calls/minute, but In reality it seems to be more than that
             # If requests are throttled, wait and retry later
-            sleep_time = int(response.headers["Retry-After"])
+            # For some reason the `"Retry-After"` is not always returned with a HTTP 429 response
+            sleep_time = int(response.headers["Retry-After"]) if "Retry-After" in response.headers else 5
             print(f"Too Many Requests sent to CoinGecko API. Waiting {sleep_time}s until trying again")
             time.sleep(sleep_time)
             continue
