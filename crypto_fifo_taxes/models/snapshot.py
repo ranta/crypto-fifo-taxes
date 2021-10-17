@@ -18,6 +18,10 @@ class Snapshot(models.Model):
     date = models.DateField()
     worth = TransactionDecimalField(null=True, blank=True)
     cost_basis = TransactionDecimalField(null=True, blank=True)
+    deposits = TransactionDecimalField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("date",)
 
     def __str__(self):
         return f"{self.user.get_full_name()}'s Snapshot for {self.date}"
