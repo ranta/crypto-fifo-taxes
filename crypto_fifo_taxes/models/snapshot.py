@@ -1,8 +1,12 @@
+from datetime import datetime, time
 from decimal import Decimal
 from typing import Any
 
+import pytz
 from django.conf import settings
 from django.db import models
+from django.db.models import DecimalField, F, Q, Sum
+from django.db.models.functions import Coalesce
 
 from crypto_fifo_taxes.exceptions import MissingPriceError
 from crypto_fifo_taxes.utils.currency import get_currency
@@ -18,6 +22,10 @@ class Snapshot(models.Model):
     date = models.DateField()
     worth = TransactionDecimalField(null=True, blank=True)
     cost_basis = TransactionDecimalField(null=True, blank=True)
+    deposits = TransactionDecimalField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("date",)
 
     def __str__(self):
         return f"{self.user.get_full_name()}'s Snapshot for {self.date}"
@@ -35,11 +43,13 @@ class Snapshot(models.Model):
         )
 
     def calculate_worth(self):
+        from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
+        from crypto_fifo_taxes.models import TransactionDetail
+
         sum_worth = Decimal(0)
         sum_cost_basis = Decimal(0)
 
         balances = self.get_balances()
-
         for balance in balances:
             if balance["quantity"] == 0:
                 continue
@@ -61,11 +71,40 @@ class Snapshot(models.Model):
 
             if currency_price is None:
                 continue
+
             sum_worth += balance["quantity"] * currency_price.price
             sum_cost_basis += balance["quantity"] * balance["cost_basis"]
 
+        # This defines what transactions are deposits
+        deposits_filter = Q(
+            Q(tx_timestamp__lte=datetime.combine(self.date, time(23, 59, 59), tzinfo=pytz.UTC))
+            & Q(to_detail__isnull=False)
+            & Q(from_detail__isnull=True)
+            & Q(
+                Q(currency__symbol="EUR") & Q(to_detail__transaction_type=TransactionType.DEPOSIT)
+                | Q(to_detail__transaction_label=TransactionLabel.MINING)
+            )
+        )
+
+        deposits = Decimal(0)
+        last_snapshot = Snapshot.objects.filter(date__lt=self.date).order_by("-date").first()
+        if last_snapshot is None:
+            # First snapshot; Simply take all predating deposits
+            deposits_qs = TransactionDetail.objects.filter(deposits_filter)
+        else:
+            # n:th snapshot; Sum deposits of last snapshot to the deposits in period between this and last snapshot
+            deposits += last_snapshot.deposits
+            deposits_filter &= Q(
+                tx_timestamp__gt=datetime.combine(last_snapshot.date, time(23, 59, 59), tzinfo=pytz.UTC)
+            )
+            deposits_qs = TransactionDetail.objects.filter(deposits_filter)
+        deposits += deposits_qs.annotate(
+            worth=Coalesce(F("quantity") * F("cost_basis"), 0, output_field=DecimalField())
+        ).aggregate(sum_deposits_worth=Sum("worth"))["sum_deposits_worth"] or Decimal(0)
+
         self.worth = sum_worth
         self.cost_basis = sum_cost_basis
+        self.deposits = deposits
         self.save()
 
 
