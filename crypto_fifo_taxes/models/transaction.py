@@ -225,7 +225,7 @@ class Transaction(models.Model):
 
     def _handle_withdrawal_cost_basis(self) -> None:
         """
-        Funds are sent to some third party entity.
+        Funds are sent to some third party entity or withdrawn to a bank account (if fiat).
         e.g. Paying for goods and services directly with crypto
         This realizes any profits made from value appreciation
         """

@@ -24,6 +24,7 @@ class TransactionFactory(DjangoModelFactory):
     fee_detail = None
     gain = None
     fee_amount = None
+    tx_id = None
 
 
 class TransactionDetailFactory(DjangoModelFactory):
