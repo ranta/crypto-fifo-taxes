@@ -1,16 +1,14 @@
-from collections import namedtuple
 from datetime import datetime, timedelta
 from decimal import Decimal
 from functools import lru_cache
-from typing import Iterator
+from typing import Callable, Iterator
 
 import pytz
 from django.conf import settings
 
+from crypto_fifo_taxes.exceptions import TooManyResultsError
 from crypto_fifo_taxes.models import Wallet
 from crypto_fifo_taxes.utils.binance.binance_client import BinanceClient
-
-Interval = namedtuple("Interval", "startTime endTime")
 
 
 def to_timestamp(dt: datetime) -> int:
@@ -28,19 +26,29 @@ def bstrptime(stamp: str) -> datetime:
     return datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S").replace(tzinfo=pytz.UTC)
 
 
-def iterate_history(start_date=datetime(2017, 1, 1), delta_days: int = 90) -> "Interval":
+def binance_history_iterator(
+    fetch_function: Callable,
+    period_length: int = 60,
+    start_date: datetime = datetime(2018, 1, 1),
+    end_date: datetime = None,
+):
     """
-    Binance allows fetching from the trade history at most 90 days at a time
-    This function makes it easier to get all required intervals
+    Loop through history n days at a time, because binance API has limitations on maximum period that can be queried
     """
-    while start_date + timedelta(days=delta_days) < datetime.now():
-        start_date = start_date + timedelta(days=delta_days)
-        yield Interval(
-            to_timestamp(start_date),
-            to_timestamp(
-                min(start_date + timedelta(days=delta_days), datetime.now().replace(hour=23, minute=59, second=59))
-            ),
-        )
+    end_date = (end_date if end_date is not None else datetime.now()).replace(hour=23, minute=59, second=59)
+    while start_date + timedelta(days=period_length) < end_date:
+        try:
+            yield fetch_function(
+                startTime=to_timestamp(start_date),
+                endTime=to_timestamp(min(start_date + timedelta(days=period_length), end_date)),
+            )
+        except TooManyResultsError:
+            # Too many results returned in fetch_function so not all data may be included.
+            # Try again with a smaller period
+            for result in binance_history_iterator(fetch_function, int(period_length / 2), start_date, end_date):
+                # yield results separately instead together in a single iterable to keep output as the same
+                yield result
+        start_date += timedelta(days=period_length)
 
 
 @lru_cache()
@@ -51,14 +59,12 @@ def get_binance_client() -> BinanceClient:
 
 def get_binance_deposits() -> Iterator[list[dict]]:
     client = get_binance_client()
-    for interval in iterate_history():
-        yield client.get_deposit_history(startTime=interval.startTime, endTime=interval.endTime)
+    return binance_history_iterator(client.get_deposit_history)
 
 
 def get_binance_withdraws() -> Iterator[list[dict]]:
     client = get_binance_client()
-    for interval in iterate_history():
-        yield client.get_withdraw_history(startTime=interval.startTime, endTime=interval.endTime)
+    return binance_history_iterator(client.get_withdraw_history)
 
 
 def get_binance_dust_log() -> list:
@@ -67,36 +73,41 @@ def get_binance_dust_log() -> list:
 
 
 def get_binance_dividends() -> Iterator[list[dict]]:
-    client = get_binance_client()
-    for interval in iterate_history():
-        dividends = client.get_asset_dividend_history(
-            startTime=interval.startTime,
-            endTime=interval.endTime,
-            limit=500,
-        )
+    def dividends(startTime: int, endTime: int):
+        response = client.get_asset_dividend_history(startTime=startTime, endTime=endTime, limit=500)
+        if response["total"] >= 500:
+            raise TooManyResultsError
+        return response["rows"]
 
-        # If batch contains 500 transactions, some data is most likely left out, most likely Interval should be shorter.
-        assert dividends["total"] < 500, "Dividend batch size limit reached, not all data may be included"
-        yield dividends["rows"]
+    client = get_binance_client()
+    return binance_history_iterator(
+        dividends,
+        period_length=60,  # Documented value is 90 but in reality it seems to be 60
+    )
 
 
 def get_binance_interest_history() -> Iterator[list[dict]]:
-    client = get_binance_client()
-    for type in ("DAILY", "ACTIVITY", "CUSTOMIZED_FIXED"):
-        for interval in iterate_history(delta_days=30):
+    def interests(startTime: int, endTime: int):
+        """This endpoint can be paginated, so do that as it's more efficient than reducing period length"""
+        output = []
+        for type in ("DAILY", "ACTIVITY", "CUSTOMIZED_FIXED"):
             page = 1
             while True:
                 interest_history = client.get_lending_interest_history(
-                    startTime=interval.startTime,
-                    endTime=interval.endTime,
+                    startTime=startTime,
+                    endTime=endTime,
                     size=100,
                     lendingType=type,
                     current=page,
                 )
-                yield interest_history
+                output += interest_history
                 if len(interest_history) < 100:
                     break
                 page += 1
+        return output
+
+    client = get_binance_client()
+    return binance_history_iterator(interests, period_length=30)
 
 
 def get_binance_wallet_balance() -> dict[str:Decimal]:

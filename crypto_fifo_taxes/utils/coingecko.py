@@ -65,6 +65,7 @@ def fetch_currency_price(currency: Currency, date: datetime.date):
     if response_json is None:
         if currency.symbol in settings.DEPRECATED_TOKENS:
             return
+        # Note: Sometimes price is returned for a currency for no reason, trying again might help
         raise MissingPriceError(f"Price not returned for {currency} on {date}")
 
     # Coin was returned, but has no market data for the date. Maybe the coin is "too new"? (VTHO)
