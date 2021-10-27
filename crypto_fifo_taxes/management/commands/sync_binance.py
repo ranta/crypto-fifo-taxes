@@ -24,11 +24,13 @@ from crypto_fifo_taxes.utils.binance.binance_importer import (
     import_withdrawals,
 )
 from crypto_fifo_taxes.utils.currency import get_or_create_currency_pair
+from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 
 
 class Command(BaseCommand):
     client = get_binance_client()
     wallet = Wallet.objects.get(name="Binance")
+    mode = 0  # Fast mode
 
     def add_arguments(self, parser):
         # Optional argument
@@ -86,32 +88,38 @@ class Command(BaseCommand):
                     print("\nToo much Binance API weight used, on cooldown", end="")
                     time.sleep(15)  # API cool down time is not accessible. Try again soon
 
+    @print_time_elapsed
     def sync_deposits(self) -> None:
         for deposits in get_binance_deposits():
             self.print_dot()
             import_deposits(self.wallet, deposits)
 
+    @print_time_elapsed
     def sync_withdrawals(self) -> None:
         for withdraws in get_binance_withdraws():
             self.print_dot()
             import_withdrawals(self.wallet, withdraws)
 
+    @print_time_elapsed
     def sync_dust(self):
         import_dust(self.wallet, get_binance_dust_log())
 
+    @print_time_elapsed
     def sync_dividends(self):
         for dividends in get_binance_dividends():
             self.print_dot()
             import_dividends(self.wallet, dividends)
 
+    @print_time_elapsed
     def sync_interest(self):
         for dividends in get_binance_interest_history():
             self.print_dot()
             import_interest(self.wallet, dividends)
 
-    def sync_trades(self, mode: int) -> None:
+    @print_time_elapsed
+    def sync_trades(self) -> None:
         pairs = []
-        if mode is None or mode == 0:
+        if not self.mode:
             # FAST sync
             # Sync only trading pairs which already have records
             pairs = CurrencyPair.objects.values_list("symbol", flat=True)
@@ -119,9 +127,9 @@ class Command(BaseCommand):
                 print(f"Syncing trades using FAST mode for {len(pairs)} pairs...", end="")
             else:
                 print("No existing currency pairs found for FAST mode sync. Running in FULL sync.")
-                mode = 1
+                self.mode = 1
 
-        if mode == 1:
+        if self.mode == 1:
             # FULL sync
             # Fetch any new trading pairs from Binance
             pairs = self.get_all_pairs()
@@ -131,24 +139,19 @@ class Command(BaseCommand):
         for pair in pairs:
             self.sync_pair(pair)
 
-    def print_time_elapsed(self, func, **kwargs):
-        print(f"Starting {func.__name__}. ", end="", flush=True)
-        part_start_time = datetime.now()
-        func(**kwargs)
-        print(f"\n{func.__name__} sync complete! Time elapsed: {datetime.now() - part_start_time}")
-
     @atomic
     def handle(self, *args, **kwargs):
         sync_start_time = datetime.now()
         transactions_count = Transaction.objects.count()
 
-        mode = kwargs.pop("mode")
-        self.print_time_elapsed(self.sync_trades, mode=mode)
-        self.print_time_elapsed(self.sync_deposits)
-        self.print_time_elapsed(self.sync_withdrawals)
-        self.print_time_elapsed(self.sync_dust)
-        self.print_time_elapsed(self.sync_dividends)
-        self.print_time_elapsed(self.sync_interest)
+        self.mode = kwargs.pop("mode")
+
+        self.sync_trades()
+        self.sync_deposits()
+        self.sync_withdrawals()
+        self.sync_dust()
+        self.sync_dividends()
+        self.sync_interest()
 
         print(f"Total time elapsed: {datetime.now() - sync_start_time}")
         print(f"New transactions created: {Transaction.objects.count() - transactions_count}")
