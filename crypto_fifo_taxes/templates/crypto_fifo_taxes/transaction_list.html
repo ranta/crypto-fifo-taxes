@@ -3,6 +3,7 @@
 {% block title %}Transaction List{% endblock %}
 
 {% block content %}
+    <h1>{{ page_title }}</h1>
     {% if transaction_list %}
         <table class="table table-striped table-bordered table-hover table-sm">
             <thead>
@@ -57,7 +58,7 @@
             {% endfor %}
 
             <tr>
-                <td>Total</td>
+                <td>Total ({{ transaction_list.count }} transactions)</td>
                 <td></td>
                 <td></td>
                 <td></td>
