@@ -89,8 +89,8 @@
                     valueSuffix: ' €'
                 }
             }, {
-                name: 'Bitcoin TWR',
-                data: {{ btc_time_weighted_returns }},
+                name: 'Bitcoin Returns',
+                data: {{ btc_returns }},
                 pointStart: {{ point_start }},
                 pointInterval: 86400000,  // 1 day
                 tooltip: {
@@ -98,8 +98,17 @@
                     valueSuffix: ' %'
                 }
             }, {
-                name: 'Ethereum TWR',
-                data: {{ eth_time_weighted_returns }},
+                name: 'Ethereum Returns',
+                data: {{ eth_returns }},
+                pointStart: {{ point_start }},
+                pointInterval: 86400000,  // 1 day
+                tooltip: {
+                    valueDecimals: 2,
+                    valueSuffix: ' %'
+                }
+            }, {
+                name: 'Total Returns',
+                data: {{ total_returns }},
                 pointStart: {{ point_start }},
                 pointInterval: 86400000,  // 1 day
                 tooltip: {
