@@ -16,3 +16,7 @@ class PdfException(Exception):
 
 class TooManyResultsError(Exception):
     """Too many results returned from a binance endpoint, timeframe should be smaller"""
+
+
+class CoinGeckoMissingCurrency(Exception):
+    pass

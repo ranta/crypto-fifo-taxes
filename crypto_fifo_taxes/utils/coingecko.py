@@ -12,9 +12,6 @@ from crypto_fifo_taxes.models import Currency, CurrencyPrice
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
 
 
-class CoinGeckoMissingCurrency(Exception):
-    pass
-
 
 def retry_get_request_until_ok(url: str) -> Optional[dict]:
     while True:
