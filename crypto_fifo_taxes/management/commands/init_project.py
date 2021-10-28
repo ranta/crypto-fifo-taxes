@@ -11,8 +11,15 @@ from crypto_fifo_taxes.utils.currency import get_default_fiat
 class Command(BaseCommand):
     def handle(self, *args, **options):
         # Create required FIAT currencies
-        for symbol, name in settings.ALL_FIAT_CURRENCIES.items():
-            Currency.objects.get_or_create(symbol=symbol, defaults=dict(name=name, is_fiat=True))
+        for symbol, data in settings.ALL_FIAT_CURRENCIES.items():
+            Currency.objects.update_or_create(
+                symbol=symbol,
+                defaults=dict(
+                    name=data["name"],
+                    cg_id=data["cg_id"],
+                    is_fiat=True,
+                ),
+            )
 
         # Create admin user
         admin_user, admin_created = User.objects.get_or_create(
