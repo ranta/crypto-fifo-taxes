@@ -27,12 +27,13 @@ def bstrptime(stamp: str) -> datetime:
 def binance_history_iterator(
     fetch_function: Callable,
     period_length: int = 60,
-    start_date: datetime = datetime(2018, 1, 1),
+    start_date: datetime = None,
     end_date: datetime = None,
 ):
     """
     Loop through history n days at a time, because binance API has limitations on maximum period that can be queried
     """
+    start_date = start_date if start_date is not None else datetime(2018, 1, 1)
     end_date = (end_date if end_date is not None else datetime.now()).replace(hour=23, minute=59, second=59)
     while start_date + timedelta(days=period_length) < end_date:
         try:
@@ -55,14 +56,14 @@ def get_binance_client() -> BinanceClient:
     return client
 
 
-def get_binance_deposits() -> Iterator[list[dict]]:
+def get_binance_deposits(start_date: datetime = None) -> Iterator[list[dict]]:
     client = get_binance_client()
-    return binance_history_iterator(client.get_deposit_history)
+    return binance_history_iterator(client.get_deposit_history, start_date=start_date)
 
 
-def get_binance_withdraws() -> Iterator[list[dict]]:
+def get_binance_withdraws(start_date: datetime = None) -> Iterator[list[dict]]:
     client = get_binance_client()
-    return binance_history_iterator(client.get_withdraw_history)
+    return binance_history_iterator(client.get_withdraw_history, start_date=start_date)
 
 
 def get_binance_dust_log() -> list:
@@ -70,7 +71,7 @@ def get_binance_dust_log() -> list:
     return client.get_dust_log()["userAssetDribblets"]
 
 
-def get_binance_dividends() -> Iterator[list[dict]]:
+def get_binance_dividends(start_date: datetime = None) -> Iterator[list[dict]]:
     def dividends(startTime: int, endTime: int):
         response = client.get_asset_dividend_history(startTime=startTime, endTime=endTime, limit=500)
         if response["total"] >= 500:
@@ -81,11 +82,12 @@ def get_binance_dividends() -> Iterator[list[dict]]:
     return binance_history_iterator(
         dividends,
         period_length=60,  # Documented value is 90 but in reality it seems to be 60
+        start_date=start_date,
     )
 
 
-def get_binance_interest_history() -> Iterator[list[dict]]:
-    def interests(startTime: int, endTime: int):
+def get_binance_interest_history(start_date: datetime = None) -> Iterator[list[dict]]:
+    def interests(startTime: int, endTime: int) -> list:
         """This endpoint can be paginated, so do that as it's more efficient than reducing period length"""
         output = []
         for type in ("DAILY", "ACTIVITY", "CUSTOMIZED_FIXED"):
@@ -105,4 +107,4 @@ def get_binance_interest_history() -> Iterator[list[dict]]:
         return output
 
     client = get_binance_client()
-    return binance_history_iterator(interests, period_length=30)
+    return binance_history_iterator(interests, period_length=30, start_date=start_date)

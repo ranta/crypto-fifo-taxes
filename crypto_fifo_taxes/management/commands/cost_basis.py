@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.core.management import BaseCommand
 from django.db.models import Q, QuerySet
 
@@ -8,19 +10,24 @@ from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--fast", type=int)
+        parser.add_argument("-d", "--date", type=str, help="Start from this date. Format: YYYY-MM-DD")
+
     @staticmethod
     @print_time_elapsed
     def calculate_cost_bases(transactions: QuerySet[Transaction]):
-        print()  # Newline for prettier formatting
         count = transactions.count()
         for i, t in enumerate(transactions):
             print(f"Calculating cost bases. {(i + 1) / count * 100:>5.2f}% ({t.timestamp.date()})", end="\r")
             t.fill_cost_basis()
 
     def handle(self, *args, **kwargs):
-        self.fast_mode = kwargs.pop("fast", 0)
+        fast_mode = kwargs.pop("fast")
+        date = kwargs.pop("date")
 
-        if self.fast_mode:
+        if date:
+            date = datetime.strptime(date, "%Y-%m-%d").date()
+            transactions = Transaction.objects.order_by("timestamp", "pk").filter(timestamp__date__gte=date)
+        elif fast_mode:
             first_tx_with_no_cost_basis = (
                 Transaction.objects.filter(
                     Q(from_detail__isnull=False) & Q(from_detail__cost_basis__isnull=True)

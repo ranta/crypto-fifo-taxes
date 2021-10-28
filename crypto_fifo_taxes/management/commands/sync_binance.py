@@ -31,15 +31,11 @@ class Command(BaseCommand):
     client = get_binance_client()
     wallet = Wallet.objects.get(name="Binance")
     mode = 0  # Fast mode
+    date = None
 
     def add_arguments(self, parser):
-        # Optional argument
-        parser.add_argument(
-            "-m",
-            "--mode",
-            type=int,
-            help="Mode this sync will be run in. 0=fast, 1=full",
-        )
+        parser.add_argument("-m", "--mode", type=int, help="Mode this sync will be run in. 0=fast, 1=full")
+        parser.add_argument("-d", "--date", type=str, help="Start from this date. Format: YYYY-MM-DD")
 
     def print_dot(self):
         print(".", end="", flush=True)
@@ -90,13 +86,13 @@ class Command(BaseCommand):
 
     @print_time_elapsed_new_transactions
     def sync_deposits(self) -> None:
-        for deposits in get_binance_deposits():
+        for deposits in get_binance_deposits(start_date=self.date):
             self.print_dot()
             import_deposits(self.wallet, deposits)
 
     @print_time_elapsed_new_transactions
     def sync_withdrawals(self) -> None:
-        for withdraws in get_binance_withdraws():
+        for withdraws in get_binance_withdraws(start_date=self.date):
             self.print_dot()
             import_withdrawals(self.wallet, withdraws)
 
@@ -106,15 +102,15 @@ class Command(BaseCommand):
 
     @print_time_elapsed_new_transactions
     def sync_dividends(self):
-        for dividends in get_binance_dividends():
+        for dividends in get_binance_dividends(start_date=self.date):
             self.print_dot()
             import_dividends(self.wallet, dividends)
 
     @print_time_elapsed_new_transactions
     def sync_interest(self):
-        for dividends in get_binance_interest_history():
+        for interests in get_binance_interest_history(start_date=self.date):
             self.print_dot()
-            import_interest(self.wallet, dividends)
+            import_interest(self.wallet, interests)
 
     @print_time_elapsed_new_transactions
     def sync_trades(self) -> None:
@@ -151,4 +147,9 @@ class Command(BaseCommand):
     @atomic
     def handle(self, *args, **kwargs):
         self.mode = kwargs.pop("mode")
+        if not self.mode:
+            # Use date only if fast mode is enabled
+            self.date = kwargs.pop("date")
+            if self.date is not None:
+                self.date = datetime.strptime(self.date, "%Y-%m-%d")
         self.sync_binance_full()
