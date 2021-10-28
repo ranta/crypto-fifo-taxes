@@ -6,7 +6,7 @@ from binance.exceptions import BinanceAPIException
 from django.core.management import BaseCommand
 from django.db.transaction import atomic
 
-from crypto_fifo_taxes.models import CurrencyPair, Transaction, Wallet
+from crypto_fifo_taxes.models import CurrencyPair, Wallet
 from crypto_fifo_taxes.utils.binance.binance_api import (
     get_binance_client,
     get_binance_deposits,
@@ -24,7 +24,7 @@ from crypto_fifo_taxes.utils.binance.binance_importer import (
     import_withdrawals,
 )
 from crypto_fifo_taxes.utils.currency import get_or_create_currency_pair
-from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
+from crypto_fifo_taxes.utils.wrappers import print_time_elapsed_new_transactions
 
 
 class Command(BaseCommand):
@@ -88,35 +88,35 @@ class Command(BaseCommand):
                     print("\nToo much Binance API weight used, on cooldown", end="")
                     time.sleep(15)  # API cool down time is not accessible. Try again soon
 
-    @print_time_elapsed
+    @print_time_elapsed_new_transactions
     def sync_deposits(self) -> None:
         for deposits in get_binance_deposits():
             self.print_dot()
             import_deposits(self.wallet, deposits)
 
-    @print_time_elapsed
+    @print_time_elapsed_new_transactions
     def sync_withdrawals(self) -> None:
         for withdraws in get_binance_withdraws():
             self.print_dot()
             import_withdrawals(self.wallet, withdraws)
 
-    @print_time_elapsed
+    @print_time_elapsed_new_transactions
     def sync_dust(self):
         import_dust(self.wallet, get_binance_dust_log())
 
-    @print_time_elapsed
+    @print_time_elapsed_new_transactions
     def sync_dividends(self):
         for dividends in get_binance_dividends():
             self.print_dot()
             import_dividends(self.wallet, dividends)
 
-    @print_time_elapsed
+    @print_time_elapsed_new_transactions
     def sync_interest(self):
         for dividends in get_binance_interest_history():
             self.print_dot()
             import_interest(self.wallet, dividends)
 
-    @print_time_elapsed
+    @print_time_elapsed_new_transactions
     def sync_trades(self) -> None:
         pairs = []
         if not self.mode:
@@ -135,17 +135,12 @@ class Command(BaseCommand):
             pairs = self.get_all_pairs()
             print(f"Syncing trades using FULL mode for {len(pairs)} pairs. This will take over ten minutes...")
 
-        print("Syncing trades for pair: ", end="")
         for pair in pairs:
             self.sync_pair(pair)
+        print()
 
-    @atomic
-    def handle(self, *args, **kwargs):
-        sync_start_time = datetime.now()
-        transactions_count = Transaction.objects.count()
-
-        self.mode = kwargs.pop("mode")
-
+    @print_time_elapsed_new_transactions
+    def sync_binance_full(self):
         self.sync_trades()
         self.sync_deposits()
         self.sync_withdrawals()
@@ -153,5 +148,7 @@ class Command(BaseCommand):
         self.sync_dividends()
         self.sync_interest()
 
-        print(f"Total time elapsed: {datetime.now() - sync_start_time}")
-        print(f"New transactions created: {Transaction.objects.count() - transactions_count}")
+    @atomic
+    def handle(self, *args, **kwargs):
+        self.mode = kwargs.pop("mode")
+        self.sync_binance_full()

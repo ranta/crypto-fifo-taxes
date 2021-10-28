@@ -6,6 +6,7 @@ from django.core.management import BaseCommand
 from django.utils import timezone
 
 from crypto_fifo_taxes.models import Snapshot, SnapshotBalance, Transaction, TransactionDetail
+from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 
 
 class Command(BaseCommand):
@@ -39,29 +40,29 @@ class Command(BaseCommand):
             )
         SnapshotBalance.objects.bulk_create(snapshot_balances)
 
+    @print_time_elapsed
     def generate_snapshots(self) -> None:
+        print()  # Newline for prettier formatting
         today = timezone.now().date()
         day_delta = 0
+        total_days = (today - self.first_date).days
 
         while True:
             date = self.first_date + timedelta(days=day_delta)
             if date >= today:
                 break
-            print(date)
 
             snapshot, __ = Snapshot.objects.get_or_create(user=self.user, date=date)
             self.generate_snapshot_currencies(snapshot=snapshot, date=date)
             snapshot.calculate_worth()
 
             day_delta += 1
+            print(f"Calculating snapshots. {(day_delta + 1) / total_days * 100:>5.2f}% ({date})", end="\r")
 
     def handle(self, *args, **kwargs):
-        sync_start_time = datetime.now()
         self.mode = kwargs.pop("mode", 0)
 
         # Delete all old snapshots, if this command is being run some if it is most likely outdated :)
         Snapshot.objects.all().delete()
 
         self.generate_snapshots()
-
-        print(f"Total time elapsed: {datetime.now() - sync_start_time}")
