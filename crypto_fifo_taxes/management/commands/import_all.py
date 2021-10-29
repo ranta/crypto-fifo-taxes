@@ -16,6 +16,9 @@ class Command(BaseCommand):
         call_command("import_nicehash")
         call_command("import_json")
 
+        # Fetch market prices for currencies
+        call_command("fetch_market_prices", date=self.date)
+
         # Calculate cost basis, gains, losses
         call_command("cost_basis", date=self.date)
 
