@@ -1,98 +1,212 @@
 import json
-from datetime import datetime, time
+from datetime import date, datetime, time
 from decimal import Decimal
+from functools import lru_cache
+from typing import Any
 
-from django.db.models import Case, DecimalField, ExpressionWrapper, F, FloatField, OuterRef, Subquery, When
+from django.db.models import Case, DecimalField, ExpressionWrapper, F, FloatField, OuterRef, Q, QuerySet, Subquery, When
 from django.db.models.functions import Cast, Coalesce
-from django.http import HttpResponse
-from django.template import loader
+from django.http import QueryDict
+from django.views.generic import TemplateView
 
 from crypto_fifo_taxes.models import CurrencyPrice, Snapshot
 from crypto_fifo_taxes.utils.currency import get_currency, get_default_fiat
 
 
-def snapshot_graph(request):
-    def jdl(qs):
-        return json.dumps(list(qs))
+def jdl(qs: QuerySet[Any]):
+    return json.dumps(list(qs))
 
-    def qs_values_list_to_float(qs, field):
-        return qs.annotate(float_field=Cast(field, FloatField())).values_list("float_field", flat=True)
 
-    def currency_price_values_list(symbol):
+def qs_values_list_to_float(qs, field) -> QuerySet[Any]:
+    """Cast a field's type to Float to make it work better with `json.dumps`, then output field values as a list"""
+    return qs.annotate(float_field=Cast(field, FloatField())).values_list("float_field", flat=True)
+
+
+class GraphView(TemplateView):
+    template_name = "graph.html"
+
+    @lru_cache
+    def get_starting_date(self) -> date:
+        """
+        Usage: `?start=2020-1-1`
+        """
+
+        first_snapshot_date = Snapshot.objects.order_by("date").first().date
+
+        query_params: QueryDict = self.request.GET
+        if "start" in query_params and query_params["start"]:
+            return max(datetime.strptime(query_params["start"], "%Y-%m-%d").date(), first_snapshot_date)
+        return first_snapshot_date
+
+    def filter_queryset(self, queryset: QuerySet[Snapshot, CurrencyPrice]) -> QuerySet[Snapshot, CurrencyPrice]:
+        filters = Q()
+        filters &= Q(date__gte=self.get_starting_date())
+        return queryset.filter(filters)
+
+    # Currency prices
+    def currency_price_returns(self, symbol) -> QuerySet[CurrencyPrice]:
         qs = CurrencyPrice.objects.filter(fiat=get_default_fiat(), currency=get_currency(symbol)).order_by("date")
-        return qs_values_list_to_float(qs, "price")
-
-    def currency_price_twr(symbol):
-        qs = CurrencyPrice.objects.filter(fiat=get_default_fiat(), currency=get_currency(symbol)).order_by("date")
+        qs = self.filter_queryset(qs)
         first_price = qs.first().price
 
         return qs.annotate(
-            twr=ExpressionWrapper((F("price") - first_price) / first_price * 100, output_field=FloatField()),
-        ).values_list("twr", flat=True)
+            returns=ExpressionWrapper((F("price") - first_price) / first_price * 100, output_field=FloatField()),
+        ).values_list("returns", flat=True)
 
-    def cumulative_product(lst):
-        results = []
-        cur = 1
-        for n in lst:
-            cur *= n
-            results.append((cur - 1) * 100)
-        return results
+    def currency_price_values_list(self, symbol) -> QuerySet[CurrencyPrice]:
+        qs = CurrencyPrice.objects.filter(fiat=get_default_fiat(), currency=get_currency(symbol)).order_by("date")
+        qs = self.filter_queryset(qs)
+        return qs_values_list_to_float(qs, "price")
 
-    snapshot_worth = qs_values_list_to_float(qs=Snapshot.objects.all(), field="worth")
-    snapshot_cost_basis = qs_values_list_to_float(qs=Snapshot.objects.all(), field="cost_basis")
-    bitcoin_price = currency_price_values_list(symbol="BTC")
-    ethereum_price = currency_price_values_list(symbol="ETH")
-    btc_returns = currency_price_twr("BTC")
-    eth_returns = currency_price_twr("ETH")
-
-    total_returns = (
-        Snapshot.objects.order_by("date")
-        .annotate(
-            twr=Case(
-                # Avoid division by zero
-                When(deposits=Decimal(0), then=Decimal(0)),
-                default=ExpressionWrapper(
-                    (F("worth") - F("deposits")) / F("deposits") * 100, output_field=DecimalField()
-                ),
-                output_field=FloatField(),
-            ),
+    # Wallet prices
+    def get_snapshot_worth(self) -> str:
+        return jdl(
+            qs_values_list_to_float(
+                qs=Snapshot.objects.filter(date__gte=self.get_starting_date()),
+                field="worth",
+            )
         )
-        .values_list("twr", flat=True)
-    )
 
-    time_weighted_returns = Snapshot.objects.annotate(
-        deposits_delta=ExpressionWrapper(
-            F("deposits")
-            - Coalesce(
-                Subquery(
-                    Snapshot.objects.filter(date__lt=OuterRef("date")).order_by("-date").values_list("deposits")[:1]
+    def get_snapshot_cost_basis(self) -> str:
+        return jdl(
+            qs_values_list_to_float(
+                qs=Snapshot.objects.filter(date__gte=self.get_starting_date()),
+                field="cost_basis",
+            )
+        )
+
+    # Wallet returns
+    def get_total_returns(self) -> str:
+        try:
+            past = Snapshot.objects.filter(date__lt=self.get_starting_date()).order_by("-date").first()
+            past = past.worth - past.deposits
+        except AttributeError:
+            past = 0
+
+        qs = (
+            Snapshot.objects.filter(date__gte=self.get_starting_date())
+            .order_by("date")
+            .annotate(
+                returns=Case(
+                    # Avoid division by zero
+                    When(deposits=Decimal(0), then=Decimal(0)),
+                    # When(deposits=past_deposits, then=Decimal(0)),
+                    default=ExpressionWrapper(
+                        (F("worth") - F("deposits") - past) / (F("deposits")) * 100,
+                        output_field=DecimalField(),
+                    ),
+                    output_field=FloatField(),
                 ),
-                0,
-                output_field=DecimalField(),
-            ),
-            output_field=DecimalField(),
-        ),
-        last_worth=Coalesce(
-            Subquery(Snapshot.objects.filter(date__lt=OuterRef("date")).order_by("-date").values_list("worth")[:1]),
-            0,
-            output_field=DecimalField(),
-        ),
-        twr=ExpressionWrapper(
-            1 + (F("worth") - (F("last_worth") + F("deposits_delta"))) / (F("last_worth") + F("deposits_delta")),
-            output_field=FloatField(),
-        ),
-    ).values_list("twr", flat=True)
+            )
+            .values_list("returns", flat=True)
+        )
+        return jdl(qs)
 
-    template = loader.get_template("graph.html")
-    context = {
-        "point_start": datetime.combine(Snapshot.objects.order_by("date").first().date, time()).timestamp() * 1000,
-        "snapshot_worth": jdl(snapshot_worth),
-        "snapshot_cost_basis": jdl(snapshot_cost_basis),
-        "bitcoin_price": jdl(bitcoin_price),
-        "ethereum_price": jdl(ethereum_price),
-        "btc_returns": jdl(btc_returns),
-        "eth_returns": jdl(eth_returns),
-        "total_returns": jdl(total_returns),
-        "time_weighted_returns": jdl(cumulative_product(time_weighted_returns)),
-    }
-    return HttpResponse(template.render(context, request))
+    def get_time_weighted_returns(self):
+        def cumulative_product(lst):
+            results = []
+            cur = 1
+            for n in lst:
+                cur *= n
+                results.append((cur - 1) * 100)
+            return results
+
+        qs = (
+            Snapshot.objects.filter(date__gte=self.get_starting_date())
+            .annotate(
+                deposits_delta=ExpressionWrapper(
+                    F("deposits")
+                    - Coalesce(
+                        Subquery(
+                            Snapshot.objects.filter(date__lt=OuterRef("date"))
+                            .order_by("-date")
+                            .values_list("deposits")[:1]
+                        ),
+                        0,
+                        output_field=DecimalField(),
+                    ),
+                    output_field=DecimalField(),
+                ),
+                last_worth=Coalesce(
+                    Subquery(
+                        Snapshot.objects.filter(date__lt=OuterRef("date")).order_by("-date").values_list("worth")[:1]
+                    ),
+                    0,
+                    output_field=DecimalField(),
+                ),
+                twr_returns=ExpressionWrapper(
+                    1
+                    + (F("worth") - (F("last_worth") + F("deposits_delta"))) / (F("last_worth") + F("deposits_delta")),
+                    output_field=FloatField(),
+                ),
+            )
+            .values_list("twr_returns", flat=True)
+        )
+        return cumulative_product(qs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        starting_point = datetime.combine(self.get_starting_date(), time()).timestamp() * 1000
+        context["point_start"] = starting_point
+
+        # Legends
+        context["graphs"] = [
+            {"name": "Portfolio Values", "data": [], "suffix": "", "id": "portfolio_abs"},
+            {"name": "Portfolio Returns", "data": [], "suffix": "", "id": "portfolio_per"},
+            {"name": "Currency Prices", "data": [], "suffix": "", "id": "currency_abs"},
+            {"name": "Currency Returns", "data": [], "suffix": "", "id": "currency_per"},
+        ]
+
+        # Graph data
+        context["graphs"].extend(
+            [
+                {
+                    "name": "Portfolio Worth",
+                    "data": self.get_snapshot_worth(),
+                    "suffix": "€",
+                    "linked_to": "portfolio_abs",
+                },
+                {
+                    "name": "Cost basis",
+                    "data": self.get_snapshot_cost_basis(),
+                    "suffix": "€",
+                    "linked_to": "portfolio_abs",
+                },
+                {
+                    "name": "Returns",
+                    "data": self.get_total_returns(),
+                    "suffix": "%",
+                    "linked_to": "portfolio_per",
+                },
+                {
+                    "name": "Time Weighted Returns",
+                    "data": self.get_time_weighted_returns(),
+                    "suffix": "%",
+                    "linked_to": "portfolio_per",
+                },
+            ]
+        )
+
+        # Currencies
+        currencies = ["btc", "eth"]
+        for symbol in currencies:
+            context["graphs"].append(
+                {
+                    "linked_to": "currency_abs",
+                    "name": f"{symbol.upper()} Price",
+                    "data": jdl(self.currency_price_values_list(symbol)),
+                    "suffix": "€",
+                }
+            )
+        for symbol in currencies:
+            context["graphs"].append(
+                {
+                    "linked_to": "currency_per",
+                    "name": f"{symbol.upper()} Returns",
+                    "data": jdl(self.currency_price_returns(symbol)),
+                    "suffix": "%",
+                }
+            )
+
+        return context
