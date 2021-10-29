@@ -6,7 +6,7 @@ from binance.exceptions import BinanceAPIException
 from django.core.management import BaseCommand
 from django.db.transaction import atomic
 
-from crypto_fifo_taxes.models import CurrencyPair, Transaction, Wallet
+from crypto_fifo_taxes.models import CurrencyPair, Wallet
 from crypto_fifo_taxes.utils.binance.binance_api import (
     get_binance_client,
     get_binance_deposits,
@@ -24,20 +24,18 @@ from crypto_fifo_taxes.utils.binance.binance_importer import (
     import_withdrawals,
 )
 from crypto_fifo_taxes.utils.currency import get_or_create_currency_pair
+from crypto_fifo_taxes.utils.wrappers import print_time_elapsed_new_transactions
 
 
 class Command(BaseCommand):
     client = get_binance_client()
     wallet = Wallet.objects.get(name="Binance")
+    mode = 0  # Fast mode
+    date = None
 
     def add_arguments(self, parser):
-        # Optional argument
-        parser.add_argument(
-            "-m",
-            "--mode",
-            type=int,
-            help="Mode this sync will be run in. 0=fast, 1=full",
-        )
+        parser.add_argument("-m", "--mode", type=int, help="Mode this sync will be run in. 0=fast, 1=full")
+        parser.add_argument("-d", "--date", type=str, help="Start from this date. Format: YYYY-MM-DD")
 
     def print_dot(self):
         print(".", end="", flush=True)
@@ -86,32 +84,38 @@ class Command(BaseCommand):
                     print("\nToo much Binance API weight used, on cooldown", end="")
                     time.sleep(15)  # API cool down time is not accessible. Try again soon
 
+    @print_time_elapsed_new_transactions
     def sync_deposits(self) -> None:
-        for deposits in get_binance_deposits():
+        for deposits in get_binance_deposits(start_date=self.date):
             self.print_dot()
             import_deposits(self.wallet, deposits)
 
+    @print_time_elapsed_new_transactions
     def sync_withdrawals(self) -> None:
-        for withdraws in get_binance_withdraws():
+        for withdraws in get_binance_withdraws(start_date=self.date):
             self.print_dot()
             import_withdrawals(self.wallet, withdraws)
 
+    @print_time_elapsed_new_transactions
     def sync_dust(self):
         import_dust(self.wallet, get_binance_dust_log())
 
+    @print_time_elapsed_new_transactions
     def sync_dividends(self):
-        for dividends in get_binance_dividends():
+        for dividends in get_binance_dividends(start_date=self.date):
             self.print_dot()
             import_dividends(self.wallet, dividends)
 
+    @print_time_elapsed_new_transactions
     def sync_interest(self):
-        for dividends in get_binance_interest_history():
+        for interests in get_binance_interest_history(start_date=self.date):
             self.print_dot()
-            import_interest(self.wallet, dividends)
+            import_interest(self.wallet, interests)
 
-    def sync_trades(self, mode: int) -> None:
+    @print_time_elapsed_new_transactions
+    def sync_trades(self) -> None:
         pairs = []
-        if mode is None or mode == 0:
+        if not self.mode:
             # FAST sync
             # Sync only trading pairs which already have records
             pairs = CurrencyPair.objects.values_list("symbol", flat=True)
@@ -119,36 +123,33 @@ class Command(BaseCommand):
                 print(f"Syncing trades using FAST mode for {len(pairs)} pairs...", end="")
             else:
                 print("No existing currency pairs found for FAST mode sync. Running in FULL sync.")
-                mode = 1
+                self.mode = 1
 
-        if mode == 1:
+        if self.mode == 1:
             # FULL sync
             # Fetch any new trading pairs from Binance
             pairs = self.get_all_pairs()
             print(f"Syncing trades using FULL mode for {len(pairs)} pairs. This will take over ten minutes...")
 
-        print("Syncing trades for pair: ", end="")
         for pair in pairs:
             self.sync_pair(pair)
+        print()
 
-    def print_time_elapsed(self, func, **kwargs):
-        print(f"Starting {func.__name__}. ", end="", flush=True)
-        part_start_time = datetime.now()
-        func(**kwargs)
-        print(f"\n{func.__name__} sync complete! Time elapsed: {datetime.now() - part_start_time}")
+    @print_time_elapsed_new_transactions
+    def sync_binance_full(self):
+        self.sync_trades()
+        self.sync_deposits()
+        self.sync_withdrawals()
+        self.sync_dust()
+        self.sync_dividends()
+        self.sync_interest()
 
     @atomic
     def handle(self, *args, **kwargs):
-        sync_start_time = datetime.now()
-        transactions_count = Transaction.objects.count()
-
-        mode = kwargs.pop("mode")
-        self.print_time_elapsed(self.sync_trades, mode=mode)
-        self.print_time_elapsed(self.sync_deposits)
-        self.print_time_elapsed(self.sync_withdrawals)
-        self.print_time_elapsed(self.sync_dust)
-        self.print_time_elapsed(self.sync_dividends)
-        self.print_time_elapsed(self.sync_interest)
-
-        print(f"Total time elapsed: {datetime.now() - sync_start_time}")
-        print(f"New transactions created: {Transaction.objects.count() - transactions_count}")
+        self.mode = kwargs.pop("mode")
+        if not self.mode:
+            # Use date only if fast mode is enabled
+            self.date = kwargs.pop("date")
+            if self.date is not None:
+                self.date = datetime.strptime(self.date, "%Y-%m-%d")
+        self.sync_binance_full()

@@ -111,7 +111,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 DEFAULT_FIAT_SYMBOL = "EUR"
 
 # Save records for these currencies
-ALL_FIAT_CURRENCIES = {"EUR": "Euro", "USD": "US Dollar"}
+ALL_FIAT_CURRENCIES = {
+    "EUR": {"name": "Euro", "cg_id": "eur"},
+    "USD": {"name": "US Dollar", "cg_id": "usd"},
+}
 
 # The following symbols are ignored when importing dividends
 IGNORED_TOKENS = [

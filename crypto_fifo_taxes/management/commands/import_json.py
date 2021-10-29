@@ -30,18 +30,20 @@ class Command(BaseCommand):
         )
 
     def build_transaction_id(self, row: dict) -> str:
+        if "tx_id" in row:
+            # Use existing transaction id if it exists
+            return row["tx_id"]
         wallet = row["wallet"] if "wallet" in row else row["to_wallet"] if "to_wallet" in row else row["from_wallet"]
-        symbol = row["to_symbol"] if "to_symbol" in row else row["from_symbol"]
         timestamp = to_timestamp(bstrptime(row["timestamp"])) if "timestamp" in row else "0" * 8
-        return f"{wallet}_{timestamp}_{symbol}"
+        return f"{wallet}_{timestamp}"
 
-    def update_existing_transaction(self, row: dict):
+    def update_existing_transaction(self, row: dict, tx_id: str):
         # tx_id provided, add provided information to an existing transaction
-        transaction = Transaction.objects.filter(tx_id=row["tx_id"]).first()
+        transaction = Transaction.objects.filter(tx_id=tx_id).first()
 
         if transaction is None:
             print(
-                f"Trying to import a transaction that has a tx_id ({row['tx_id']}) set "
+                f"Trying to update a transaction that has a tx_id ({tx_id}) set "
                 f"but matching transaction was not found!"
             )
             return
@@ -81,14 +83,11 @@ class Command(BaseCommand):
         existing_transactions = Transaction.objects.filter(tx_id__in=tx_ids).values_list("tx_id", flat=True)
 
         for row in data:
-            if "tx_id" in row:
-                self.update_existing_transaction(row)
-                continue
-
             tx_id = self.build_transaction_id(row)
 
-            # Skip already imported transactions
+            # Update already imported transactions
             if tx_id in existing_transactions:
+                self.update_existing_transaction(row, tx_id)
                 continue
 
             wallets = self.get_wallets(row)

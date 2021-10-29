@@ -1,4 +1,5 @@
 import time
+from collections import namedtuple
 from datetime import datetime
 from decimal import Decimal
 from functools import lru_cache
@@ -9,11 +10,10 @@ from django.conf import settings
 
 from crypto_fifo_taxes.exceptions import MissingPriceError
 from crypto_fifo_taxes.models import Currency, CurrencyPrice
-from crypto_fifo_taxes.utils.currency import get_or_create_currency
+from crypto_fifo_taxes.utils.binance.binance_api import from_timestamp
+from crypto_fifo_taxes.utils.currency import get_currency, get_or_create_currency
 
-
-class CoinGeckoMissingCurrency(Exception):
-    pass
+MarketChartData = namedtuple("MarketChartData", "timestamp price market_cap volume")
 
 
 def retry_get_request_until_ok(url: str) -> Optional[dict]:
@@ -57,6 +57,23 @@ def coingecko_request_price_history(currency: Currency, date: datetime.date) -> 
     return retry_get_request_until_ok(api_url)
 
 
+@lru_cache()
+def coingecko_request_market_chart(currency: Currency, vs_currency: Currency, start_date: datetime.date) -> dict:
+    assert currency.cg_id is not None
+    assert vs_currency.cg_id is not None
+
+    days = (datetime.now().date() - start_date).days
+    api_url = (
+        "https://api.coingecko.com/api/v3/coins/{id}/market_chart?"
+        "vs_currency={vs_currency}&days={days}&interval=daily".format(
+            id=currency.cg_id,
+            vs_currency=vs_currency.cg_id,
+            days=days,
+        )
+    )
+    return retry_get_request_until_ok(api_url)
+
+
 def fetch_currency_price(currency: Currency, date: datetime.date):
     """Update historical prices for given currency and date using the CoinGecko API"""
     response_json = coingecko_request_price_history(currency, date)
@@ -65,12 +82,13 @@ def fetch_currency_price(currency: Currency, date: datetime.date):
     if response_json is None:
         if currency.symbol in settings.DEPRECATED_TOKENS:
             return
+        # Note: Sometimes price is returned for a currency for no reason, trying again might help
         raise MissingPriceError(f"Price not returned for {currency} on {date}")
 
     # Coin was returned, but has no market data for the date. Maybe the coin is "too new"? (VTHO)
     if "market_data" not in response_json:
         for fiat_symbol in settings.ALL_FIAT_CURRENCIES.keys():
-            fiat_currency = get_or_create_currency(fiat_symbol)
+            fiat_currency = get_currency(fiat_symbol)
             CurrencyPrice.objects.update_or_create(
                 currency=currency, fiat=fiat_currency, date=date, defaults=dict(price=0, market_cap=0, volume=0)
             )
@@ -92,3 +110,66 @@ def fetch_currency_price(currency: Currency, date: datetime.date):
                 volume=Decimal(str(response_json["market_data"]["total_volume"][fiat_symbol.lower()])),
             ),
         )
+
+
+def fetch_currency_market_chart(currency: Currency, start_date: datetime.date = None):
+    """
+    Update historical prices for given currency and date using the CoinGecko API
+    """
+    if currency.is_fiat:
+        return
+
+    # Use the date of the first transaction with the currency as the default start date
+    if start_date is None:
+        if (first_detail := currency.transaction_details.order_by("tx_timestamp").first()) is not None:
+            start_date = first_detail.tx_timestamp.date()
+
+    if currency.symbol.lower() in settings.DEPRECATED_TOKENS:
+        return
+
+    for fiat_symbol in settings.ALL_FIAT_CURRENCIES.keys():
+        fiat = get_currency(fiat_symbol)
+        currency_price_qs = CurrencyPrice.objects.filter(fiat=fiat, currency=currency, date__gte=start_date)
+
+        # Check if required prices already exist in db
+        existing_prices_count = currency_price_qs.count()
+        delta_days = (datetime.now().date() - start_date).days
+        if existing_prices_count == delta_days:
+            continue
+
+        # Check if we can query less dates than was requested
+        latest_currency_price = currency_price_qs.order_by("-date").first()
+        if latest_currency_price is not None:
+            existing_prices_count = currency_price_qs.filter(date__lt=latest_currency_price.date).count()
+            delta_days = (latest_currency_price.date - start_date).days
+            if existing_prices_count == delta_days:
+                # We already have all dates between given start_date and latest saved CurrencyPrice saved in DB
+                # Only fetch prices for dates after latest saved CurrencyPrice
+                start_date = latest_currency_price.date
+
+        response_json = coingecko_request_market_chart(currency, fiat, start_date)
+
+        # Coin was unable to retrieved for some reason. e.g. deprecated (VEN)
+        if response_json is None:
+            raise MissingPriceError(f"Market chart not returned for {currency} starting from {start_date}.")
+
+        if "prices" not in response_json:
+            raise MissingPriceError(f"Market chart for {currency} starting from {start_date} didn't include prices.")
+
+        combined_market_data = [
+            MarketChartData(stamp, price, cap, volume)
+            for (stamp, price), (__, cap), (__, volume) in zip(
+                response_json["prices"], response_json["market_caps"], response_json["total_volumes"]
+            )
+        ]
+        for market_data in combined_market_data:
+            CurrencyPrice.objects.update_or_create(
+                currency=currency,
+                fiat=fiat,
+                date=from_timestamp(market_data.timestamp),
+                defaults=dict(
+                    price=Decimal(str(market_data.price)),
+                    market_cap=Decimal(str(market_data.market_cap)),
+                    volume=Decimal(str(market_data.volume)),
+                ),
+            )

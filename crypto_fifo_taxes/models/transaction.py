@@ -225,7 +225,7 @@ class Transaction(models.Model):
 
     def _handle_withdrawal_cost_basis(self) -> None:
         """
-        Funds are sent to some third party entity.
+        Funds are sent to some third party entity or withdrawn to a bank account (if fiat).
         e.g. Paying for goods and services directly with crypto
         This realizes any profits made from value appreciation
         """
@@ -377,7 +377,7 @@ class TransactionDetailManager(models.Manager):
 
 class TransactionDetail(models.Model):
     wallet = models.ForeignKey(to="Wallet", on_delete=models.CASCADE, related_name="transaction_details")
-    currency = models.ForeignKey(to="Currency", on_delete=models.PROTECT, related_name="+")
+    currency = models.ForeignKey(to="Currency", on_delete=models.PROTECT, related_name="transaction_details")
     quantity = TransactionDecimalField()
     cost_basis = TransactionDecimalField(null=True)  # Price for one crypto currency in FIAT
 

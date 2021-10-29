@@ -23,7 +23,7 @@
       "fee_amount":0.005
    },
    {
-      "__":"Modify an existing transaction in case of imcomplete data",
+      "__":"Modify an existing transaction in case of incomplete data",
       "tx_id": "1234dbbd89333347002d73sss8026feb5f6ggggg81734bad136d18a44df91234",
       "type":"TRANSFER",
       "to_wallet": "Cold Wallet",
