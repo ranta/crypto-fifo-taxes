@@ -16,35 +16,17 @@
             chart: {
                 zoomType: 'x'
             },
-
             rangeSelector: {
-                buttons: [{
-                    type: 'day',
-                    count: 3,
-                    text: '3d'
-                }, {
-                    type: 'week',
-                    count: 1,
-                    text: '1w'
-                }, {
-                    type: 'month',
-                    count: 1,
-                    text: '1m'
-                }, {
-                    type: 'month',
-                    count: 6,
-                    text: '6m'
-                }, {
-                    type: 'year',
-                    count: 1,
-                    text: '1y'
-                }, {
-                    type: 'all',
-                    text: 'All'
-                }],
-                selected: 3
+                buttons: [
+                    {type: 'day', count: 3, text: '3d'},
+                    {type: 'week', count: 1, text: '1w'},
+                    {type: 'month', count: 1, text: '1m'},
+                    {type: 'month', count: 6, text: '6m'},
+                    {type: 'year', count: 1, text: '1y'},
+                    {type: 'all', text: 'All'}
+                ],
+                selected: 5
             },
-
             title: {
                 text: 'Daily portfolio worth and cost basis',
                 align: 'left'
@@ -52,79 +34,22 @@
             legend: {
                 enabled: true
             },
-            series: [{
-                name: 'Worth',
-                data: {{ snapshot_worth }},
-                pointStart: {{ point_start }},
-                pointInterval: 86400000,  // 1 day
-                tooltip: {
-                    valueDecimals: 2,
-                    valueSuffix: ' €'
-                }
-            }, {
-                name: 'Cost basis',
-                data: {{ snapshot_cost_basis }},
-                pointStart: {{ point_start }},
-                pointInterval: 86400000,  // 1 day
-                tooltip: {
-                    valueDecimals: 2,
-                    valueSuffix: ' €'
-                }
-            }, {
-                name: 'Bitcoin',
-                data: {{ bitcoin_price }},
-                pointStart: {{ point_start }},
-                pointInterval: 86400000,  // 1 day
-                tooltip: {
-                    valueDecimals: 2,
-                    valueSuffix: ' €'
-                }
-            }, {
-                name: 'Ethereum',
-                data: {{ ethereum_price }},
-                pointStart: {{ point_start }},
-                pointInterval: 86400000,  // 1 day
-                tooltip: {
-                    valueDecimals: 2,
-                    valueSuffix: ' €'
-                }
-            }, {
-                name: 'Bitcoin Returns',
-                data: {{ btc_returns }},
-                pointStart: {{ point_start }},
-                pointInterval: 86400000,  // 1 day
-                tooltip: {
-                    valueDecimals: 2,
-                    valueSuffix: ' %'
-                }
-            }, {
-                name: 'Ethereum Returns',
-                data: {{ eth_returns }},
-                pointStart: {{ point_start }},
-                pointInterval: 86400000,  // 1 day
-                tooltip: {
-                    valueDecimals: 2,
-                    valueSuffix: ' %'
-                }
-            }, {
-                name: 'Total Returns',
-                data: {{ total_returns }},
-                pointStart: {{ point_start }},
-                pointInterval: 86400000,  // 1 day
-                tooltip: {
-                    valueDecimals: 2,
-                    valueSuffix: ' %'
-                }
-            }, {
-                name: 'Time Weighted Returns',
-                data: {{ time_weighted_returns }},
-                pointStart: {{ point_start }},
-                pointInterval: 86400000,  // 1 day
-                tooltip: {
-                    valueDecimals: 2,
-                    valueSuffix: ' %'
-                }
-            }]
+            series: [
+                {% for graph in graphs %}
+                {
+                    {% if graph.id %}id: '{{ graph.id }}',{% endif %}
+                    {% if graph.linked_to %}linkedTo: '{{ graph.linked_to }}',{% endif %}
+                    name: '{{ graph.name }}',
+                    data: {{ graph.data }},
+                    pointStart: {{ point_start }},
+                    pointInterval: 86400000,  // 1 day
+                    tooltip: {
+                        valueDecimals: 2,
+                        valueSuffix: ' {{ graph.suffix }}'
+                    },
+                },
+                {% endfor %}
+            ]
         });
     </script>
 {% endblock %}
