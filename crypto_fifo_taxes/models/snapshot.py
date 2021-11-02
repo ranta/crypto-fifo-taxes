@@ -5,11 +5,11 @@ from typing import Any
 import pytz
 from django.conf import settings
 from django.db import models
-from django.db.models import DecimalField, F, Q, Sum
-from django.db.models.functions import Coalesce
+from django.db.models import F, Q, Sum
 
 from crypto_fifo_taxes.exceptions import MissingPriceError
 from crypto_fifo_taxes.utils.currency import get_currency
+from crypto_fifo_taxes.utils.db import CoalesceZero
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
 
@@ -98,9 +98,9 @@ class Snapshot(models.Model):
                 tx_timestamp__gt=datetime.combine(last_snapshot.date, time(23, 59, 59), tzinfo=pytz.UTC)
             )
             deposits_qs = TransactionDetail.objects.filter(deposits_filter)
-        deposits += deposits_qs.annotate(
-            worth=Coalesce(F("quantity") * F("cost_basis"), 0, output_field=DecimalField())
-        ).aggregate(sum_deposits_worth=Sum("worth"))["sum_deposits_worth"] or Decimal(0)
+        deposits += deposits_qs.annotate(worth=CoalesceZero(F("quantity") * F("cost_basis"))).aggregate(
+            sum_deposits_worth=Sum("worth")
+        )["sum_deposits_worth"] or Decimal(0)
 
         self.worth = sum_worth
         self.cost_basis = sum_cost_basis

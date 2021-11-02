@@ -6,13 +6,12 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import DecimalField, ExpressionWrapper, F, OuterRef, Q, Sum, Window
-from django.db.models.functions import Coalesce
 from django.utils.translation import gettext_lazy as _
 
 from crypto_fifo_taxes.enums import TransactionType
 from crypto_fifo_taxes.models import Currency, TransactionDetail
 from crypto_fifo_taxes.utils.currency import get_currency
-from crypto_fifo_taxes.utils.db import SQSum
+from crypto_fifo_taxes.utils.db import CoalesceZero, SQSum
 
 
 class Wallet(models.Model):
@@ -75,7 +74,7 @@ class Wallet(models.Model):
                     sum_field="quantity",
                 ),
                 balance=ExpressionWrapper(
-                    Coalesce(F("deposits"), 0) - Coalesce(F("withdrawals"), 0), output_field=DecimalField()
+                    CoalesceZero(F("deposits")) - CoalesceZero(F("withdrawals")), output_field=DecimalField()
                 ),
             )
             .order_by("currency_id")
