@@ -33,14 +33,17 @@ class Snapshot(models.Model):
     def __repr__(self):
         return f"<{self.__class__.__name__} ({self.pk}): User: {self.user.username} ({self.date}))>"
 
-    def get_balances(self) -> list[dict[str, Any]]:
+    def get_balances(self, include_zero_balances: bool = False) -> list[dict[str, Any]]:
         """Return the last calculated snapshot balance for user"""
-        return (
+        values_qs = (
             SnapshotBalance.objects.filter(snapshot__date__lte=self.date)
             .order_by("currency_id", "-snapshot__date")
             .distinct("currency_id")
             .values("currency_id", "currency__symbol", "quantity", "cost_basis")
         )
+        if not include_zero_balances:
+            return [c for c in values_qs if c["quantity"] != 0]
+        return values_qs
 
     def calculate_worth(self):
         from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
