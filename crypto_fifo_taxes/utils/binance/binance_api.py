@@ -29,13 +29,17 @@ def binance_history_iterator(
     period_length: int = 60,
     start_date: datetime = None,
     end_date: datetime = None,
-):
+    _depth: int = 1,
+) -> Iterator:
     """
     Loop through history n days at a time, because binance API has limitations on maximum period that can be queried
+
+    If `TooManyResultsError` is raised in `fetch_function`, period length is reduced and the method is called again,
+    until the error is not raised
     """
     start_date = start_date if start_date is not None else datetime(2018, 1, 1)
     end_date = (end_date if end_date is not None else datetime.now()).replace(hour=23, minute=59, second=59)
-    while start_date + timedelta(days=period_length) < end_date:
+    while start_date.date() < end_date.date():
         try:
             yield fetch_function(
                 startTime=to_timestamp(start_date),
@@ -44,9 +48,22 @@ def binance_history_iterator(
         except TooManyResultsError:
             # Too many results returned in fetch_function so not all data may be included.
             # Try again with a smaller period
-            for result in binance_history_iterator(fetch_function, int(period_length / 2), start_date, end_date):
-                # yield results separately instead together in a single iterable to keep output as the same
+            for result in binance_history_iterator(
+                fetch_function=fetch_function,
+                period_length=int(period_length / 2),
+                start_date=start_date,
+                end_date=(min(start_date + timedelta(days=period_length) * _depth, end_date)).replace(
+                    hour=23, minute=59, second=59
+                ),
+                _depth=_depth + 1,
+            ):
+                # Yield results separately instead of together in a single iterable to keep output as the same
                 yield result
+
+            # Break in order to not query the endpoint with dates that are already queried previously
+            if _depth > 1:
+                break
+
         start_date += timedelta(days=period_length)
 
 
