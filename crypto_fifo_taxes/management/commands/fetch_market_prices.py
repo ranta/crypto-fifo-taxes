@@ -44,8 +44,15 @@ class Command(BaseCommand):
             f"{', '.join(currencies.values_list('symbol', flat=True))}"
         )
         for i, currency in enumerate(currencies):
-            print(f"Fetching market chart prices for {currency.symbol} {(i + 1) / count * 100:>5.2f}%", end="\r")
-            fetch_currency_market_chart(currency, start_date=self.date)
+            first_transaction_date = currency.transaction_details.order_by("tx_timestamp").first()
+            if first_transaction_date is not None:
+                first_transaction_date = first_transaction_date.tx_timestamp.date()
+            print(
+                f"Fetching market chart prices for {currency.symbol} starting from {first_transaction_date}. "
+                f"{(i + 1) / count * 100:>5.2f}%",
+                end="\r",
+            )
+            fetch_currency_market_chart(currency, start_date=first_transaction_date or self.date)
 
     def handle(self, *args, **kwargs):
         self.mode = kwargs.pop("mode", None)
