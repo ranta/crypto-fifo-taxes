@@ -5,11 +5,11 @@ from typing import Any
 import pytz
 from django.conf import settings
 from django.db import models
-from django.db.models import DecimalField, F, Q, Sum
-from django.db.models.functions import Coalesce
+from django.db.models import F, Q, Sum
 
 from crypto_fifo_taxes.exceptions import MissingPriceError
 from crypto_fifo_taxes.utils.currency import get_currency
+from crypto_fifo_taxes.utils.db import CoalesceZero
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
 
@@ -33,14 +33,17 @@ class Snapshot(models.Model):
     def __repr__(self):
         return f"<{self.__class__.__name__} ({self.pk}): User: {self.user.username} ({self.date}))>"
 
-    def get_balances(self) -> list[dict[str, Any]]:
+    def get_balances(self, include_zero_balances: bool = False) -> list[dict[str, Any]]:
         """Return the last calculated snapshot balance for user"""
-        return (
+        values_qs = (
             SnapshotBalance.objects.filter(snapshot__date__lte=self.date)
             .order_by("currency_id", "-snapshot__date")
             .distinct("currency_id")
             .values("currency_id", "currency__symbol", "quantity", "cost_basis")
         )
+        if not include_zero_balances:
+            return [c for c in values_qs if c["quantity"] != 0]
+        return values_qs
 
     def calculate_worth(self):
         from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
@@ -98,9 +101,9 @@ class Snapshot(models.Model):
                 tx_timestamp__gt=datetime.combine(last_snapshot.date, time(23, 59, 59), tzinfo=pytz.UTC)
             )
             deposits_qs = TransactionDetail.objects.filter(deposits_filter)
-        deposits += deposits_qs.annotate(
-            worth=Coalesce(F("quantity") * F("cost_basis"), 0, output_field=DecimalField())
-        ).aggregate(sum_deposits_worth=Sum("worth"))["sum_deposits_worth"] or Decimal(0)
+        deposits += deposits_qs.annotate(worth=CoalesceZero(F("quantity") * F("cost_basis"))).aggregate(
+            sum_deposits_worth=Sum("worth")
+        )["sum_deposits_worth"] or Decimal(0)
 
         self.worth = sum_worth
         self.cost_basis = sum_cost_basis

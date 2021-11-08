@@ -21,7 +21,7 @@ class Command(BaseCommand):
         latest_snapshot = Snapshot.objects.filter(date__lte=self.date).order_by("-date").first()
         snapshot_currency_ids = []
         if latest_snapshot is not None:
-            snapshot_currency_ids = latest_snapshot.get_balances().values_list("currency_id", flat=True)
+            snapshot_currency_ids = [currency["currency_id"] for currency in latest_snapshot.get_balances()]
 
         # Currencies used in future transactions
         tx_currency_ids = (
@@ -39,10 +39,20 @@ class Command(BaseCommand):
     def fetch_historical_market_prices(self):
         currencies = self.get_required_currencies()
         count = currencies.count()
-        print(f"Fetching market data for {count} currencies: {', '.join(currencies.values_list('symbol', flat=True))}")
+        print(
+            f"Fetching market data since {self.date} for {count} currencies: "
+            f"{', '.join(currencies.values_list('symbol', flat=True))}"
+        )
         for i, currency in enumerate(currencies):
-            print(f"Fetching market chart prices for {currency.symbol} {(i + 1) / count * 100:>5.2f}%", end="\r")
-            fetch_currency_market_chart(currency, start_date=self.date)
+            first_transaction_date = currency.transaction_details.order_by("tx_timestamp").first()
+            if first_transaction_date is not None:
+                first_transaction_date = first_transaction_date.tx_timestamp.date()
+            print(
+                f"Fetching market chart prices for {currency.symbol} starting from {first_transaction_date}. "
+                f"{(i + 1) / count * 100:>5.2f}%",
+                end="\r",
+            )
+            fetch_currency_market_chart(currency, start_date=first_transaction_date or self.date)
 
     def handle(self, *args, **kwargs):
         self.mode = kwargs.pop("mode", None)

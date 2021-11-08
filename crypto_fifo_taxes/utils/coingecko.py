@@ -133,7 +133,7 @@ def fetch_currency_market_chart(currency: Currency, start_date: datetime.date = 
 
         # Check if required prices already exist in db
         existing_prices_count = currency_price_qs.count()
-        delta_days = (datetime.now().date() - start_date).days
+        delta_days = (datetime.now().date() - start_date).days + 1
         if existing_prices_count == delta_days:
             continue
 
@@ -141,7 +141,7 @@ def fetch_currency_market_chart(currency: Currency, start_date: datetime.date = 
         latest_currency_price = currency_price_qs.order_by("-date").first()
         if latest_currency_price is not None:
             existing_prices_count = currency_price_qs.filter(date__lt=latest_currency_price.date).count()
-            delta_days = (latest_currency_price.date - start_date).days
+            delta_days = (latest_currency_price.date - start_date).days + 1
             if existing_prices_count == delta_days:
                 # We already have all dates between given start_date and latest saved CurrencyPrice saved in DB
                 # Only fetch prices for dates after latest saved CurrencyPrice
@@ -151,7 +151,10 @@ def fetch_currency_market_chart(currency: Currency, start_date: datetime.date = 
 
         # Coin was unable to retrieved for some reason. e.g. deprecated (VEN)
         if response_json is None:
-            raise MissingPriceError(f"Market chart not returned for {currency} starting from {start_date}.")
+            # Retry once, as sometimes there are errors fetching data
+            response_json = coingecko_request_market_chart(currency, fiat, start_date)
+            if response_json is None:
+                raise MissingPriceError(f"Market chart not returned for {currency} starting from {start_date}.")
 
         if "prices" not in response_json:
             raise MissingPriceError(f"Market chart for {currency} starting from {start_date} didn't include prices.")

@@ -5,12 +5,13 @@ from functools import lru_cache
 from typing import Any
 
 from django.db.models import Case, DecimalField, ExpressionWrapper, F, FloatField, OuterRef, Q, QuerySet, Subquery, When
-from django.db.models.functions import Cast, Coalesce
+from django.db.models.functions import Cast
 from django.http import QueryDict
 from django.views.generic import TemplateView
 
 from crypto_fifo_taxes.models import CurrencyPrice, Snapshot
 from crypto_fifo_taxes.utils.currency import get_currency, get_default_fiat
+from crypto_fifo_taxes.utils.db import CoalesceZero
 
 
 def jdl(qs: QuerySet[Any]):
@@ -116,23 +117,19 @@ class GraphView(TemplateView):
             .annotate(
                 deposits_delta=ExpressionWrapper(
                     F("deposits")
-                    - Coalesce(
+                    - CoalesceZero(
                         Subquery(
                             Snapshot.objects.filter(date__lt=OuterRef("date"))
                             .order_by("-date")
                             .values_list("deposits")[:1]
-                        ),
-                        0,
-                        output_field=DecimalField(),
+                        )
                     ),
                     output_field=DecimalField(),
                 ),
-                last_worth=Coalesce(
+                last_worth=CoalesceZero(
                     Subquery(
                         Snapshot.objects.filter(date__lt=OuterRef("date")).order_by("-date").values_list("worth")[:1]
                     ),
-                    0,
-                    output_field=DecimalField(),
                 ),
                 twr_returns=ExpressionWrapper(
                     1

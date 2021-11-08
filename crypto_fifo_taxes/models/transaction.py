@@ -10,7 +10,7 @@ from enumfields import EnumIntegerField
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.exceptions import MissingCostBasis, MissingPriceHistoryError
-from crypto_fifo_taxes.utils.db import SQAvg, SQSum
+from crypto_fifo_taxes.utils.db import CoalesceZero, SQAvg, SQSum
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
 if TYPE_CHECKING:
@@ -336,19 +336,20 @@ class TransactionDetailQuerySet(models.QuerySet):
                 ),
                 # Difference between deposits and withdrawals
                 delta=ExpressionWrapper(
-                    Coalesce(F("deposits"), 0) - Coalesce(F("withdrawals"), 0), output_field=DecimalField()
+                    CoalesceZero(F("deposits")) - CoalesceZero(F("withdrawals")), output_field=DecimalField()
                 ),
                 # Avg cost basis if deposits
-                avg_cost_basis=Coalesce(
+                avg_cost_basis=CoalesceZero(
                     SQAvg(
                         self.filter(currency_id=OuterRef("currency_id"), to_detail__isnull=False),
                         avg_field="cost_basis",
-                    ),
-                    Decimal(0),
+                    )
                 ),
-                last_balance=Coalesce(Subquery(snapshot_balance_qs.values_list("quantity")[:1]), Decimal(0)),
-                last_cost_basis=Coalesce(Subquery(snapshot_balance_qs.values_list("cost_basis")[:1]), Decimal(0)),
-                new_balance=ExpressionWrapper(Coalesce(F("last_balance"), 0) + F("delta"), output_field=DecimalField()),
+                last_balance=CoalesceZero(Subquery(snapshot_balance_qs.values_list("quantity")[:1])),
+                last_cost_basis=CoalesceZero(Subquery(snapshot_balance_qs.values_list("cost_basis")[:1])),
+                new_balance=ExpressionWrapper(
+                    CoalesceZero(F("last_balance")) + F("delta"), output_field=DecimalField()
+                ),
                 new_cost_basis=Case(
                     # Balance emptied or no last known cost basis
                     When(Q(new_balance=0) | Q(last_cost_basis=0), then=F("avg_cost_basis")),
