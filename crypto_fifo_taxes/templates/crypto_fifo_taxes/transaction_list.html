@@ -19,20 +19,19 @@
                 <th scope="col">Gains</th>
                 <th scope="col">Fees</th>
                 <th scope="col">Profit</th>
-
-                <th scope="col">Description</th>
             </tr>
             </thead>
             <tbody>
             {% for transaction in transaction_list %}
                 <tr>
                     <td>{{ transaction.timestamp|date:'Y-m-d H:i:s' }}</td>
-                    <td>{{ transaction.transaction_type.label }}
-                    {% if transaction.transaction_label.label != "Unknown" %}
-                        ({{ transaction.transaction_label.label }})
+                    <td>
+                    {% if transaction.transaction_label.label == "Unknown" %}
+                        {{ transaction.transaction_type.label }}
+                    {% else %}
+                        {{ transaction.transaction_label.label }}
                     {% endif %}
                     </td>
-
 
                     {% if transaction.from_detail %}
                         <td>{{ transaction.from_detail.currency.symbol }} {{ transaction.from_detail.quantity.normalize }}</td>
@@ -52,24 +51,20 @@
                     <td>{% if transaction.gain %}EUR {{ transaction.gain|floatformat:8 }}{% endif %}</td>
                     <td>{% if transaction.fee_amount %}EUR {{ transaction.fee_amount|floatformat:8 }}{% endif %}</td>
                     <td>{% if transaction.profit %}EUR {{ transaction.profit|floatformat:8 }}{% endif %}</td>
-
-                    <td>{{ transaction.description }}</td>
                 </tr>
             {% endfor %}
-
             <tr>
                 <td>Total ({{ transaction_list.count }} transactions)</td>
                 <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
 
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            
                 <td>{% if totals.sum_gain %}EUR {{ totals.sum_gain|floatformat:2 }}{% endif %}</td>
                 <td>{% if totals.sum_fee_amount %}EUR {{ totals.sum_fee_amount|floatformat:2 }}{% endif %}</td>
                 <td>{% if totals.sum_profit %}EUR {{ totals.sum_profit|floatformat:2 }}{% endif %}</td>
-
-                <td></td>
             </tr>
             </tbody>
         </table>
