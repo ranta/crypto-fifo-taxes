@@ -7,16 +7,29 @@
     <h1>{{ page_title }}</h1>
     {% if transaction_list %}
         <table class="table table-striped table-bordered table-hover table-sm">
+            <colgroup>
+                <col span="2"/>
+                <col span="3" style="background-color: #F3E5E5;"/>
+                <col span="3" style="background-color: #E6F1E2;"/>
+                <col span="3" style="background-color: #E5EEF3;"/>
+            </colgroup>
             <thead>
+            <tr>
+                <td colspan="2" style="text-align: center;">Info</td>
+                <td colspan="3" style="text-align: center;">From</td>
+                <td colspan="3" style="text-align: center;">To</td>
+                <td colspan="3" style="text-align: center;">Results</td>
+            </tr>
             <tr>
                 <th scope="col">Timestamp</th>
                 <th scope="col">Type</th>
 
-                <th scope="col">From</th>
-                <th scope="col">From cost basis</th>
-                <th scope="col">To</th>
-                <th scope="col">To cost basis</th>
+                <th scope="col">Currency</th>
+                <th scope="col">Cost basis</th>
                 <th scope="col">Value</th>
+
+                <th scope="col">Currency</th>
+                <th scope="col">Cost basis</th>
                 <th scope="col">Value</th>
 
                 <th scope="col">Gains</th>
