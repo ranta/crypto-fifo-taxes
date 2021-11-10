@@ -43,6 +43,13 @@ class TransactionListView(ListView):
             .annotate(profit=F("gain") - F("fee_amount"))
             .order_by("timestamp", "pk")
         )
+
+        if queryset.filter(
+            Q(from_detail__isnull=False) & Q(from_detail__cost_basis=None)
+            | Q(to_detail__isnull=False) & Q(to_detail__cost_basis=None)
+        ).exists():
+            raise Exception("Transactions with missing cost basis exist")
+
         return self.filter_queryset(queryset)
 
     def get_context_data(self, **kwargs):
