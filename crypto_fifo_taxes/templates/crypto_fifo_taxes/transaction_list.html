@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load custom_tags %}
 
 {% block title %}Transaction List{% endblock %}
 
@@ -37,7 +38,7 @@
 
                     {% if transaction.from_detail %}
                         <td>{{ transaction.from_detail.currency.symbol }} {{ transaction.from_detail.quantity.normalize }}</td>
-                        <td>EUR {{ transaction.from_detail.cost_basis|floatformat:8 }}</td>
+                        <td>EUR {{ transaction.from_detail.cost_basis|round_normalize:8 }}</td>
                         <td>EUR {{ transaction.from_detail.total_value|floatformat:2 }}</td>
                     {% else %}
                         <td></td>
@@ -46,7 +47,7 @@
                     {% endif %}
                     {% if transaction.to_detail %}
                         <td>{{ transaction.to_detail.currency.symbol }} {{ transaction.to_detail.quantity.normalize }}</td>
-                        <td>EUR {{ transaction.to_detail.cost_basis|floatformat:8 }}</td>
+                        <td>EUR {{ transaction.to_detail.cost_basis|round_normalize:8 }}</td>
                         <td>EUR {{ transaction.to_detail.total_value|floatformat:2 }}</td>
                     {% else %}
                         <td></td>
@@ -54,9 +55,9 @@
                         <td></td>
                     {% endif %}
 
-                    <td>{% if transaction.gain %}EUR {{ transaction.gain|floatformat:8 }}{% endif %}</td>
-                    <td>{% if transaction.fee_amount %}EUR {{ transaction.fee_amount|floatformat:8 }}{% endif %}</td>
-                    <td>{% if transaction.profit %}EUR {{ transaction.profit|floatformat:8 }}{% endif %}</td>
+                    <td>{% if transaction.gain %}EUR {{ transaction.gain|round_normalize:8 }}{% endif %}</td>
+                    <td>{% if transaction.fee_amount %}EUR {{ transaction.fee_amount|round_normalize:8 }}{% endif %}</td>
+                    <td>{% if transaction.profit %}EUR {{ transaction.profit|round_normalize:8 }}{% endif %}</td>
                 </tr>
             {% endfor %}
             <tr>
