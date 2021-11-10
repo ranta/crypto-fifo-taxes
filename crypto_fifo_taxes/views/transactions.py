@@ -42,6 +42,7 @@ class TransactionListView(ListView):
             .exclude(transaction_type=TransactionType.DEPOSIT, transaction_label=TransactionLabel.REWARD, gain=0)
             .exclude(transaction_type=TransactionType.TRANSFER, fee_amount=0, gain=0)
             .exclude(transaction_type=TransactionType.WITHDRAW, fee_amount=0, gain=0)
+            .exclude(transaction_type=TransactionType.SWAP, fee_amount=0, gain=0)
             .annotate(
                 profit=F("gain") - F("fee_amount"),
                 from_detail__total_value=F("from_detail__quantity") * F("from_detail__cost_basis"),

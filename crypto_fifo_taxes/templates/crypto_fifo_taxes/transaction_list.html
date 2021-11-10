@@ -42,7 +42,7 @@
                 <tr>
                     <td>{{ transaction.timestamp|date:'Y-m-d H:i:s' }}</td>
                     <td>
-                    {% if transaction.transaction_label.label == "Unknown" %}
+                    {% if transaction.transaction_label.label == "Unknown" or transaction.transaction_type.label == "Swap" %}
                         {{ transaction.transaction_type.label }}
                     {% else %}
                         {{ transaction.transaction_label.label }}
