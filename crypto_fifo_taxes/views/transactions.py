@@ -37,7 +37,9 @@ class TransactionListView(ListView):
     def get_queryset(self) -> QuerySet[Transaction]:
         queryset = (
             Transaction.objects
-            # Exclude transfers that had no fees
+            # Exclude transactions that don't affect gains/profits
+            .exclude(transaction_type=TransactionType.DEPOSIT, to_detail__currency__is_fiat=True, fee_amount=0)
+            .exclude(transaction_type=TransactionType.DEPOSIT, transaction_label=TransactionLabel.REWARD, gain=0)
             .exclude(transaction_type=TransactionType.TRANSFER, fee_amount=0, gain=0)
             .exclude(transaction_type=TransactionType.WITHDRAW, fee_amount=0, gain=0)
             .annotate(profit=F("gain") - F("fee_amount"))
