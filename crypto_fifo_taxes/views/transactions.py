@@ -37,12 +37,26 @@ class TransactionListView(ListView):
     def get_queryset(self) -> QuerySet[Transaction]:
         queryset = (
             Transaction.objects
-            # Exclude transfers that had no fees
+            # Exclude transactions that don't affect gains/profits
+            .exclude(transaction_type=TransactionType.DEPOSIT, to_detail__currency__is_fiat=True, fee_amount=0)
+            .exclude(transaction_type=TransactionType.DEPOSIT, transaction_label=TransactionLabel.REWARD, gain=0)
             .exclude(transaction_type=TransactionType.TRANSFER, fee_amount=0, gain=0)
             .exclude(transaction_type=TransactionType.WITHDRAW, fee_amount=0, gain=0)
-            .annotate(profit=F("gain") - F("fee_amount"))
+            .exclude(transaction_type=TransactionType.SWAP, fee_amount=0, gain=0)
+            .annotate(
+                profit=F("gain") - F("fee_amount"),
+                from_detail__total_value=F("from_detail__quantity") * F("from_detail__cost_basis"),
+                to_detail__total_value=F("to_detail__quantity") * F("to_detail__cost_basis"),
+            )
             .order_by("timestamp", "pk")
         )
+
+        if queryset.filter(
+            Q(from_detail__isnull=False) & Q(from_detail__cost_basis=None)
+            | Q(to_detail__isnull=False) & Q(to_detail__cost_basis=None)
+        ).exists():
+            raise Exception("Transactions with missing cost basis exist")
+
         return self.filter_queryset(queryset)
 
     def get_context_data(self, **kwargs):
