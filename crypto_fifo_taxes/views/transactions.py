@@ -55,7 +55,13 @@ class TransactionListView(ListView):
             .exclude(transaction_type=TransactionType.SWAP, fee_amount=0, gain=0)
             .annotate(
                 profit=F("gain") - F("fee_amount"),
-                from_detail__total_value=F("from_detail__quantity") * F("from_detail__cost_basis"),
+                from_detail__total_value=Case(
+                    When(
+                        Q(transaction_type=TransactionType.WITHDRAW) & ~Q(transaction_label=TransactionLabel.SPENDING),
+                        then=Decimal(0),
+                    ),
+                    default=CoalesceZero(F("from_detail__quantity") * F("from_detail__cost_basis")),
+                ),
                 # Add a "sell value" for `SPENDING` transactions.
                 # Required to make `from_total - to_total == gains_total`
                 timestamp_date=Cast("timestamp", DateField()),  # Allow filtering CurrencyPrices

@@ -51,8 +51,13 @@
 
                     {% if transaction.from_detail %}
                         <td>{{ transaction.from_detail.currency.symbol }} {{ transaction.from_detail.quantity.normalize }}</td>
-                        <td>EUR {{ transaction.from_detail.cost_basis|round_normalize:8 }}</td>
-                        <td>EUR {{ transaction.from_detail.total_value|floatformat:2 }}</td>
+                        {% if transaction.transaction_type.label != "Withdraw" or transaction.transaction_label.label == "Spending"%}
+                            <td>EUR {{ transaction.from_detail.cost_basis|round_normalize:8 }}</td>
+                            <td>EUR {{ transaction.from_detail.total_value|floatformat:2 }}</td>
+                        {% else %}
+                            <td></td>
+                            <td></td>
+                        {% endif %}
                     {% else %}
                         <td></td>
                         <td></td>
