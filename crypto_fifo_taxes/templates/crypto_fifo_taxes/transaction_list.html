@@ -51,8 +51,13 @@
 
                     {% if transaction.from_detail %}
                         <td>{{ transaction.from_detail.currency.symbol }} {{ transaction.from_detail.quantity.normalize }}</td>
-                        <td>EUR {{ transaction.from_detail.cost_basis|round_normalize:8 }}</td>
-                        <td>EUR {{ transaction.from_detail.total_value|floatformat:2 }}</td>
+                        {% if transaction.transaction_type.label != "Withdraw" or transaction.transaction_label.label == "Spending"%}
+                            <td>EUR {{ transaction.from_detail.cost_basis|round_normalize:8 }}</td>
+                            <td>EUR {{ transaction.from_detail.total_value|floatformat:2 }}</td>
+                        {% else %}
+                            <td></td>
+                            <td></td>
+                        {% endif %}
                     {% else %}
                         <td></td>
                         <td></td>
@@ -62,6 +67,10 @@
                         <td>{{ transaction.to_detail.currency.symbol }} {{ transaction.to_detail.quantity.normalize }}</td>
                         <td>EUR {{ transaction.to_detail.cost_basis|round_normalize:8 }}</td>
                         <td>EUR {{ transaction.to_detail.total_value|floatformat:2 }}</td>
+                    {% elif transaction.transaction_label.label == "Spending" %}
+                        <td>{{ transaction.from_detail.currency.symbol }} {{ transaction.from_detail.quantity.normalize }}</td>
+                        <td>EUR {{ transaction|get_spending_cost_basis|floatformat:2 }}</td>
+                        <td>EUR {{ transaction.to_detail__total_value|floatformat:2 }}</td>
                     {% else %}
                         <td></td>
                         <td></td>
@@ -79,10 +88,11 @@
 
                 <td></td>
                 <td></td>
+                <td>EUR {{ totals.sum_from_value|floatformat:2 }}</td>
+
                 <td></td>
                 <td></td>
-                <td></td>
-                <td></td>
+                <td>EUR {{ totals.sum_to_value|floatformat:2 }}</td>
             
                 <td>{% if totals.sum_gain %}EUR {{ totals.sum_gain|floatformat:2 }}{% endif %}</td>
                 <td>{% if totals.sum_fee_amount %}EUR {{ totals.sum_fee_amount|floatformat:2 }}{% endif %}</td>

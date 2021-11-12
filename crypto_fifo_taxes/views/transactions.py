@@ -1,9 +1,13 @@
-from django.db.models import F, Q, QuerySet, Sum
+from decimal import Decimal
+
+from django.db.models import Case, DateField, F, OuterRef, Q, QuerySet, Subquery, Sum, When
+from django.db.models.functions import Cast
 from django.http import QueryDict
 from django.views.generic import ListView
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
-from crypto_fifo_taxes.models import Transaction
+from crypto_fifo_taxes.models import CurrencyPrice, Transaction
+from crypto_fifo_taxes.utils.db import CoalesceZero
 
 
 class TransactionListView(ListView):
@@ -35,6 +39,12 @@ class TransactionListView(ListView):
         return queryset.filter(filters)
 
     def get_queryset(self) -> QuerySet[Transaction]:
+        if Transaction.objects.filter(
+            Q(from_detail__isnull=False) & Q(from_detail__cost_basis=None)
+            | Q(to_detail__isnull=False) & Q(to_detail__cost_basis=None)
+        ).exists():
+            raise Exception("Transactions with missing cost basis exist")
+
         queryset = (
             Transaction.objects
             # Exclude transactions that don't affect gains/profits
@@ -45,17 +55,33 @@ class TransactionListView(ListView):
             .exclude(transaction_type=TransactionType.SWAP, fee_amount=0, gain=0)
             .annotate(
                 profit=F("gain") - F("fee_amount"),
-                from_detail__total_value=F("from_detail__quantity") * F("from_detail__cost_basis"),
-                to_detail__total_value=F("to_detail__quantity") * F("to_detail__cost_basis"),
+                from_detail__total_value=Case(
+                    When(
+                        Q(transaction_type=TransactionType.WITHDRAW) & ~Q(transaction_label=TransactionLabel.SPENDING),
+                        then=Decimal(0),
+                    ),
+                    default=CoalesceZero(F("from_detail__quantity") * F("from_detail__cost_basis")),
+                ),
+                # Add a "sell value" for `SPENDING` transactions.
+                # Required to make `from_total - to_total == gains_total`
+                timestamp_date=Cast("timestamp", DateField()),  # Allow filtering CurrencyPrices
+                to_detail__total_value=Case(
+                    When(
+                        transaction_label=TransactionLabel.SPENDING,
+                        then=Subquery(
+                            CurrencyPrice.objects.filter(
+                                date=OuterRef("timestamp_date"),
+                                currency=OuterRef("from_detail__currency"),
+                                fiat=OuterRef("from_detail__wallet__fiat"),
+                            ).values_list("price", flat=True)[:1]
+                        )
+                        * F("from_detail__quantity"),
+                    ),
+                    default=CoalesceZero(F("to_detail__quantity") * F("to_detail__cost_basis")),
+                ),
             )
             .order_by("timestamp", "pk")
         )
-
-        if queryset.filter(
-            Q(from_detail__isnull=False) & Q(from_detail__cost_basis=None)
-            | Q(to_detail__isnull=False) & Q(to_detail__cost_basis=None)
-        ).exists():
-            raise Exception("Transactions with missing cost basis exist")
 
         return self.filter_queryset(queryset)
 
@@ -66,5 +92,7 @@ class TransactionListView(ListView):
             sum_gain=Sum("gain"),
             sum_fee_amount=Sum("fee_amount"),
             sum_profit=Sum("profit"),
+            sum_from_value=Sum("from_detail__total_value"),
+            sum_to_value=Sum("to_detail__total_value"),
         )
         return context

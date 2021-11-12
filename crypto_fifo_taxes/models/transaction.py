@@ -225,9 +225,9 @@ class Transaction(models.Model):
 
     def _handle_withdrawal_cost_basis(self) -> None:
         """
-        Funds are sent to some third party entity or withdrawn to a bank account (if fiat).
-        e.g. Paying for goods and services directly with crypto
-        This realizes any profits made from value appreciation
+        Funds are sent to some third party entity (e.g. Paying for goods and services directly with crypto),
+        which realizes any profits made from value appreciation (use `transfer` if moving funds between wallets)
+        or withdrawn to a bank account (if fiat), which does not realize any gains.
         """
         if self.from_detail.currency.is_fiat:
             self.from_detail.cost_basis = Decimal(1)
@@ -294,12 +294,12 @@ class Transaction(models.Model):
     def add_detail(self, type: str, wallet: "Wallet", currency: "Currency", quantity: Decimal):
         assert type in ["from_detail", "to_detail", "fee_detail"]
         detail = getattr(self, type, None)
-        if detail is not None:
+        if detail is not None:  # Update
             detail.wallet = wallet
             detail.currency = currency
             detail.quantity = quantity
             detail.save()
-        else:
+        else:  # Create
             detail = TransactionDetail.objects.create(wallet=wallet, currency=currency, quantity=quantity)
             setattr(self, type, detail)
             self.save()
