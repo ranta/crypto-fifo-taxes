@@ -79,10 +79,11 @@
 
                 <td></td>
                 <td></td>
+                <td>EUR {{ totals.sum_from_value|floatformat:2 }}</td>
+
                 <td></td>
                 <td></td>
-                <td></td>
-                <td></td>
+                <td>EUR {{ totals.sum_to_value|floatformat:2 }}</td>
             
                 <td>{% if totals.sum_gain %}EUR {{ totals.sum_gain|floatformat:2 }}{% endif %}</td>
                 <td>{% if totals.sum_fee_amount %}EUR {{ totals.sum_fee_amount|floatformat:2 }}{% endif %}</td>

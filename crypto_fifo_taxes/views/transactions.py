@@ -35,6 +35,12 @@ class TransactionListView(ListView):
         return queryset.filter(filters)
 
     def get_queryset(self) -> QuerySet[Transaction]:
+        if Transaction.objects.filter(
+            Q(from_detail__isnull=False) & Q(from_detail__cost_basis=None)
+            | Q(to_detail__isnull=False) & Q(to_detail__cost_basis=None)
+        ).exists():
+            raise Exception("Transactions with missing cost basis exist")
+
         queryset = (
             Transaction.objects
             # Exclude transactions that don't affect gains/profits
@@ -51,12 +57,6 @@ class TransactionListView(ListView):
             .order_by("timestamp", "pk")
         )
 
-        if queryset.filter(
-            Q(from_detail__isnull=False) & Q(from_detail__cost_basis=None)
-            | Q(to_detail__isnull=False) & Q(to_detail__cost_basis=None)
-        ).exists():
-            raise Exception("Transactions with missing cost basis exist")
-
         return self.filter_queryset(queryset)
 
     def get_context_data(self, **kwargs):
@@ -66,5 +66,7 @@ class TransactionListView(ListView):
             sum_gain=Sum("gain"),
             sum_fee_amount=Sum("fee_amount"),
             sum_profit=Sum("profit"),
+            sum_from_value=Sum("from_detail__total_value"),
+            sum_to_value=Sum("to_detail__total_value"),
         )
         return context
