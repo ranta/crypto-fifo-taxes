@@ -62,6 +62,10 @@
                         <td>{{ transaction.to_detail.currency.symbol }} {{ transaction.to_detail.quantity.normalize }}</td>
                         <td>EUR {{ transaction.to_detail.cost_basis|round_normalize:8 }}</td>
                         <td>EUR {{ transaction.to_detail.total_value|floatformat:2 }}</td>
+                    {% elif transaction.transaction_label.label == "Spending" %}
+                        <td>{{ transaction.from_detail.currency.symbol }} {{ transaction.from_detail.quantity.normalize }}</td>
+                        <td>EUR {{ transaction|get_spending_cost_basis|floatformat:2 }}</td>
+                        <td>EUR {{ transaction.to_detail__total_value|floatformat:2 }}</td>
                     {% else %}
                         <td></td>
                         <td></td>
