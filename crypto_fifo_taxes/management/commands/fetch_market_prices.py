@@ -50,7 +50,6 @@ class Command(BaseCommand):
             print(
                 f"Fetching market chart prices for {currency.symbol} starting from {first_transaction_date}. "
                 f"{(i + 1) / count * 100:>5.2f}%",
-                end="\r",
             )
             fetch_currency_market_chart(currency, start_date=first_transaction_date or self.date)
 

@@ -119,6 +119,12 @@ ALL_FIAT_CURRENCIES = {
 # The following symbols are ignored when importing dividends
 IGNORED_TOKENS = [
     "JEX",  # Not worth anything, Coingecko doesn't even have any price history data on this
+    "EDG",  # Unable to be traded in Binance
+]
+
+# The following symbols are ignored when getting prices from coingecko, a price of 0 is assumed instead
+COINGECKO_ASSUME_ZERO_PRICE_TOKENS = [
+    "MC"  # Margin-call - Price is missing in Coingecko
 ]
 
 # Tokens that have been deprecated and are not found in CoinGecko anymore, but still have trades that should be imported

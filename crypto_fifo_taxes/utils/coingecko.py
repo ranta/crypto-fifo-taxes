@@ -127,6 +127,9 @@ def fetch_currency_market_chart(currency: Currency, start_date: datetime.date = 
     if currency.symbol.lower() in settings.DEPRECATED_TOKENS:
         return
 
+    if currency.symbol in settings.COINGECKO_ASSUME_ZERO_PRICE_TOKENS:
+        return
+
     for fiat_symbol in settings.ALL_FIAT_CURRENCIES.keys():
         fiat = get_currency(fiat_symbol)
         currency_price_qs = CurrencyPrice.objects.filter(fiat=fiat, currency=currency, date__gte=start_date)
