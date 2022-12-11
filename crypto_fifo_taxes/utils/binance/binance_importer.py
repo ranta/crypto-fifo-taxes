@@ -188,6 +188,9 @@ def import_interest(wallet: Wallet, interests: list) -> None:
         if row["asset"] in settings.IGNORED_TOKENS:
             continue
 
+        if Decimal(row["interest"]) == 0:
+            continue
+
         currency = get_or_create_currency(row["asset"])
         tx_creator = TransactionCreator(
             timestamp=from_timestamp(row["time"]),

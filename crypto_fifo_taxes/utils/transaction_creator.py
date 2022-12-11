@@ -63,6 +63,7 @@ class TransactionCreator:
     ) -> None:
         if quantity == 0:
             # TODO: Logging
+            print(f"WARN: Tried to add zero value {prefix} detail with currency{currency}.")
             return
 
         detail = TransactionDetail(wallet=wallet, currency=currency, quantity=quantity, cost_basis=cost_basis)
