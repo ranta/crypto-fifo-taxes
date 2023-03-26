@@ -132,6 +132,14 @@ DEPRECATED_TOKENS = {
     "ven": {"id": "vechain-old", "symbol": "ven", "name": "VeChain OLD"},
 }
 
+# Symbols that have changed their symbols
+# The old symbol is still used in Binance API, but new one is used in Coingecko.
+# The old symbol is used in transactions, the new symbol is used when fetching coingecko data.
+# format: {"new": "old"}
+RENAMED_SYMBOLS = {
+    "NANO": "XNO",
+}
+
 
 # Add coins currently in locked staking / locked savings, as they are not retrievable from any api endpoint
 # These values are added to `get_binance_wallet_balance` output

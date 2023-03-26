@@ -15,6 +15,9 @@ def get_default_fiat() -> Currency:
 
 @lru_cache()
 def get_currency(currency: Union[Currency, str, int]) -> Currency:
+    if currency in settings.RENAMED_SYMBOLS:
+        currency = settings.RENAMED_SYMBOLS[currency]
+
     if type(currency) == str:
         return Currency.objects.get(symbol__iexact=currency)
     if type(currency) == int:
@@ -32,7 +35,6 @@ def get_or_create_currency(symbol: str) -> Currency:
         cg_currency_list = coingecko_get_currency_list()
         # In most cases symbols will match, but in a few cases where it doesn't the id should match. e.g. IOTA
         try:
-
             def currency_filter(x):
                 if "binance-peg" in x["id"]:
                     return False
@@ -46,6 +48,10 @@ def get_or_create_currency(symbol: str) -> Currency:
                 raise CoinGeckoMissingCurrency(f"Currency `{symbol}` not found in CoinGecko API")
 
         assert currency_data
+
+        if currency_data["symbol"].upper() in settings.RENAMED_SYMBOLS:
+            symbol = settings.RENAMED_SYMBOLS[currency_data["symbol"].upper()]
+
         return Currency.objects.get_or_create(
             symbol=currency_data["symbol"].upper(),
             defaults=dict(
