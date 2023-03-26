@@ -40,9 +40,9 @@ class Command(BaseCommand):
         return f"Nicehash-{self.nstrptime(date).date()}"
 
     def import_data(self, data: list[dict[str, str]]) -> None:
-        dates = [r["Date time"] for r in data]
+        dates = [r["Date time"] for r in data if r["Date time"] and r["Date time"] != "∑"]
 
-        # Iterate by dates, because there are multiple transactions per date and they should be combined
+        # Iterate by dates, because there are multiple transactions per date, and they should be combined
         for date in dates:
             tx_id = self.get_tx_td(date)
 
@@ -77,7 +77,6 @@ class Command(BaseCommand):
 
         with open(filepath) as csv_file:
             reader = csv.DictReader(csv_file)
-            data = list(reader)[:-3]  # Remove summary rows
-            self.import_data(data)
+            self.import_data(list(reader))
 
         print(f"New transactions created: {Transaction.objects.count() - transactions_count}")

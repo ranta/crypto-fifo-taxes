@@ -85,7 +85,9 @@ It is recommended you back up these files somewhere to prevent data loss
 
 #### Nicehash
 
-Generate a report from Nicehash where you include all of your mining history. Save the `.csv` file to `nicehash_report.csv`
+Generate a report from [Nicehash](https://www.nicehash.com/my/settings/reports) where you include all of your mining history.
+Include only transactions, aggregate by day, don't select a local time.
+Save the `.csv` file to `nicehash_report.csv`
 
 #### Binance ETH2 Staking
 
