@@ -23,10 +23,33 @@ A calculator to count gains and losses on crypto mining, staking and trading act
 
 4. Set up your development environment: `$ make`
 
+---
+
+### Usage
+
+Data is imported to this app with management commands. Below are the available commands with short explanations.
+
+`import_all` -  Import all data from json files and the Binance API.
+
+Accepts the following arguments:
+\
+`-m` | `--mode` `0|1`. This is only relevant for importing data through the Binance API.
+
+  - `0` = fast mode.
+Import trades from only previously known pairs.
+  - `1` = full mode. 
+Check and import all possible pairs.
+Running the command in full mode is extremely slow as the Binance API provides no way to fetch all trades form all pairs.
+To actually get the necessary data, we need to check every trade pair individually which uses lots of API weight so the Binance API enforces a cooldown on the API requests.
+
+---
+
 ### Testing
 
 * Running the tests: `pytest`
 * Checking the project test coverage: `pytest --cov`
+
+---
 
 #### Using Make
 
@@ -38,10 +61,14 @@ https://community.chocolatey.org/packages/make OR http://gnuwin32.sourceforge.ne
 
 If you don't want to use Make, you can simply look up the commands from the `Makefile` and use those manually.
 
+---
+
 ### Binance API
 
 Create an API key on the [Binance website](https://binance.com) with read permissions and save the API Key
 and API Secret to the `.env` file.
+
+---
 
 ### Ethplorer API
 
@@ -50,22 +77,31 @@ pool wallets
 
 Create an Ethplorer account and an API key and save the API Key to the `.env` file.
 
+---
+
 ### File importers
+
 It is recommended you back up these files somewhere to prevent data loss
 
 #### Nicehash
+
 Generate a report from Nicehash where you include all of your mining history. Save the `.csv` file to `nicehash_report.csv`
 
 #### Binance ETH2 Staking
+
+**! THIS STEP MAY NO LONGER BE REQUIRED DUE TO UPDATES IN THE BINANCE API**
+\
 This is required because Binance does not list early ETH2 staking rewards through their API.
-However, these rewards can be retrieved through the website. Easiest way is to open developer tools and manually copy
-the returned responses in the network tab to a `binance_eth2_staking.json` file.
+However, these rewards can be retrieved through the [Binance website](https://www.binance.com/en/my/earn/history/staking).
+Easiest way is to open developer tools and manually copy the returned responses in the network tab to a `binance_eth2_staking.json` file.
 
 #### Coinbase
+
 Trades made in Coinbase. Coinbase does offer an API, but it was deemed not super reliable, because the data might be 
 available in Coinbase or Coinbase PRO.  
 
 #### Import JSON
+
 Some transactions are not possible to get through an API. These weird ones can be manually imported through `import.json` file.
 You can also override existing transactions in case of incorrect data, e.g. transfers between your wallets and currency swaps
 may not be imported properly through the API.
