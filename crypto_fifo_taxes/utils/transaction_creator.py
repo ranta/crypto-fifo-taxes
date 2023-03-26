@@ -2,7 +2,6 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Dict, Optional, Union
 
-from django.conf import settings
 from django.db.transaction import atomic
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
@@ -157,8 +156,6 @@ class TransactionCreator:
         Set mining label for ETH deposits that originate from mining pools.
         """
         if self.tx_id and self.transaction_type == TransactionType.DEPOSIT and self.to_detail.currency.symbol == "ETH":
-            if settings.ETHPLORER_API_KEY is None:
-                raise Exception("'ETHPLORER_API_KEY' environment variable is missing.")
             client = get_ethplorer_client()
             is_mining = client.is_tx_from_mining_pool(self.tx_id)
             if is_mining:
