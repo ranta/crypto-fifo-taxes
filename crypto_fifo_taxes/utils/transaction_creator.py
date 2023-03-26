@@ -156,13 +156,9 @@ class TransactionCreator:
         """
         Set mining label for ETH deposits that originate from mining pools.
         """
-        if (
-            self.tx_id
-            and self.transaction_type == TransactionType.DEPOSIT
-            and self.to_detail.currency.symbol == "ETH"
-        ):
+        if self.tx_id and self.transaction_type == TransactionType.DEPOSIT and self.to_detail.currency.symbol == "ETH":
             if settings.ETHPLORER_API_KEY is None:
-                raise "'ETHPLORER_API_KEY' environment variable is missing."
+                raise Exception("'ETHPLORER_API_KEY' environment variable is missing.")
             client = get_ethplorer_client()
             is_mining = client.is_tx_from_mining_pool(self.tx_id)
             if is_mining:

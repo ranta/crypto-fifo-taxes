@@ -123,9 +123,7 @@ IGNORED_TOKENS = [
 ]
 
 # The following symbols are ignored when getting prices from coingecko, a price of 0 is assumed instead
-COINGECKO_ASSUME_ZERO_PRICE_TOKENS = [
-    "MC"  # Margin-call - Price is missing in Coingecko
-]
+COINGECKO_ASSUME_ZERO_PRICE_TOKENS = ["MC"]  # Margin-call - Price is missing in Coingecko
 
 # Tokens that have been deprecated and are not found in CoinGecko anymore, but still have trades that should be imported
 DEPRECATED_TOKENS = {

@@ -67,7 +67,9 @@ class Wallet(models.Model):
                     sum_field="quantity",
                 ),
                 withdrawals=SQSum(
-                    self.transaction_details.filter(currency_id=OuterRef("currency_id"),).filter(
+                    self.transaction_details.filter(
+                        currency_id=OuterRef("currency_id"),
+                    ).filter(
                         Q(from_detail__isnull=False)
                         | Q(fee_detail__isnull=False) & ~Q(fee_detail__transaction_type=TransactionType.WITHDRAW)
                     ),
