@@ -160,8 +160,9 @@ class TransactionCreator:
             self.tx_id
             and self.transaction_type == TransactionType.DEPOSIT
             and self.to_detail.currency.symbol == "ETH"
-            and settings.ETHPLORER_API_KEY is not None
         ):
+            if settings.ETHPLORER_API_KEY is None:
+                raise "'ETHPLORER_API_KEY' environment variable is missing."
             client = get_ethplorer_client()
             is_mining = client.is_tx_from_mining_pool(self.tx_id)
             if is_mining:

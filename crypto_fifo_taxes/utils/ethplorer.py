@@ -25,11 +25,13 @@ class EtherscanClient:
         self.known_pool_addresses = [result[2] for result in results]
 
     def get_tx_info(self, tx_id: str) -> dict:
-        url = f"http://api.ethplorer.io/getTxInfo/{tx_id}?apiKey={self.api_key}"
+        url = f"https://api.ethplorer.io/getTxInfo/{tx_id}?apiKey={self.api_key}"
         return requests.get(url).json()
 
     def is_tx_from_mining_pool(self, tx_id: str) -> bool:
         tx_info = self.get_tx_info(tx_id)
+        if "error" in tx_info:
+            raise tx_info
         if "from" in tx_info:
             from_address = tx_info["from"]
             return from_address in self.known_pool_addresses
