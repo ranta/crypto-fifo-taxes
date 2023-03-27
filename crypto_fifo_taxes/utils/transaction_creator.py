@@ -5,7 +5,7 @@ from typing import Dict, Optional, Union
 from django.db.transaction import atomic
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
-from crypto_fifo_taxes.models import Currency, Transaction, TransactionDetail, Wallet
+from crypto_fifo_taxes.models import Currency, Snapshot, Transaction, TransactionDetail, Wallet
 from crypto_fifo_taxes.utils.ethplorer import get_ethplorer_client
 
 
@@ -184,4 +184,7 @@ class TransactionCreator:
 
         if self.fill_cost_basis:
             transaction.fill_cost_basis()
+
+        Snapshot.objects.filter(date__gte=self.timestamp.date()).delete()
+
         return transaction
