@@ -1,10 +1,14 @@
+import logging
 from functools import lru_cache
 from typing import Union
 
 from django.conf import settings
+from django.db import IntegrityError
 
 from crypto_fifo_taxes.exceptions import CoinGeckoMissingCurrency
 from crypto_fifo_taxes.models import Currency, CurrencyPair
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache()
@@ -15,13 +19,32 @@ def get_default_fiat() -> Currency:
 
 @lru_cache()
 def get_currency(currency: Union[Currency, str, int]) -> Currency:
-    if currency in settings.RENAMED_SYMBOLS:
-        currency = settings.RENAMED_SYMBOLS[currency]
+    if type(currency) == Currency:
+        return currency
 
-    if type(currency) == str:
-        return Currency.objects.get(symbol__iexact=currency)
     if type(currency) == int:
         return Currency.objects.get(id=currency)
+
+    if type(currency) == str:
+        currency = currency.upper()
+
+        try:
+            return Currency.objects.get(symbol=currency)
+        except Currency.DoesNotExist as e:
+            # Check if the symbol has been changed, and try to find the currency again with the new or legacy symbol
+            if currency in settings.RENAMED_SYMBOLS:
+                # If the currency is the old symbol, find the new symbol
+                currency = settings.RENAMED_SYMBOLS[currency]
+                return Currency.objects.get(symbol__iexact=currency)
+            elif currency in settings.RENAMED_SYMBOLS.values():
+                # If the currency is the new symbol, find the old symbol
+                renamed_keys = list(settings.RENAMED_SYMBOLS.keys())
+                renamed_values = list(settings.RENAMED_SYMBOLS.values())
+                currency = renamed_keys[renamed_values.index(currency)]
+                return Currency.objects.get(symbol__iexact=currency)
+            else:
+                raise e
+
     return currency
 
 
@@ -53,13 +76,17 @@ def get_or_create_currency(symbol: str) -> Currency:
         if currency_data["symbol"].upper() in settings.RENAMED_SYMBOLS:
             symbol = settings.RENAMED_SYMBOLS[currency_data["symbol"].upper()]
 
-        return Currency.objects.get_or_create(
-            symbol=currency_data["symbol"].upper(),
-            defaults=dict(
-                name=currency_data["name"],
-                cg_id=currency_data["id"],
-            ),
-        )[0]
+        try:
+            return Currency.objects.get_or_create(
+                symbol=currency_data["symbol"].upper(),
+                defaults=dict(
+                    name=currency_data["name"],
+                    cg_id=currency_data["id"],
+                ),
+            )[0]
+        except IntegrityError as e:
+            logger.warning(f"Currency `{currency_data['symbol'].upper()}` already exists in the database.")
+            raise e
 
 
 @lru_cache()

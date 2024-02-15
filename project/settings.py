@@ -133,9 +133,10 @@ DEPRECATED_TOKENS = {
 # Symbols that have changed their symbols
 # The old symbol is still used in Binance API, but new one is used in Coingecko.
 # The old symbol is used in transactions, the new symbol is used when fetching coingecko data.
-# format: {"new": "old"}
+# format: {"old": "new"}
 RENAMED_SYMBOLS = {
     "NANO": "XNO",
+    "MIOTA": "IOTA",
 }
 
 
