@@ -20,7 +20,7 @@ class Currency(models.Model):
         unique=True,
     )
     name = models.CharField(
-        max_length=30,
+        max_length=80,
         verbose_name=_("Name"),
         unique=True,
     )
