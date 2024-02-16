@@ -44,6 +44,7 @@ class Command(BaseCommand):
 
     @print_time_elapsed
     def generate_snapshots(self) -> None:
+        """Generate an empty snapshot for each day between `self.date` and today"""
         print()  # Newline for prettier formatting
         today = timezone.now().date()
         day_delta = 0
@@ -55,14 +56,16 @@ class Command(BaseCommand):
                 break
 
             snapshot, created = Snapshot.objects.get_or_create(user=self.user, date=date)
+            # If we found an old snapshot, delete all of its balances before creating new ones
             if not created:
-                # Delete old balances for snapshot when updating snapshot
                 snapshot.balances.all().delete()
+
             self.generate_snapshot_currencies(snapshot=snapshot, date=date)
+
             snapshot.calculate_worth()
 
             day_delta += 1
-            print(f"Calculating snapshots. {(day_delta + 1) / total_days * 100:>5.2f}% ({date})", end="\r")
+            print(f"Calculating snapshots. {(day_delta + 1) / total_days * 100:>5.2f}% ({date})")
 
     def validate_starting_date(self, first_transaction_date: date, starting_date: date) -> None:
         """

@@ -58,13 +58,16 @@ class Snapshot(models.Model):
                 continue
 
             currency = get_currency(balance["currency_id"])
+            # For FIAT currencies we can simply add then, as their worth is their quantity
             if currency.is_fiat:
                 sum_worth += balance["quantity"]
                 sum_cost_basis += balance["cost_basis"]
                 continue
 
+            # For non-FIAT currencies we need to fetch their price
             try:
                 currency_price = currency.get_fiat_price(date=self.date)
+            # If the price is missing, we skip the currency and add its cost basis to the sums
             except MissingPriceError as e:
                 print(e)
 

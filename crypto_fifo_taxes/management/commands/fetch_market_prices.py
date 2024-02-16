@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from django.conf import settings
 from django.core.management import BaseCommand
 from django.db.models import QuerySet
 
@@ -15,13 +16,15 @@ class Command(BaseCommand):
         parser.add_argument("-d", "--date", type=str, help="Start from this date. Format: YYYY-MM-DD")
 
     def get_required_currencies(self) -> QuerySet[Currency]:
-        """Get all currencies owned at any point after the start_date"""
+        """Get all currencies owned in the latest snapshot and ones traded after the start_date"""
 
         # Currencies in latest snapshot
         latest_snapshot = Snapshot.objects.filter(date__lte=self.date).order_by("-date").first()
         snapshot_currency_ids = []
         if latest_snapshot is not None:
-            snapshot_currency_ids = [currency["currency_id"] for currency in latest_snapshot.get_balances()]
+            snapshot_currency_ids = [
+                currency["currency_id"] for currency in latest_snapshot.get_balances(include_zero_balances=False)
+            ]
 
         # Currencies used in future transactions
         tx_currency_ids = (
@@ -33,7 +36,13 @@ class Command(BaseCommand):
         # Combine Currencies from latest snapshot and future transactions into a set
         currency_ids = set(sum([list(c_tuple) for c_tuple in tx_currency_ids], list(snapshot_currency_ids)))
 
-        return Currency.objects.filter(pk__in=currency_ids, is_fiat=False)
+        excluded_symbols = (
+            [k.upper() for k in settings.DEPRECATED_TOKENS.keys()]
+            + settings.COINGECKO_ASSUME_ZERO_PRICE_TOKENS
+            + settings.IGNORED_TOKENS
+        )
+
+        return Currency.objects.filter(pk__in=currency_ids, is_fiat=False).exclude(symbol__in=excluded_symbols)
 
     @print_time_elapsed
     def fetch_historical_market_prices(self):
