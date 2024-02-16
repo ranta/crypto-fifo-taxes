@@ -7,6 +7,12 @@ from django.conf import settings
 
 from crypto_fifo_taxes.exceptions import TooManyResultsError
 from crypto_fifo_taxes.utils.binance.binance_client import BinanceClient
+from crypto_fifo_taxes.utils.binance.types import (
+    BinanceFlexibleInterest,
+    BinanceFlexibleInterestHistoryResponse,
+    BinanceLockedInterest,
+    BinanceLockedInterestHistoryResponse,
+)
 
 
 def to_timestamp(dt: datetime) -> int:
@@ -111,19 +117,67 @@ def get_binance_dividends(start_date: datetime = None) -> Iterator[list[dict]]:
     )
 
 
-def get_binance_interest_history(start_date: datetime = None) -> Iterator[list[dict]]:
-    def interests(startTime: int, endTime: int) -> list:
+def get_binance_flexible_interest_history(start_date: datetime = None) -> Iterator[list[BinanceFlexibleInterest]]:
+    def interests(startTime: int, endTime: int) -> list[BinanceFlexibleInterest]:
         output = []
-        for type in ("DAILY", "ACTIVITY", "CUSTOMIZED_FIXED"):
-            response = client.get_lending_interest_history(
+        for type in ("BONUS", "REALTIME"):
+            response: BinanceFlexibleInterestHistoryResponse = client.get_flexible_interest_history(
                 startTime=startTime,
                 endTime=endTime,
                 size=100,
-                lendingType=type,
+                type=type,
             )
             if len(response) >= 100:
                 raise TooManyResultsError
-            output.extend(response)
+            if response["total"] == 0:
+                continue
+
+            rows: list[BinanceFlexibleInterest] = response["rows"]
+            output.extend(rows)
+        return output
+
+    client = get_binance_client()
+    out = binance_history_iterator(interests, period_length=30, start_date=start_date)
+    return out
+
+
+def get_binance_locked_interest_history(start_date: datetime = None) -> Iterator[list[BinanceLockedInterest]]:
+    def interests(startTime: int, endTime: int) -> list[BinanceLockedInterest]:
+        output = []
+        response: BinanceLockedInterestHistoryResponse = client.get_locked_interest_history(
+            startTime=startTime,
+            endTime=endTime,
+            size=100,
+        )
+        if len(response) >= 100:
+            raise TooManyResultsError
+        if response["total"] == 0:
+            return []
+
+        rows: list[BinanceLockedInterest] = response["rows"]
+        output.extend(rows)
+        return output
+
+    client = get_binance_client()
+    out = binance_history_iterator(interests, period_length=30, start_date=start_date)
+    return out
+
+
+def get_binance_beth_interest_history(start_date: datetime = None) -> Iterator[list[BinanceLockedInterest]]:
+    def interests(startTime: int, endTime: int) -> list[BinanceLockedInterest]:
+        output = []
+        response: BinanceLockedInterestHistoryResponse = client.get_beth_interest_history(
+            startTime=startTime,
+            endTime=endTime,
+            size=100,
+        )
+        if len(response) >= 100:
+            raise TooManyResultsError
+        if response["total"] == 0:
+            return []
+
+        rows: list[BinanceLockedInterest] = response["rows"]
+        output.extend(rows)
         return output
 
     client = get_binance_client()

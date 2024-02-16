@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal
 
 from django.conf import settings
@@ -5,8 +6,11 @@ from django.conf import settings
 from crypto_fifo_taxes.enums import TransactionLabel
 from crypto_fifo_taxes.models import CurrencyPair, Transaction, Wallet
 from crypto_fifo_taxes.utils.binance.binance_api import bstrptime, from_timestamp, to_timestamp
+from crypto_fifo_taxes.utils.binance.types import BinanceFlexibleInterest, BinanceLockedInterest
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
+
+logger = logging.getLogger(__name__)
 
 
 def import_deposits(wallet: Wallet, deposits: list) -> None:
@@ -168,36 +172,53 @@ def import_dividends(wallet: Wallet, dividends: list) -> None:
         tx_creator.create_deposit()
 
 
-def import_interest(wallet: Wallet, interests: list) -> None:
-    """
-    https://binance-docs.github.io/apidocs/spot/en/#get-interest-history-user_data-2
-    """
+def _get_interest_quantity(row: BinanceFlexibleInterest | BinanceLockedInterest) -> str:
+    if "rewards" in row:
+        row: BinanceFlexibleInterest
+        return row["rewards"]
+    elif "amount" in row:
+        row: BinanceLockedInterest
+        return row["amount"]
+    else:
+        raise ValueError(f"Invalid interest row: {row}")
 
-    def build_transaction_id(row: dict) -> str:
-        timestamp = to_timestamp(from_timestamp(row["time"]).replace(hour=0, minute=0, second=0))
-        return f"{wallet.name}_{timestamp}_{row['interest']}_{row['asset']}"
 
-    interest_ids = set(build_transaction_id(i) for i in interests)
+def _build_transaction_id(wallet: Wallet, row: BinanceFlexibleInterest | BinanceLockedInterest) -> str:
+    try:
+        timestamp_datetime = from_timestamp(row["time"]).replace(hour=0, minute=0, second=0)
+    except (KeyError, TypeError) as e:
+        logger.error(f"Invalid interest row: {row}")
+        raise e
+
+    timestamp = to_timestamp(timestamp_datetime)
+    quantity = _get_interest_quantity(row)
+    return f"{wallet.name}_{timestamp}_{quantity}_{row['asset']}"
+
+
+def import_interest(wallet: Wallet, interests: list[BinanceFlexibleInterest] | list[BinanceLockedInterest]) -> None:
+    interest_ids = set(_build_transaction_id(wallet, i) for i in interests)
     existing_interests = Transaction.objects.filter(tx_id__in=interest_ids).values_list("tx_id", flat=True)
 
     for row in interests:
-        tx_id = build_transaction_id(row)
+        tx_id = _build_transaction_id(wallet, row)
         if tx_id in existing_interests:
             continue
 
-        if row["asset"] in settings.IGNORED_TOKENS:
+        symbol: str = row["asset"]
+        if symbol in settings.IGNORED_TOKENS:
             continue
 
-        if Decimal(row["interest"]) == 0:
+        quantity = Decimal(_get_interest_quantity(row))
+        if quantity == 0:
             continue
 
-        currency = get_or_create_currency(row["asset"])
+        currency = get_or_create_currency(symbol)
         tx_creator = TransactionCreator(
             timestamp=from_timestamp(row["time"]),
             description="Interest payout (Imported from Binance API)",
-            tx_id=build_transaction_id(row),
+            tx_id=tx_id,
             label=TransactionLabel.REWARD,
             fill_cost_basis=False,
         )
-        tx_creator.add_to_detail(wallet=wallet, currency=currency, quantity=Decimal(row["interest"]))
+        tx_creator.add_to_detail(wallet=wallet, currency=currency, quantity=quantity)
         tx_creator.create_deposit()

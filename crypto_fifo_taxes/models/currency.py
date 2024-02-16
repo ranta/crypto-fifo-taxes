@@ -59,6 +59,8 @@ class Currency(models.Model):
 
         Only way for this method to return None, is if the price is unable to fetched from the API e.g. it's deprecated
         """
+        from crypto_fifo_taxes.utils.coingecko import fetch_currency_price
+
         if date is None:
             raise TypeError("Date must be entered!")
 
@@ -77,18 +79,23 @@ class Currency(models.Model):
         # Get crypto price from db
         currency_price = self.prices.filter(date=date, fiat=fiat).first()
 
+        # Price was found in the database
+        if currency_price is not None:
+            return currency_price
+
         # Price was not found for entered FIAT, fetch from the API instead
-        if currency_price is None:
-            from crypto_fifo_taxes.utils.coingecko import fetch_currency_price
+        # No reason to try to fetch deprecated token price from the API
+        if (
+            self.symbol.lower() in settings.DEPRECATED_TOKENS
+            or self.symbol in settings.COINGECKO_ASSUME_ZERO_PRICE_TOKENS
+            or self.symbol in settings.IGNORED_TOKENS
+        ):
+            return None
 
-            # No reason to try to fetch deprecated token price from the API
-            if self.symbol.lower() in settings.DEPRECATED_TOKENS:
-                return None
+        # Fetch prices from an API
+        fetch_currency_price(self, date)
 
-            # Fetch prices from an API
-            fetch_currency_price(self, date)
-            currency_price = self.prices.filter(date=date, fiat=fiat).first()
-
+        currency_price = self.prices.filter(date=date, fiat=fiat).first()
         return currency_price
 
 

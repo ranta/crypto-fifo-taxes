@@ -12,7 +12,9 @@ from crypto_fifo_taxes.utils.binance.binance_api import (
     get_binance_deposits,
     get_binance_dividends,
     get_binance_dust_log,
-    get_binance_interest_history,
+    get_binance_beth_interest_history,
+    get_binance_flexible_interest_history,
+    get_binance_locked_interest_history,
     get_binance_withdraws,
 )
 from crypto_fifo_taxes.utils.binance.binance_importer import (
@@ -107,8 +109,20 @@ class Command(BaseCommand):
             import_dividends(self.wallet, dividends)
 
     @print_time_elapsed_new_transactions
-    def sync_interest(self):
-        for interests in get_binance_interest_history(start_date=self.date):
+    def sync_interest_flexible(self):
+        for interests in get_binance_flexible_interest_history(start_date=self.date):
+            self.print_dot()
+            import_interest(self.wallet, interests)
+
+    @print_time_elapsed_new_transactions
+    def sync_interest_locked(self):
+        for interests in get_binance_locked_interest_history(start_date=self.date):
+            self.print_dot()
+            import_interest(self.wallet, interests)
+
+    @print_time_elapsed_new_transactions
+    def sync_interest_eth(self):
+        for interests in get_binance_beth_interest_history(start_date=self.date):
             self.print_dot()
             import_interest(self.wallet, interests)
 
@@ -116,7 +130,7 @@ class Command(BaseCommand):
     def sync_trades(self) -> None:
         pairs = []
         if not self.mode:
-            # FAST sync
+            # FAST sync.
             # Sync only trading pairs which already have records
             pairs = CurrencyPair.objects.values_list("symbol", flat=True)
             if len(pairs) > 1:
@@ -142,7 +156,9 @@ class Command(BaseCommand):
         self.sync_withdrawals()
         self.sync_dust()
         self.sync_dividends()
-        self.sync_interest()
+        self.sync_interest_flexible()
+        self.sync_interest_locked()
+        self.sync_interest_eth()
 
     @atomic
     def handle(self, *args, **kwargs):
