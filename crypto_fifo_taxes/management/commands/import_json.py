@@ -1,7 +1,6 @@
 import json
 import os
 from decimal import Decimal
-from typing import Optional
 
 from django.conf import settings
 from django.core.management import BaseCommand
@@ -18,7 +17,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--file", type=str)
 
-    def get_wallets(self, row: dict) -> tuple[Optional[Wallet], Optional[Wallet], Optional[Wallet]]:
+    def get_wallets(self, row: dict) -> tuple[Wallet | None, Wallet | None, Wallet | None]:
         if "wallet" in row:
             wallet = Wallet.objects.get(name=row["wallet"])
             return wallet, wallet, wallet

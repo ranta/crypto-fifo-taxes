@@ -4,7 +4,7 @@ import requests
 from django.conf import settings
 
 
-@lru_cache()
+@lru_cache
 def get_ethplorer_client():
     api_key = settings.ETHPLORER_API_KEY
     if api_key is None:

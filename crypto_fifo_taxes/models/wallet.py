@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, Union
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
@@ -48,8 +47,8 @@ class Wallet(models.Model):
         return self.transaction_details.values_list("currency_id", flat=True).distinct()
 
     def get_current_balance(
-        self, currency: Optional[Union[Currency, str, int]] = None, exclude_zero_balances: bool = True
-    ) -> Union[dict[str, Decimal], Decimal]:
+        self, currency: Currency | str | int | None = None, exclude_zero_balances: bool = True
+    ) -> dict[str, Decimal] | Decimal:
         """
         Returns wallet's current currencies balances
         If currency is given, return only it's balance
@@ -93,7 +92,7 @@ class Wallet(models.Model):
         return {c.symbol: c.balance for c in qs.values_list("symbol", "balance", named=True)}
 
     def get_consumable_currency_balances(
-        self, currency: Currency, timestamp: Optional[datetime] = None, quantity: Optional[Union[Decimal, int]] = None
+        self, currency: Currency, timestamp: datetime | None = None, quantity: Decimal | int | None = None
     ) -> list[TransactionDetail]:
         """
         Returns a list of "deposits" to the wallet after excluding any deposits,
@@ -110,7 +109,6 @@ class Wallet(models.Model):
         - Fees for withdrawals are not consumed from the wallet, but from the sent amount.
         - When iterating through transactions qs ordered by `timestamp` and using this method, also order them by `pk`.
         """
-
         # Total amount of currency that has left the wallet
         from_filter = Q()
         to_filter = Q()

@@ -1,6 +1,5 @@
 import logging
 from functools import lru_cache
-from typing import Union
 
 from django.conf import settings
 from django.db import IntegrityError
@@ -11,14 +10,14 @@ from crypto_fifo_taxes.models import Currency, CurrencyPair
 logger = logging.getLogger(__name__)
 
 
-@lru_cache()
+@lru_cache
 def get_default_fiat() -> Currency:
     """Return the currency object for default fiat currency"""
     return Currency.objects.get(is_fiat=True, symbol=settings.DEFAULT_FIAT_SYMBOL)
 
 
-@lru_cache()
-def get_currency(currency: Union[Currency, str, int]) -> Currency:
+@lru_cache
+def get_currency(currency: Currency | str | int) -> Currency:
     if type(currency) is Currency:
         return currency
 
@@ -48,7 +47,7 @@ def get_currency(currency: Union[Currency, str, int]) -> Currency:
     return currency
 
 
-@lru_cache()
+@lru_cache
 def get_or_create_currency(symbol: str) -> Currency:
     try:
         return get_currency(symbol)
@@ -89,8 +88,8 @@ def get_or_create_currency(symbol: str) -> Currency:
             raise e
 
 
-@lru_cache()
-def get_or_create_currency_pair(symbol: str, buy: Union[Currency, str], sell: Union[Currency, str]) -> CurrencyPair:
+@lru_cache
+def get_or_create_currency_pair(symbol: str, buy: Currency | str, sell: Currency | str) -> CurrencyPair:
     return CurrencyPair.objects.get_or_create(
         symbol=symbol,
         defaults=dict(

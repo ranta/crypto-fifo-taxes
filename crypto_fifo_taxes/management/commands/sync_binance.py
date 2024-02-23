@@ -1,6 +1,5 @@
 import time
 from datetime import datetime
-from typing import Union
 
 from binance.exceptions import BinanceAPIException
 from django.core.management import BaseCommand
@@ -56,7 +55,7 @@ class Command(BaseCommand):
         ]
         return all_pairs
 
-    def sync_pair(self, pair: Union[dict, str]):
+    def sync_pair(self, pair: dict | str):
         while True:
             try:
                 # Full sync

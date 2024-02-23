@@ -1,6 +1,6 @@
+from collections.abc import Callable, Iterator
 from datetime import datetime, timedelta
 from functools import lru_cache
-from typing import Callable, Iterator
 
 import pytz
 from django.conf import settings
@@ -73,7 +73,7 @@ def binance_history_iterator(
         start_date += timedelta(days=period_length)
 
 
-@lru_cache()
+@lru_cache
 def get_binance_client() -> BinanceClient:
     client = BinanceClient(settings.BINANCE_API_KEY, settings.BINANCE_API_SECRET)
     return client
@@ -97,7 +97,6 @@ def get_binance_dust_log() -> list:
     Then manually import those converts using the json importer.
     You need to add `tx_id` to those transactions if converted multiple currencies in a single batch.
     """
-
     client = get_binance_client()
     return client.get_dust_log()["userAssetDribblets"]
 

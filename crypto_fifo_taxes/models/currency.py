@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, Union
+from typing import Optional
 
 from django.conf import settings
 from django.db import models
@@ -49,7 +49,7 @@ class Currency(models.Model):
         return f"<{self.__class__.__name__} ({self.pk}): {self.name} [{'FIAT' if self.is_fiat else 'NON-FIAT'}]>"
 
     def get_fiat_price(
-        self, date: Union[datetime.date, datetime.datetime], fiat: "Currency" = None
+        self, date: datetime.date | datetime.datetime, fiat: "Currency" = None
     ) -> Optional["CurrencyPrice"]:
         """
         Get the FIAT price for a crypto on a specific date.

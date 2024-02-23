@@ -2,7 +2,6 @@ import random
 import string
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Optional, Union
 
 import factory.fuzzy
 from enumfields import Enum
@@ -100,11 +99,11 @@ class PriceTrend(Enum):
 
 
 def create_currency_price_history(
-    currency: Union[Currency, str],
-    fiat: Union[Currency, str],
-    start_price: Union[Decimal, int] = Decimal(1000),
+    currency: Currency | str,
+    fiat: Currency | str,
+    start_price: Decimal | int = Decimal(1000),
     trend: PriceTrend = PriceTrend.BULL_SLOW,
-    start_date: Optional[date] = None,
+    start_date: date | None = None,
     days: int = 31,
 ):
     """Create linearly changing price history for a currency."""

@@ -3,7 +3,6 @@ from collections import namedtuple
 from datetime import datetime
 from decimal import Decimal
 from functools import lru_cache
-from typing import Optional
 
 import requests
 from django.conf import settings
@@ -16,7 +15,7 @@ from crypto_fifo_taxes.utils.currency import get_currency, get_or_create_currenc
 MarketChartData = namedtuple("MarketChartData", "timestamp price market_cap volume")
 
 
-def retry_get_request_until_ok(url: str) -> Optional[dict]:
+def retry_get_request_until_ok(url: str) -> dict | None:
     while True:
         response = requests.get(url)
 
@@ -34,7 +33,7 @@ def retry_get_request_until_ok(url: str) -> Optional[dict]:
         return None
 
 
-@lru_cache()
+@lru_cache
 def coingecko_get_currency_list() -> dict:
     """
     Can be cached because of large output and almost never changing
@@ -46,8 +45,8 @@ def coingecko_get_currency_list() -> dict:
     return retry_get_request_until_ok(api_url)
 
 
-@lru_cache()
-def coingecko_request_price_history(currency: Currency, date: datetime.date) -> Optional[dict]:
+@lru_cache
+def coingecko_request_price_history(currency: Currency, date: datetime.date) -> dict | None:
     """Requests and returns all data for given currency and date from CoinGecko API"""
     assert currency.cg_id is not None
     api_url = "https://api.coingecko.com/api/v3/coins/{id}/history?date={date}&localization=false".format(
@@ -57,7 +56,7 @@ def coingecko_request_price_history(currency: Currency, date: datetime.date) -> 
     return retry_get_request_until_ok(api_url)
 
 
-@lru_cache()
+@lru_cache
 def coingecko_request_market_chart(currency: Currency, vs_currency: Currency, start_date: datetime.date) -> dict:
     assert currency.cg_id is not None
     assert vs_currency.cg_id is not None

@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Optional, Union
 
 import pytz
 
@@ -69,12 +68,12 @@ class WalletHelper:
 
     def _get_tx_creator(
         self,
-        from_currency: Union[Currency, str],
-        from_currency_quantity: Union[Decimal, int],
-        to_currency: Union[Currency, str],
-        to_currency_quantity: Union[Decimal, int],
-        fee_currency: Optional[Union[Currency, str]] = None,
-        fee_currency_quantity: Optional[Union[Decimal, int]] = None,
+        from_currency: Currency | str,
+        from_currency_quantity: Decimal | int,
+        to_currency: Currency | str,
+        to_currency_quantity: Decimal | int,
+        fee_currency: Currency | str | None = None,
+        fee_currency_quantity: Decimal | int | None = None,
         timestamp: datetime = None,
     ):
         tx_creator = TransactionCreator(timestamp=_set_timezone(timestamp) or self.tx_time.next())
@@ -92,12 +91,12 @@ class WalletHelper:
 
     def trade(
         self,
-        from_currency: Union[Currency, str],
-        from_currency_quantity: Union[Decimal, int],
-        to_currency: Union[Currency, str],
-        to_currency_quantity: Union[Decimal, int],
-        fee_currency: Optional[Union[Currency, str]] = None,
-        fee_currency_quantity: Optional[Union[Decimal, int]] = None,
+        from_currency: Currency | str,
+        from_currency_quantity: Decimal | int,
+        to_currency: Currency | str,
+        to_currency_quantity: Decimal | int,
+        fee_currency: Currency | str | None = None,
+        fee_currency_quantity: Decimal | int | None = None,
         timestamp=None,
     ):
         tx_creator = self._get_tx_creator(
@@ -113,12 +112,12 @@ class WalletHelper:
 
     def swap(
         self,
-        from_currency: Union[Currency, str],
-        from_currency_quantity: Union[Decimal, int],
-        to_currency: Union[Currency, str],
-        to_currency_quantity: Union[Decimal, int],
-        fee_currency: Optional[Union[Currency, str]] = None,
-        fee_currency_quantity: Optional[Union[Decimal, int]] = None,
+        from_currency: Currency | str,
+        from_currency_quantity: Decimal | int,
+        to_currency: Currency | str,
+        to_currency_quantity: Decimal | int,
+        fee_currency: Currency | str | None = None,
+        fee_currency_quantity: Decimal | int | None = None,
         timestamp=None,
     ):
         tx_creator = self._get_tx_creator(
@@ -133,7 +132,7 @@ class WalletHelper:
         return tx_creator.create_swap()
 
 
-def get_currency(currency: Union[Currency, str], is_fiat: bool = False):
+def get_currency(currency: Currency | str, is_fiat: bool = False):
     """Allow passing currency as a string, instead of a Currency object."""
     currency_factory = CryptoCurrencyFactory if not is_fiat else FiatCurrencyFactory
     if isinstance(currency, str):

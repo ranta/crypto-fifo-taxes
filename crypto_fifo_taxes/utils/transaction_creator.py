@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, Optional, Union
 
 from django.db.transaction import atomic
 
@@ -33,22 +32,22 @@ class TransactionCreator:
 
     def __init__(
         self,
-        timestamp: Optional[datetime] = None,
-        description: Optional[str] = "",
-        tx_id: Optional[str] = "",
+        timestamp: datetime | None = None,
+        description: str | None = "",
+        tx_id: str | None = "",
         type=TransactionType.UNKNOWN,
         label=TransactionLabel.UNKNOWN,
         fill_cost_basis: bool = True,
     ):
-        self.timestamp: Optional[datetime] = timestamp
+        self.timestamp: datetime | None = timestamp
         self.description: str = description
         self.tx_id: str = tx_id
         self.transaction_type: TransactionType = type
         self.transaction_label: TransactionLabel = label
 
-        self.from_detail: Optional[TransactionDetail] = None
-        self.to_detail: Optional[TransactionDetail] = None
-        self.fee_detail: Optional[TransactionDetail] = None
+        self.from_detail: TransactionDetail | None = None
+        self.to_detail: TransactionDetail | None = None
+        self.fee_detail: TransactionDetail | None = None
 
         self.fill_cost_basis: bool = fill_cost_basis
 
@@ -56,8 +55,8 @@ class TransactionCreator:
         self,
         wallet: Wallet,
         currency: Currency,
-        quantity: Union[Decimal, int],
-        cost_basis: Optional[Decimal] = None,
+        quantity: Decimal | int,
+        cost_basis: Decimal | None = None,
         prefix: str = "",
     ) -> None:
         if quantity == 0:
@@ -72,8 +71,8 @@ class TransactionCreator:
         self,
         wallet: Wallet,
         currency: Currency,
-        quantity: Union[Decimal, int],
-        cost_basis: Optional[Decimal] = None,
+        quantity: Decimal | int,
+        cost_basis: Decimal | None = None,
     ) -> None:
         self._add_detail(wallet, currency, quantity, cost_basis, prefix="from")
 
@@ -81,8 +80,8 @@ class TransactionCreator:
         self,
         wallet: Wallet,
         currency: Currency,
-        quantity: Union[Decimal, int],
-        cost_basis: Optional[Decimal] = None,
+        quantity: Decimal | int,
+        cost_basis: Decimal | None = None,
     ) -> None:
         self._add_detail(wallet, currency, quantity, cost_basis, prefix="to")
 
@@ -90,8 +89,8 @@ class TransactionCreator:
         self,
         wallet: Wallet,
         currency: Currency,
-        quantity: Union[Decimal, int],
-        cost_basis: Optional[Decimal] = None,
+        quantity: Decimal | int,
+        cost_basis: Decimal | None = None,
     ) -> None:
         """
         The fee currency should always be the currency you receive unless paid a third currency e.g. BNB.
@@ -99,7 +98,7 @@ class TransactionCreator:
         """
         self._add_detail(wallet, currency, quantity, cost_basis, prefix="fee")
 
-    def _get_details(self) -> Dict[str, TransactionDetail]:
+    def _get_details(self) -> dict[str, TransactionDetail]:
         """Get all detail values that are not None"""
         all_details = {}
         for detail_field in ["from_detail", "to_detail", "fee_detail"]:

@@ -1,6 +1,6 @@
 from datetime import date
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from django.conf import settings
 from django.db import models
@@ -63,7 +63,7 @@ class Transaction(models.Model):
         return f"{self.transaction_type.label} of {detail_str}"
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} ({self.id}): {str(self)}>"
+        return f"<{self.__class__.__name__} ({self.id}): {self}>"
 
     def delete(self, *args, **kwargs):
         self.from_detail.delete()
@@ -73,7 +73,7 @@ class Transaction(models.Model):
 
     @staticmethod
     def _get_detail_cost_basis(
-        transaction_detail: "TransactionDetail", sell_price: Optional[Decimal] = None
+        transaction_detail: "TransactionDetail", sell_price: Decimal | None = None
     ) -> tuple[Decimal, bool]:
         """
         Use FIFO to get used currency quantities and cost bases.
@@ -89,7 +89,7 @@ class Transaction(models.Model):
         If it's advantageous to use deemed acquisition cost, it is used
         https://www.vero.fi/henkiloasiakkaat/omaisuus/sijoitukset/osakkeiden_myynt/
         """
-        consumable_balances: List["TransactionDetail"] = transaction_detail.get_consumable_balances()
+        consumable_balances: list["TransactionDetail"] = transaction_detail.get_consumable_balances()
         required_quantity: Decimal = transaction_detail.quantity
         cost_bases: list[tuple] = []  # [(quantity, cost_basis)]
         only_hmo_used = True
@@ -136,7 +136,7 @@ class Transaction(models.Model):
         cost_basis = total_value / sum_quantity
         return Decimal(cost_basis), only_hmo_used
 
-    def _get_from_detail_cost_basis(self, sell_price: Optional[Decimal] = None) -> tuple[Decimal, bool]:
+    def _get_from_detail_cost_basis(self, sell_price: Decimal | None = None) -> tuple[Decimal, bool]:
         return self._get_detail_cost_basis(transaction_detail=self.from_detail, sell_price=sell_price)
 
     def _get_fee_detail_cost_basis(self) -> Decimal:
@@ -424,7 +424,7 @@ class TransactionDetail(models.Model):
             return self.fee_detail
         return None
 
-    def get_consumable_balances(self) -> List["TransactionDetail"]:
+    def get_consumable_balances(self) -> list["TransactionDetail"]:
         return self.wallet.get_consumable_currency_balances(
             self.currency, quantity=self.quantity, timestamp=self.transaction.timestamp
         )
