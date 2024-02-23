@@ -114,7 +114,9 @@ def get_binance_dividends(start_date: datetime | None = None) -> Iterator[list[d
     )
 
 
-def get_binance_flexible_interest_history(start_date: datetime | None = None) -> Iterator[list[BinanceFlexibleInterest]]:
+def get_binance_flexible_interest_history(
+    start_date: datetime | None = None,
+) -> Iterator[list[BinanceFlexibleInterest]]:
     def interests(startTime: int, endTime: int) -> list[BinanceFlexibleInterest]:
         output = []
         for type in ("BONUS", "REALTIME"):

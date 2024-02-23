@@ -10,6 +10,7 @@ from crypto_fifo_taxes.utils.currency import get_default_fiat
 
 logger = logging.getLogger(__name__)
 
+
 class Command(BaseCommand):
     def handle(self, *args, **options):
         # Create required FIAT currencies

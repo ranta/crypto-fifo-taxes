@@ -6,6 +6,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+
 @lru_cache
 def get_ethplorer_client():
     api_key = settings.ETHPLORER_API_KEY

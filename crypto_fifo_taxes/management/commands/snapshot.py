@@ -12,6 +12,7 @@ from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 
 logger = logging.getLogger(__name__)
 
+
 class Command(BaseCommand):
     user = User.objects.first()
     first_date = None
@@ -66,7 +67,9 @@ class Command(BaseCommand):
             snapshot.calculate_worth()
 
             day_delta += 1
-            logger.info(f"Calculating snapshots. {(day_delta + 1) / total_days_to_generate * 100:>5.2f}% ({current_date})")
+            logger.info(
+                f"Calculating snapshots. {(day_delta + 1) / total_days_to_generate * 100:>5.2f}% ({current_date})"
+            )
 
     def validate_starting_date(self) -> None:
         """Validate that snapshots exist for all days between the first transaction and given starting date"""

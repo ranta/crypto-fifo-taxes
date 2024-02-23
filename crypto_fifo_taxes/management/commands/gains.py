@@ -15,6 +15,7 @@ from crypto_fifo_taxes.utils.wallet import get_wallet_balance_sum
 
 logger = logging.getLogger(__name__)
 
+
 class Command(BaseCommand):
     fiat = Wallet.objects.first().fiat.symbol
 

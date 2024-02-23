@@ -15,6 +15,7 @@ from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
 logger = logging.getLogger(__name__)
 
+
 class Snapshot(models.Model):
     """Aggregate model for a snapshot of a user's balance at the end of a date"""
 

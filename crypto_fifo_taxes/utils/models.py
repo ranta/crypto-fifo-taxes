@@ -13,7 +13,7 @@ class TransactionDecimalField(models.DecimalField):
         max_digits=32,
         decimal_places=14,
         validators=None,
-        **kwargs
+        **kwargs,
     ):
         if validators is None:
             validators = [MinValueValidator(Decimal("0"))]
@@ -25,5 +25,5 @@ class TransactionDecimalField(models.DecimalField):
             validators=validators,
             max_digits=max_digits,
             decimal_places=decimal_places,
-            **kwargs
+            **kwargs,
         )

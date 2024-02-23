@@ -31,7 +31,9 @@ def print_time_elapsed_new_transactions(func):
         new_transactions = Transaction.objects.count() - transactions_count
 
         if elapsed or new_transactions:
-            logger.info(f"`{func.__name__}` complete! Time elapsed: {elapsed}. Transactions created {new_transactions}.")
+            logger.info(
+                f"`{func.__name__}` complete! Time elapsed: {elapsed}. Transactions created {new_transactions}."
+            )
         else:
             # Simpler print when function was executed quickly and no new transactions were created
             logger.info("...done")

@@ -10,6 +10,7 @@ from crypto_fifo_taxes.utils.ethplorer import get_ethplorer_client
 
 logger = logging.getLogger(__name__)
 
+
 class TransactionCreator:
     """
     Utility to simplify creating transactions.

@@ -16,6 +16,7 @@ from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 
 logger = logging.getLogger(__name__)
 
+
 class Command(BaseCommand):
     wallet = Wallet.objects.get(name="Nicehash")
     btc = get_or_create_currency(symbol="BTC")

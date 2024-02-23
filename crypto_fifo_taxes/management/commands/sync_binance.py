@@ -30,6 +30,7 @@ from crypto_fifo_taxes.utils.wrappers import print_time_elapsed_new_transactions
 
 logger = logging.getLogger(__name__)
 
+
 class Command(BaseCommand):
     client = get_binance_client()
     wallet = Wallet.objects.get(name="Binance")
@@ -41,7 +42,7 @@ class Command(BaseCommand):
         parser.add_argument("-d", "--date", type=str, help="Start from this date. Format: YYYY-MM-DD")
 
     def print_dot(self):
-        print(".", end="", flush=True)  # noqa
+        print(".", end="", flush=True)  # noqa: T201,RUF100
 
     def get_all_pairs(self) -> list:
         """
@@ -77,14 +78,14 @@ class Command(BaseCommand):
                     trading_pair = CurrencyPair.objects.get(symbol=pair)
 
                 if trading_pair is not None:
-                    print(trading_pair, end=".", flush=True)  # noqa
+                    print(trading_pair, end=".", flush=True)  # noqa: T201,RUF100
                     import_pair_trades(wallet=self.wallet, trading_pair=trading_pair, trades=trades)
                 else:
                     self.print_dot()
                 break
             except BinanceAPIException as e:
                 if "Too much request weight used" in str(e):
-                    logger.info("\nToo much Binance API weight used, on cooldown", end="")
+                    logger.info("\nToo much Binance API weight used, on cooldown")
                     time.sleep(15)  # API cool down time is not accessible. Try again soon
 
     @print_time_elapsed_new_transactions

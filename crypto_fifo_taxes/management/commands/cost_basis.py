@@ -9,6 +9,7 @@ from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 
 logger = logging.getLogger(__name__)
 
+
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--fast", type=int)

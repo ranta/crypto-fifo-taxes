@@ -1,7 +1,7 @@
+import datetime
 import logging
 import time
 from collections import namedtuple
-import datetime
 from decimal import Decimal
 from functools import lru_cache
 

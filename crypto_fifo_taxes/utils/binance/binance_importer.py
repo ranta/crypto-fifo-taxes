@@ -12,6 +12,7 @@ from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 
 logger = logging.getLogger(__name__)
 
+
 def import_deposits(wallet: Wallet, deposits: list) -> None:
     """https://binance-docs.github.io/apidocs/spot/en/#deposit-history-supporting-network-user_data"""
     importable_txs = {t["txId"] for t in deposits}
