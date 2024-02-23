@@ -1,15 +1,17 @@
+import logging
 from functools import lru_cache
 
 import requests
 from django.conf import settings
 
+logger = logging.getLogger(__name__)
 
 @lru_cache
 def get_ethplorer_client():
     api_key = settings.ETHPLORER_API_KEY
     if api_key is None:
         api_key = "freekey"
-        print("'ETHPLORER_API_KEY' environment variable is missing. Using 'freekey' instead.")
+        logger.warning("'ETHPLORER_API_KEY' environment variable is missing. Using 'freekey' instead.")
     return EtherscanClient(api_key)
 
 

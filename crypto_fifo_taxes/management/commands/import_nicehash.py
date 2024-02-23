@@ -1,4 +1,5 @@
 import csv
+import logging
 import os
 from datetime import datetime
 from decimal import Decimal
@@ -13,6 +14,7 @@ from crypto_fifo_taxes.models import Transaction, Wallet
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     wallet = Wallet.objects.get(name="Nicehash")
@@ -80,4 +82,4 @@ class Command(BaseCommand):
             reader = csv.DictReader(csv_file)
             self.import_data(list(reader))
 
-        print(f"New transactions created: {Transaction.objects.count() - transactions_count}")
+        logger.info(f"New transactions created: {Transaction.objects.count() - transactions_count}")

@@ -1,3 +1,4 @@
+import logging
 import time
 from collections import namedtuple
 from datetime import datetime
@@ -11,6 +12,8 @@ from crypto_fifo_taxes.exceptions import MissingPriceError
 from crypto_fifo_taxes.models import Currency, CurrencyPrice
 from crypto_fifo_taxes.utils.binance.binance_api import from_timestamp
 from crypto_fifo_taxes.utils.currency import get_currency, get_or_create_currency
+
+logger = logging.getLogger(__name__)
 
 MarketChartData = namedtuple("MarketChartData", "timestamp price market_cap volume")
 
@@ -26,7 +29,7 @@ def retry_get_request_until_ok(url: str) -> dict | None:
             # If requests are throttled, wait and retry later
             # For some reason the `"Retry-After"` is not always returned with a HTTP 429 response
             sleep_time = int(response.headers["Retry-After"]) if "Retry-After" in response.headers else 5
-            print(f"Too Many Requests sent to CoinGecko API. Waiting {sleep_time}s until trying again")
+            logger.warning(f"Too Many Requests sent to CoinGecko API. Waiting {sleep_time}s until trying again")
             time.sleep(sleep_time)
             continue
         # Do not loop forever if response status is unexpected

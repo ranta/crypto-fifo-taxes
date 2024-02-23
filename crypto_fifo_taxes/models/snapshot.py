@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, time
 from decimal import Decimal
 from typing import Any
@@ -12,6 +13,7 @@ from crypto_fifo_taxes.utils.currency import get_currency
 from crypto_fifo_taxes.utils.db import CoalesceZero
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
+logger = logging.getLogger(__name__)
 
 class Snapshot(models.Model):
     """
@@ -69,7 +71,7 @@ class Snapshot(models.Model):
                 currency_price = currency.get_fiat_price(date=self.date)
             # If the price is missing, we skip the currency and add its cost basis to the sums
             except MissingPriceError as e:
-                print(e)
+                logger.error(e)
 
                 sum_worth += balance["cost_basis"]
                 sum_cost_basis += balance["cost_basis"]

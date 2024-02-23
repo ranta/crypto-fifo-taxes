@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from django.core.management import BaseCommand
@@ -6,6 +7,7 @@ from django.db.models import Q, QuerySet
 from crypto_fifo_taxes.models import Transaction
 from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
@@ -17,7 +19,7 @@ class Command(BaseCommand):
     def calculate_cost_bases(transactions: QuerySet[Transaction]):
         count = transactions.count()
         for i, t in enumerate(transactions):
-            print(f"Calculating cost bases. {(i + 1) / count * 100:>5.2f}% ({t.timestamp.date()})", end="\r")
+            logger.info(f"Calculating cost bases. {(i + 1) / count * 100:>5.2f}% ({t.timestamp.date()})")
             t.fill_cost_basis()
 
     def handle(self, *args, **kwargs):
@@ -38,7 +40,7 @@ class Command(BaseCommand):
             )
 
             if first_tx_with_no_cost_basis is None:
-                print("All transactions cost basis has been calculated, nothing to do.")
+                logger.info("All transactions cost basis has been calculated, nothing to do.")
                 return
 
             transactions = Transaction.objects.order_by("timestamp", "pk").filter(

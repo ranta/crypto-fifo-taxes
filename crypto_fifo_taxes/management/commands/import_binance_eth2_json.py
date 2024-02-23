@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from decimal import Decimal
 
@@ -12,6 +13,7 @@ from crypto_fifo_taxes.utils.binance.binance_api import from_timestamp, to_times
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     wallet = Wallet.objects.get(name="Binance")
@@ -58,4 +60,4 @@ class Command(BaseCommand):
             data = json.load(json_file)
             self.handle_imported_rows(data)
 
-        print(f"New transactions created: {Transaction.objects.count() - transactions_count}")
+        logger.info(f"New transactions created: {Transaction.objects.count() - transactions_count}")

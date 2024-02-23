@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from decimal import Decimal
 
@@ -12,6 +13,7 @@ from crypto_fifo_taxes.utils.binance.binance_api import bstrptime, to_timestamp
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
@@ -41,7 +43,7 @@ class Command(BaseCommand):
         transaction = Transaction.objects.filter(tx_id=tx_id).first()
 
         if transaction is None:
-            print(
+            logger.error(
                 f"Trying to update a transaction that has a tx_id ({tx_id}) set "
                 f"but matching transaction was not found!"
             )
@@ -132,4 +134,4 @@ class Command(BaseCommand):
             data = json.load(json_file)
             self.handle_imported_rows(data)
 
-        print(f"New transactions created: {Transaction.objects.count() - transactions_count}")
+        logger.info(f"New transactions created: {Transaction.objects.count() - transactions_count}")

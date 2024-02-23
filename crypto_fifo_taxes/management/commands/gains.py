@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from decimal import Decimal
 
@@ -12,6 +13,7 @@ from crypto_fifo_taxes.models.transaction import TransactionDetail, TransactionQ
 from crypto_fifo_taxes.utils.currency import get_currency
 from crypto_fifo_taxes.utils.wallet import get_wallet_balance_sum
 
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     fiat = Wallet.objects.first().fiat.symbol
@@ -56,15 +58,15 @@ class Command(BaseCommand):
         mining = qs.filter(transaction_label=TransactionLabel.MINING)
         rewards = qs.filter(transaction_label=TransactionLabel.REWARD)
 
-        print(f"\nProfits for the year {year}: {self.get_profits(qs):.2f} {self.fiat}")
+        logger.info(f"\nProfits for the year {year}: {self.get_profits(qs):.2f} {self.fiat}")
         if trades.exists():
-            print(f"Trades: {self.get_profits(trades):.2f} {self.fiat}")
+            logger.info(f"Trades: {self.get_profits(trades):.2f} {self.fiat}")
 
         if mining.exists():
-            print(f"Mining: {self.get_profits(mining):.2f} {self.fiat}")
+            logger.info(f"Mining: {self.get_profits(mining):.2f} {self.fiat}")
 
         if rewards.exists():
-            print(f"Rewards: {self.get_profits(rewards):.2f} {self.fiat}")
+            logger.info(f"Rewards: {self.get_profits(rewards):.2f} {self.fiat}")
 
     @atomic
     def handle(self, *args, **kwargs):
@@ -99,8 +101,8 @@ class Command(BaseCommand):
             price = currency.get_fiat_price(date=datetime.now().date()).price
             total_wallet_sum += price
 
-        print("\nDeposits", deposits)
-        print("Withdrawals", withdrawals)
-        print("Current wallet balance", total_wallet_sum)
-        print("Profit €", (withdrawals + total_wallet_sum) - deposits)
-        print("Profit %", ((withdrawals + total_wallet_sum) / deposits - 1) * 100, "%")
+        logger.info("\nDeposits", deposits)
+        logger.info("Withdrawals", withdrawals)
+        logger.info("Current wallet balance", total_wallet_sum)
+        logger.info("Profit €", (withdrawals + total_wallet_sum) - deposits)
+        logger.info("Profit %", ((withdrawals + total_wallet_sum) / deposits - 1) * 100, "%")

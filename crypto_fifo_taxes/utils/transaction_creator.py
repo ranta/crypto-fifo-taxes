@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from decimal import Decimal
 
@@ -7,6 +8,7 @@ from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.models import Currency, Snapshot, Transaction, TransactionDetail, Wallet
 from crypto_fifo_taxes.utils.ethplorer import get_ethplorer_client
 
+logger = logging.getLogger(__name__)
 
 class TransactionCreator:
     """
@@ -61,7 +63,7 @@ class TransactionCreator:
     ) -> None:
         if quantity == 0:
             # TODO: Logging
-            print(f"WARN: Tried to add zero value {prefix} detail with currency{currency}.")
+            logger.warning(f"WARN: Tried to add zero value {prefix} detail with currency{currency}.")
             return
 
         detail = TransactionDetail(wallet=wallet, currency=currency, quantity=quantity, cost_basis=cost_basis)

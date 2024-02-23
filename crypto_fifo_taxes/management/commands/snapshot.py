@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, time, timedelta
 
 import pytz
@@ -9,6 +10,7 @@ from django.utils import timezone
 from crypto_fifo_taxes.models import Snapshot, SnapshotBalance, Transaction, TransactionDetail
 from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     user = User.objects.first()
@@ -43,7 +45,6 @@ class Command(BaseCommand):
     @print_time_elapsed
     def generate_snapshots(self) -> None:
         """Generate an empty snapshot for each day between `self.starting_date` and today"""
-        print()  # Newline for prettier formatting
         today = timezone.now().date()
         total_days_to_generate = (today - self.starting_date).days
         day_delta = 0
@@ -65,7 +66,7 @@ class Command(BaseCommand):
             snapshot.calculate_worth()
 
             day_delta += 1
-            print(f"Calculating snapshots. {(day_delta + 1) / total_days_to_generate * 100:>5.2f}% ({current_date})")
+            logger.info(f"Calculating snapshots. {(day_delta + 1) / total_days_to_generate * 100:>5.2f}% ({current_date})")
 
     def validate_starting_date(self) -> None:
         """Validate that snapshots exist for all days between the first transaction and given starting date"""

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from django.conf import settings
@@ -8,6 +9,7 @@ from crypto_fifo_taxes.models import Currency, Snapshot, Transaction
 from crypto_fifo_taxes.utils.coingecko import fetch_currency_market_chart
 from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     first_date = None
@@ -47,7 +49,7 @@ class Command(BaseCommand):
     def fetch_historical_market_prices(self):
         currencies = self.get_required_currencies()
         count = currencies.count()
-        print(
+        logger.info(
             f"Fetching market data since {self.date} for {count} currencies: "
             f"{', '.join(currencies.values_list('symbol', flat=True))}"
         )
@@ -55,7 +57,7 @@ class Command(BaseCommand):
             first_transaction_date = currency.transaction_details.order_by("tx_timestamp").first()
             if first_transaction_date is not None:
                 first_transaction_date = first_transaction_date.tx_timestamp.date()
-            print(
+            logger.info(
                 f"Fetching market chart prices for {currency.symbol} starting from {first_transaction_date}. "
                 f"{(i + 1) / count * 100:>5.2f}%",
             )

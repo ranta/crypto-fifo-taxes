@@ -1,3 +1,4 @@
+import logging
 import time
 from datetime import datetime
 
@@ -27,6 +28,7 @@ from crypto_fifo_taxes.utils.binance.binance_importer import (
 from crypto_fifo_taxes.utils.currency import get_or_create_currency_pair
 from crypto_fifo_taxes.utils.wrappers import print_time_elapsed_new_transactions
 
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     client = get_binance_client()
@@ -39,7 +41,7 @@ class Command(BaseCommand):
         parser.add_argument("-d", "--date", type=str, help="Start from this date. Format: YYYY-MM-DD")
 
     def print_dot(self):
-        print(".", end="", flush=True)
+        print(".", end="", flush=True)  # noqa
 
     def get_all_pairs(self) -> list:
         """
@@ -75,14 +77,14 @@ class Command(BaseCommand):
                     trading_pair = CurrencyPair.objects.get(symbol=pair)
 
                 if trading_pair is not None:
-                    print(trading_pair, end=".", flush=True)
+                    print(trading_pair, end=".", flush=True)  # noqa
                     import_pair_trades(wallet=self.wallet, trading_pair=trading_pair, trades=trades)
                 else:
                     self.print_dot()
                 break
             except BinanceAPIException as e:
                 if "Too much request weight used" in str(e):
-                    print("\nToo much Binance API weight used, on cooldown", end="")
+                    logger.info("\nToo much Binance API weight used, on cooldown", end="")
                     time.sleep(15)  # API cool down time is not accessible. Try again soon
 
     @print_time_elapsed_new_transactions
@@ -133,20 +135,19 @@ class Command(BaseCommand):
             # Sync only trading pairs which already have records
             pairs = CurrencyPair.objects.values_list("symbol", flat=True)
             if len(pairs) > 1:
-                print(f"Syncing trades using FAST mode for {len(pairs)} pairs...", end="")
+                logger.info(f"Syncing trades using FAST mode for {len(pairs)} pairs...")
             else:
-                print("No existing currency pairs found for FAST mode sync. Running in FULL sync.")
+                logger.info("No existing currency pairs found for FAST mode sync. Running in FULL sync.")
                 self.mode = 1
 
         if self.mode == 1:
             # FULL sync
             # Fetch any new trading pairs from Binance
             pairs = self.get_all_pairs()
-            print(f"Syncing trades using FULL mode for {len(pairs)} pairs. This will take over ten minutes...")
+            logger.info(f"Syncing trades using FULL mode for {len(pairs)} pairs. This will take over ten minutes...")
 
         for pair in pairs:
             self.sync_pair(pair)
-        print()
 
     @print_time_elapsed_new_transactions
     def sync_binance_full(self):
