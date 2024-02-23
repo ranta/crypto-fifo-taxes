@@ -40,8 +40,8 @@ class TransactionListView(ListView):
 
     def get_queryset(self) -> QuerySet[Transaction]:
         if Transaction.objects.filter(
-            Q(from_detail__isnull=False) & Q(from_detail__cost_basis=None)
-            | Q(to_detail__isnull=False) & Q(to_detail__cost_basis=None)
+            Q(from_detail__isnull=False, from_detail__cost_basis=None)
+            | Q(to_detail__isnull=False, to_detail__cost_basis=None)
         ).exists():
             raise Exception("Transactions with missing cost basis exist")
 

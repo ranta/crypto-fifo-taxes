@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, List, Optional
 
@@ -311,23 +312,34 @@ class TransactionDetailQuerySet(models.QuerySet):
             tx_timestamp=Coalesce(F("from_detail__timestamp"), F("to_detail__timestamp"), F("fee_detail__timestamp"))
         ).order_by("tx_timestamp")
 
-    def get_balances_for_snapshot(self) -> list[dict[str, Any]]:
+    def get_balances_for_snapshot(self, timestamp_from: date, timestamp_to: date) -> list[dict[str, Any]]:
         from crypto_fifo_taxes.models import SnapshotBalance
 
-        snapshot_balance_qs = SnapshotBalance.objects.filter(
-            currency_id=OuterRef("currency_id"), snapshot__date__lt=OuterRef("tx_timestamp_date")
+        # Last snapshot before this transaction
+        snapshot_balance_qs = SnapshotBalance.objects.only("currency_id", "tx_timestamp_date", "snapshot").filter(
+            currency_id=OuterRef("currency_id"),
+            snapshot__date__lt=OuterRef("tx_timestamp_date"),
         ).order_by("-snapshot__date")
+
         return (
-            self.annotate(
+            self.filter(
+                tx_timestamp__gte=timestamp_from,
+                tx_timestamp__lte=timestamp_to,
+            )
+            .alias(
                 tx_timestamp_date=Cast("tx_timestamp", DateField()),
                 # Currency coming in
                 deposits=SQSum(
-                    self.filter(currency_id=OuterRef("currency_id"), to_detail__isnull=False),
+                    self.only("currency_id", "to_detail", "quantity").filter(
+                        currency_id=OuterRef("currency_id"), to_detail__isnull=False
+                    ),
                     sum_field="quantity",
                 ),
                 # Currency going out
                 withdrawals=SQSum(
-                    self.filter(currency_id=OuterRef("currency_id")).filter(
+                    self.only("currency_id", "from_detail", "fee_detail", "quantity")
+                    .filter(currency_id=OuterRef("currency_id"))
+                    .filter(
                         Q(from_detail__isnull=False)
                         # Is fee and not a withdrawal to a third party (fee is included in from_detail amount)
                         | Q(fee_detail__isnull=False) & ~Q(fee_detail__transaction_type=TransactionType.WITHDRAW)
@@ -341,12 +353,16 @@ class TransactionDetailQuerySet(models.QuerySet):
                 # Avg cost basis if deposits
                 avg_cost_basis=CoalesceZero(
                     SQAvg(
-                        self.filter(currency_id=OuterRef("currency_id"), to_detail__isnull=False),
+                        self.only("currency_id", "to_detail", "cost_basis").filter(
+                            currency_id=OuterRef("currency_id"), to_detail__isnull=False
+                        ),
                         avg_field="cost_basis",
                     )
                 ),
                 last_balance=CoalesceZero(Subquery(snapshot_balance_qs.values_list("quantity")[:1])),
                 last_cost_basis=CoalesceZero(Subquery(snapshot_balance_qs.values_list("cost_basis")[:1])),
+            )
+            .annotate(
                 new_balance=ExpressionWrapper(
                     CoalesceZero(F("last_balance")) + F("delta"), output_field=DecimalField()
                 ),

@@ -10,12 +10,13 @@ from django.db.transaction import atomic
 
 from crypto_fifo_taxes.enums import TransactionLabel
 from crypto_fifo_taxes.models import Currency, Transaction, Wallet
+from crypto_fifo_taxes.utils.currency import get_or_create_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 
 
 class Command(BaseCommand):
     wallet = Wallet.objects.get(name="Nicehash")
-    btc = Currency.objects.get(symbol="BTC")
+    btc = get_or_create_currency(symbol="BTC")
 
     def add_arguments(self, parser) -> None:
         parser.add_argument("--file", type=str)
