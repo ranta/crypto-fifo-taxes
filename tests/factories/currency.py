@@ -70,10 +70,13 @@ class CurrencyPriceFactory(DjangoModelFactory):
     @staticmethod
     def handle_currency(kwargs):
         """Allow passing currency as a string, instead of a Currency object."""
-        from tests.utils import get_currency
+        from tests.utils import get_test_currency
 
         kwargs.update(
-            {"currency": get_currency(kwargs.get("currency"), False), "fiat": get_currency(kwargs.get("fiat"), True)}
+            {
+                "currency": get_test_currency(kwargs.get("currency"), False),
+                "fiat": get_test_currency(kwargs.get("fiat"), True),
+            }
         )
 
     @classmethod
@@ -84,7 +87,7 @@ class CurrencyPriceFactory(DjangoModelFactory):
 
     @classmethod
     def _build(cls, model_class, *args, **kwargs):
-        cls.handle_currency(kwargs)  # Currency will be created, even if this object is only built
+        cls.handle_currency(kwargs)  # Currency will be created, even if this object is only built and saved to db
         return model_class(**kwargs)
 
 
@@ -107,10 +110,10 @@ def create_currency_price_history(
     days: int = 31,
 ):
     """Create linearly changing price history for a currency."""
-    from tests.utils import get_currency
+    from tests.utils import get_test_currency
 
-    currency = get_currency(currency, is_fiat=False)
-    fiat = get_currency(fiat, is_fiat=True)
+    currency = get_test_currency(currency, is_fiat=False)
+    fiat = get_test_currency(fiat, is_fiat=True)
     if start_date is None:
         start_date = date(2010, 1, 1)
     assert days > 0

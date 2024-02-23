@@ -133,9 +133,11 @@ class WalletHelper:
         return tx_creator.create_swap()
 
 
-def get_currency(currency: Currency | str, is_fiat: bool = False):
+def get_test_currency(currency: Currency | str, is_fiat: bool = False):
     """Allow passing currency as a string, instead of a Currency object."""
     currency_factory = CryptoCurrencyFactory if not is_fiat else FiatCurrencyFactory
+
     if isinstance(currency, str):
         currency = currency_factory.create(symbol=currency)
+
     return currency
