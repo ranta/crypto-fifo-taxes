@@ -19,13 +19,13 @@ def get_default_fiat() -> Currency:
 
 @lru_cache()
 def get_currency(currency: Union[Currency, str, int]) -> Currency:
-    if type(currency) == Currency:
+    if type(currency) is Currency:
         return currency
 
-    if type(currency) == int:
+    if type(currency) is int:
         return Currency.objects.get(id=currency)
 
-    if type(currency) == str:
+    if type(currency) is str:
         currency = currency.upper()
 
         try:
@@ -94,7 +94,7 @@ def get_or_create_currency_pair(symbol: str, buy: Union[Currency, str], sell: Un
     return CurrencyPair.objects.get_or_create(
         symbol=symbol,
         defaults=dict(
-            buy=get_or_create_currency(buy) if type(buy) == str else buy,
-            sell=get_or_create_currency(sell) if type(sell) == str else sell,
+            buy=get_or_create_currency(buy),
+            sell=get_or_create_currency(sell),
         ),
     )[0]

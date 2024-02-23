@@ -9,7 +9,7 @@ from django.core.management import BaseCommand
 from django.db.transaction import atomic
 
 from crypto_fifo_taxes.enums import TransactionLabel
-from crypto_fifo_taxes.models import Currency, Transaction, Wallet
+from crypto_fifo_taxes.models import Transaction, Wallet
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 

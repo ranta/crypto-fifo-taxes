@@ -316,10 +316,14 @@ class TransactionDetailQuerySet(models.QuerySet):
         from crypto_fifo_taxes.models import SnapshotBalance
 
         # Last snapshot before this transaction
-        snapshot_balance_qs = SnapshotBalance.objects.only("currency_id", "tx_timestamp_date", "snapshot").filter(
-            currency_id=OuterRef("currency_id"),
-            snapshot__date__lt=OuterRef("tx_timestamp_date"),
-        ).order_by("-snapshot__date")
+        snapshot_balance_qs = (
+            SnapshotBalance.objects.only("currency_id", "tx_timestamp_date", "snapshot")
+            .filter(
+                currency_id=OuterRef("currency_id"),
+                snapshot__date__lt=OuterRef("tx_timestamp_date"),
+            )
+            .order_by("-snapshot__date")
+        )
 
         return (
             self.filter(

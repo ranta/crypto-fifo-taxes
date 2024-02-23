@@ -8,11 +8,11 @@ from django.db.transaction import atomic
 
 from crypto_fifo_taxes.models import CurrencyPair, Wallet
 from crypto_fifo_taxes.utils.binance.binance_api import (
+    get_binance_beth_interest_history,
     get_binance_client,
     get_binance_deposits,
     get_binance_dividends,
     get_binance_dust_log,
-    get_binance_beth_interest_history,
     get_binance_flexible_interest_history,
     get_binance_locked_interest_history,
     get_binance_withdraws,
@@ -60,7 +60,7 @@ class Command(BaseCommand):
         while True:
             try:
                 # Full sync
-                if type(pair) == dict:
+                if type(pair) is dict:
                     trades = self.client.get_my_trades(symbol=pair["symbol"])
                     trading_pair = None
                     if trades != []:
