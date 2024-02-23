@@ -9,7 +9,7 @@ from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, FiatCurrenc
 from crypto_fifo_taxes_tests.utils import WalletHelper
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_transfer():
     fiat = FiatCurrencyFactory.create(symbol="EUR")
     btc = CryptoCurrencyFactory.create(symbol="BTC")
@@ -36,7 +36,7 @@ def test_transfer():
     assert wallet_to.get_consumable_currency_balances(btc, now)[-1].quantity_left == Decimal(9)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_swap():
     fiat = FiatCurrencyFactory.create(symbol="EUR")
     ven = CryptoCurrencyFactory.create(symbol="VEN")

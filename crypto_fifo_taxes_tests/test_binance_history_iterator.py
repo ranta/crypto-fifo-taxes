@@ -9,7 +9,7 @@ from crypto_fifo_taxes.utils.binance.binance_api import binance_history_iterator
 HistoryOutput = namedtuple("HistoryOutput", "start_time num_results")
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_binance_history_iterator():
     expected_output = [
         # Ok results
@@ -38,7 +38,6 @@ def test_binance_history_iterator():
         Simulate a function that fetches data from a Binance API endpoint
         If over 10 results are returned, assume there is missing data and raise an error
         """
-
         nonlocal i  # Use outer scope variable
         response = expected_output[i]
         converted_start_time = from_timestamp(startTime).replace(tzinfo=None)

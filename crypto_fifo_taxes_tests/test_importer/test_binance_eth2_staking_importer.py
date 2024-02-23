@@ -9,7 +9,7 @@ from crypto_fifo_taxes.models import Transaction
 from crypto_fifo_taxes_tests.factories import WalletFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_binance_eth2_staking_importer_management_command():
     wallet_binance = WalletFactory.create(name="Binance")
 

@@ -13,7 +13,7 @@ from crypto_fifo_taxes_tests.factories import (
 from crypto_fifo_taxes_tests.utils import WalletHelper
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_fees_paid_with_new_currency():
     fiat = FiatCurrencyFactory.create(symbol="EUR")
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
@@ -42,7 +42,7 @@ def test_fees_paid_with_new_currency():
     assert wallet.get_current_balance("EUR") == Decimal(998)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_fees_paid_with_original_currency():
     fiat = FiatCurrencyFactory.create(symbol="EUR")
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
@@ -63,7 +63,7 @@ def test_fees_paid_with_original_currency():
     assert wallet.get_current_balance("EUR") == 0
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_fees_with_dedicated_fee_currency():
     fiat = FiatCurrencyFactory.create(symbol="EUR")
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
@@ -90,7 +90,7 @@ def test_fees_with_dedicated_fee_currency():
     assert wallet.get_current_balance("BNB") == Decimal("0.8")
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_fee_withdrawal():
     fiat = FiatCurrencyFactory.create(symbol="EUR")
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
@@ -114,7 +114,7 @@ def test_fee_withdrawal():
     assert wallet.get_current_balance("BTC") == Decimal(0)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_fee_transfer():
     fiat = FiatCurrencyFactory.create(symbol="EUR")
     crypto = CryptoCurrencyFactory.create(symbol="BTC")

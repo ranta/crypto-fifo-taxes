@@ -11,7 +11,7 @@ from crypto_fifo_taxes_tests.factories import (
 from crypto_fifo_taxes_tests.utils import WalletHelper
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_gain_fiat_crypto_crypto_fiat_trades():
     """Test calculating profit for FIAT -> CRYPTO -> CRYPTO -> FIAT trades"""
     fiat = FiatCurrencyFactory.create(symbol="EUR")

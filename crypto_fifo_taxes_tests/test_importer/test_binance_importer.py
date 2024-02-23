@@ -16,7 +16,7 @@ from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, CurrencyPri
 from crypto_fifo_taxes_tests.utils import WalletHelper
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_binance_deposit_import():
     wallet = WalletFactory.create()
     deposits = [
@@ -54,7 +54,7 @@ def test_binance_deposit_import():
     assert deposits[0]["txId"] in Transaction.objects.values_list("tx_id", flat=True)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_binance_withdrawal_import():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
@@ -98,7 +98,7 @@ def test_binance_withdrawal_import():
     assert withdrawals[0]["txId"] in Transaction.objects.values_list("tx_id", flat=True)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_binance_trade_import():
     wallet = WalletFactory.create()
     nano_eth_trades = [
@@ -147,7 +147,7 @@ def test_binance_trade_import():
     assert wallet.get_current_balance("NANO") == Decimal("3.00000000") - Decimal("7.99000000") - Decimal("0.00300000")
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_binance_dust_import():
     wallet = WalletFactory.create()
     converts = [
@@ -212,7 +212,7 @@ def test_binance_dust_import():
     assert wallet.get_current_balance("BNB") == sum_bnb
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_binance_dividend_import():
     wallet = WalletFactory.create()
     dividends = [

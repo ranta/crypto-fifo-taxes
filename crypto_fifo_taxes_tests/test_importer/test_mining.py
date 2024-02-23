@@ -6,7 +6,7 @@ from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, WalletFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_mark_income_as_mining():
     wallet = WalletFactory.create()
     btc = CryptoCurrencyFactory.create(symbol="BTC")

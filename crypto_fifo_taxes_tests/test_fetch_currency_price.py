@@ -8,7 +8,7 @@ from crypto_fifo_taxes.utils.coingecko import coingecko_request_price_history, f
 from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_gc_request_history():
     crypto = CryptoCurrencyFactory.create(name="Bitcoin", symbol="BTC")
     response_json = coingecko_request_price_history(currency=crypto, date=datetime.date(2020, 1, 1))
@@ -20,7 +20,7 @@ def test_gc_request_history():
     assert "image" in response_json
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_fetch_currency_price():
     FiatCurrencyFactory.create(name="Euro", symbol="EUR")
     FiatCurrencyFactory.create(name="US Dollar", symbol="USD")

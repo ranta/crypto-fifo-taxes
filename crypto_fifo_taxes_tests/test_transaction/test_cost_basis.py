@@ -11,7 +11,7 @@ from crypto_fifo_taxes_tests.factories import (
 from crypto_fifo_taxes_tests.utils import WalletHelper
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_cost_basis_fiat_crypto_fiat_trades_simple():
     """Test calculating cost basis for FIAT -> CRYPTO -> FIAT trades that don't require using FIFO"""
     fiat = FiatCurrencyFactory.create(symbol="EUR")
@@ -39,7 +39,7 @@ def test_cost_basis_fiat_crypto_fiat_trades_simple():
     assert tx.to_detail.cost_basis == Decimal(1)  # 1 EUR == 1 EUR
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_cost_basis_fiat_crypto_fiat_trades_fifo():
     """Test calculating cost basis for FIAT -> CRYPTO -> FIAT trades using FIFO"""
     fiat = FiatCurrencyFactory.create(symbol="EUR")
@@ -70,7 +70,7 @@ def test_cost_basis_fiat_crypto_fiat_trades_fifo():
     assert tx.from_detail.cost_basis == Decimal(120)  # 1 BTC == 120 EUR
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_cost_basis_fiat_crypto_crypto_fiat_trades_fifo():
     """Test calculating cost basis for FIAT -> CRYPTO -> CRYPTO-> FIAT trades using FIFO"""
     fiat = FiatCurrencyFactory.create(symbol="EUR")
@@ -105,7 +105,7 @@ def test_cost_basis_fiat_crypto_crypto_fiat_trades_fifo():
     assert tx.from_detail.cost_basis == Decimal(25)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_cost_basis_deemed_acquisition_cost():
     """Test that deemed acquisition cost (Hankintameno-olettama) is used whenever applicable"""
     fiat = FiatCurrencyFactory.create(symbol="EUR")

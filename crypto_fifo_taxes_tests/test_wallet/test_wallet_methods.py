@@ -14,7 +14,7 @@ from crypto_fifo_taxes_tests.factories import (
 from crypto_fifo_taxes_tests.utils import WalletHelper
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_wallet_get_used_currency_ids():
     wallet = WalletFactory.create()
 
@@ -29,7 +29,7 @@ def test_wallet_get_used_currency_ids():
     assert Currency.objects.get(symbol="BTC").pk in currencies
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_wallet_get_current_balance_deposit_and_withdrawal_single_currency():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
@@ -43,7 +43,7 @@ def test_wallet_get_current_balance_deposit_and_withdrawal_single_currency():
     assert wallet.get_current_balance("BTC") == Decimal("12.5")
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_wallet_get_current_balance_deposit_and_withdrawal_multiple_currencies():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
@@ -77,7 +77,7 @@ def test_wallet_get_current_balance_deposit_and_withdrawal_multiple_currencies()
     assert "DOGE" not in balances
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_get_consumable_currency_balances():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)

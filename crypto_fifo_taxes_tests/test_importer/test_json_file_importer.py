@@ -8,7 +8,7 @@ from django.core.management import call_command
 from crypto_fifo_taxes_tests.factories import TransactionFactory, WalletFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_json_import_management_command():
     wallet_binance = WalletFactory.create(name="Binance")
     wallet_coinbase = WalletFactory.create(name="Coinbase")

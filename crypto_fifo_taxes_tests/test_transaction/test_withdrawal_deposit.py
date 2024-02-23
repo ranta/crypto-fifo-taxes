@@ -9,7 +9,7 @@ from crypto_fifo_taxes_tests.factories import (
 from crypto_fifo_taxes_tests.utils import WalletHelper
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_deposit_and_withdrawal():
     fiat = FiatCurrencyFactory.create(symbol="EUR")
     crypto = CryptoCurrencyFactory.create(symbol="BTC")

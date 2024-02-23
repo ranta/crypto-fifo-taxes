@@ -9,7 +9,7 @@ from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory, WalletFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_transaction_creator():
     wallet = WalletFactory.create()
     fiat = FiatCurrencyFactory.create(symbol="EUR")
