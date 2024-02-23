@@ -50,8 +50,8 @@ class CurrencyPairFactory(DjangoModelFactory):
         model = CurrencyPair
         django_get_or_create = ("buy", "sell")
 
-    buy = factory.SubFactory("crypto_fifo_taxes_tests.factories.CryptoCurrencyFactory")
-    sell = factory.SubFactory("crypto_fifo_taxes_tests.factories.CryptoCurrencyFactory")
+    buy = factory.SubFactory("tests.factories.CryptoCurrencyFactory")
+    sell = factory.SubFactory("tests.factories.CryptoCurrencyFactory")
     symbol = factory.LazyAttribute(lambda self: f"{self.buy.symbol}{self.sell.symbol}")
 
 
@@ -60,8 +60,8 @@ class CurrencyPriceFactory(DjangoModelFactory):
         model = CurrencyPrice
         django_get_or_create = ("currency", "fiat", "date")
 
-    currency = factory.SubFactory("crypto_fifo_taxes_tests.factories.CryptoCurrencyFactory")
-    fiat = factory.SubFactory("crypto_fifo_taxes_tests.factories.FiatCurrencyFactory")
+    currency = factory.SubFactory("tests.factories.CryptoCurrencyFactory")
+    fiat = factory.SubFactory("tests.factories.FiatCurrencyFactory")
     date = factory.fuzzy.FuzzyDate(date(2010, 1, 1), date(2020, 12, 31))
     price = factory.fuzzy.FuzzyDecimal(1, 1000, precision=8)
     market_cap = 0
@@ -70,7 +70,7 @@ class CurrencyPriceFactory(DjangoModelFactory):
     @staticmethod
     def handle_currency(kwargs):
         """Allow passing currency as a string, instead of a Currency object."""
-        from crypto_fifo_taxes_tests.utils import get_currency
+        from tests.utils import get_currency
 
         kwargs.update(
             {"currency": get_currency(kwargs.get("currency"), False), "fiat": get_currency(kwargs.get("fiat"), True)}
@@ -107,7 +107,7 @@ def create_currency_price_history(
     days: int = 31,
 ):
     """Create linearly changing price history for a currency."""
-    from crypto_fifo_taxes_tests.utils import get_currency
+    from tests.utils import get_currency
 
     currency = get_currency(currency, is_fiat=False)
     fiat = get_currency(fiat, is_fiat=True)

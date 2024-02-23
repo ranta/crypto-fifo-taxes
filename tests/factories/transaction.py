@@ -20,7 +20,7 @@ class TransactionFactory(DjangoModelFactory):
     transaction_type = TransactionType.DEPOSIT
     transaction_label = TransactionLabel.UNKNOWN
     from_detail = None
-    to_detail = factory.SubFactory("crypto_fifo_taxes_tests.factories.TransactionDetailFactory")
+    to_detail = factory.SubFactory("tests.factories.TransactionDetailFactory")
     fee_detail = None
     gain = None
     fee_amount = None
@@ -31,8 +31,8 @@ class TransactionDetailFactory(DjangoModelFactory):
     class Meta:
         model = TransactionDetail
 
-    wallet = factory.SubFactory("crypto_fifo_taxes_tests.factories.WalletFactory")
-    currency = factory.SubFactory("crypto_fifo_taxes_tests.factories.CryptoCurrencyFactory")
+    wallet = factory.SubFactory("tests.factories.WalletFactory")
+    currency = factory.SubFactory("tests.factories.CryptoCurrencyFactory")
     quantity = factory.fuzzy.FuzzyDecimal(1, 1000, precision=8)
     cost_basis = None
 
@@ -42,7 +42,7 @@ class TransactionDetailFactory(DjangoModelFactory):
         Allow passing currency as a string, instead of a Currency object.
         If currency is passed as a string, replace it in kwargs with a `Currency` object
         """
-        from crypto_fifo_taxes_tests.utils import get_currency
+        from tests.utils import get_currency
 
         currency = get_currency(kwargs.get("currency"), kwargs.pop("is_fiat", False))
         kwargs.update({"currency": currency})

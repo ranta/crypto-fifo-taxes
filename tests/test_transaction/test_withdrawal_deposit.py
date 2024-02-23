@@ -1,12 +1,12 @@
 import pytest
 
-from crypto_fifo_taxes_tests.factories import (
+from tests.factories import (
     CryptoCurrencyFactory,
     CurrencyPriceFactory,
     FiatCurrencyFactory,
     WalletFactory,
 )
-from crypto_fifo_taxes_tests.utils import WalletHelper
+from tests.utils import WalletHelper
 
 
 @pytest.mark.django_db()

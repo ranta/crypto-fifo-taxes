@@ -6,7 +6,7 @@ from django.utils import timezone
 from crypto_fifo_taxes.enums import TransactionType
 from crypto_fifo_taxes.models import Transaction, TransactionDetail
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
-from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory, WalletFactory
+from tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory, WalletFactory
 
 
 @pytest.mark.django_db()

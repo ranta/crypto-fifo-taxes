@@ -12,8 +12,8 @@ from crypto_fifo_taxes.utils.binance.binance_importer import (
     import_withdrawals,
 )
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
-from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, CurrencyPriceFactory, WalletFactory
-from crypto_fifo_taxes_tests.utils import WalletHelper
+from tests.factories import CryptoCurrencyFactory, CurrencyPriceFactory, WalletFactory
+from tests.utils import WalletHelper
 
 
 @pytest.mark.django_db()

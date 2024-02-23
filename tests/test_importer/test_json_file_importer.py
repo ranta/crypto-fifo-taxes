@@ -5,7 +5,7 @@ import pytest
 from django.conf import settings
 from django.core.management import call_command
 
-from crypto_fifo_taxes_tests.factories import TransactionFactory, WalletFactory
+from tests.factories import TransactionFactory, WalletFactory
 
 
 @pytest.mark.django_db()

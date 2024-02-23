@@ -5,7 +5,7 @@ import pytz
 
 from crypto_fifo_taxes.models import Currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
-from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory, TransactionDetailFactory
+from tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory, TransactionDetailFactory
 
 
 def _set_timezone(timestamp):

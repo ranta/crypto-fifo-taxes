@@ -1,7 +1,7 @@
 import pytest
 
 from crypto_fifo_taxes.models import Currency
-from crypto_fifo_taxes_tests import factories
+from tests import factories
 
 
 @pytest.mark.django_db()

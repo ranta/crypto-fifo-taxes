@@ -5,8 +5,8 @@ from django.utils import timezone
 
 from crypto_fifo_taxes.enums import TransactionType
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
-from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory, WalletFactory
-from crypto_fifo_taxes_tests.utils import WalletHelper
+from tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory, WalletFactory
+from tests.utils import WalletHelper
 
 
 @pytest.mark.django_db()

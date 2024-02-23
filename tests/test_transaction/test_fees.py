@@ -5,13 +5,13 @@ from django.db.transaction import atomic
 
 from crypto_fifo_taxes.exceptions import InsufficientFundsError
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
-from crypto_fifo_taxes_tests.factories import (
+from tests.factories import (
     CryptoCurrencyFactory,
     CurrencyPriceFactory,
     FiatCurrencyFactory,
     WalletFactory,
 )
-from crypto_fifo_taxes_tests.utils import WalletHelper
+from tests.utils import WalletHelper
 
 
 @pytest.mark.django_db()

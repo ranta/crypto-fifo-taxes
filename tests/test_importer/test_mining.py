@@ -3,7 +3,7 @@ from django.utils import timezone
 
 from crypto_fifo_taxes.enums import TransactionLabel
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
-from crypto_fifo_taxes_tests.factories import CryptoCurrencyFactory, WalletFactory
+from tests.factories import CryptoCurrencyFactory, WalletFactory
 
 
 @pytest.mark.django_db()
