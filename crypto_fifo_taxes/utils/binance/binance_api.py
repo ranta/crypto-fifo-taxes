@@ -33,8 +33,8 @@ def bstrptime(stamp: str) -> datetime:
 def binance_history_iterator(
     fetch_function: Callable,
     period_length: int = 60,
-    start_date: datetime = None,
-    end_date: datetime = None,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
     _depth: int = 1,
 ) -> Iterator:
     """
@@ -54,7 +54,7 @@ def binance_history_iterator(
         except TooManyResultsError:
             # Too many results returned in fetch_function so not all data may be included.
             # Try again with a smaller period
-            for result in binance_history_iterator(
+            yield from binance_history_iterator(
                 fetch_function=fetch_function,
                 period_length=int(period_length / 2),
                 start_date=start_date,
@@ -62,9 +62,7 @@ def binance_history_iterator(
                     hour=23, minute=59, second=59
                 ),
                 _depth=_depth + 1,
-            ):
-                # Yield results separately instead of together in a single iterable to keep output as the same
-                yield result
+            )
 
             # Break in order to not query the endpoint with dates that are already queried previously
             if _depth > 1:
@@ -79,12 +77,12 @@ def get_binance_client() -> BinanceClient:
     return client
 
 
-def get_binance_deposits(start_date: datetime = None) -> Iterator[list[dict]]:
+def get_binance_deposits(start_date: datetime | None = None) -> Iterator[list[dict]]:
     client = get_binance_client()
     return binance_history_iterator(client.get_deposit_history, start_date=start_date)
 
 
-def get_binance_withdraws(start_date: datetime = None) -> Iterator[list[dict]]:
+def get_binance_withdraws(start_date: datetime | None = None) -> Iterator[list[dict]]:
     client = get_binance_client()
     return binance_history_iterator(client.get_withdraw_history, start_date=start_date)
 
@@ -101,7 +99,7 @@ def get_binance_dust_log() -> list:
     return client.get_dust_log()["userAssetDribblets"]
 
 
-def get_binance_dividends(start_date: datetime = None) -> Iterator[list[dict]]:
+def get_binance_dividends(start_date: datetime | None = None) -> Iterator[list[dict]]:
     def dividends(startTime: int, endTime: int):
         response = client.get_asset_dividend_history(startTime=startTime, endTime=endTime, limit=500)
         if response["total"] >= 500:
@@ -116,7 +114,7 @@ def get_binance_dividends(start_date: datetime = None) -> Iterator[list[dict]]:
     )
 
 
-def get_binance_flexible_interest_history(start_date: datetime = None) -> Iterator[list[BinanceFlexibleInterest]]:
+def get_binance_flexible_interest_history(start_date: datetime | None = None) -> Iterator[list[BinanceFlexibleInterest]]:
     def interests(startTime: int, endTime: int) -> list[BinanceFlexibleInterest]:
         output = []
         for type in ("BONUS", "REALTIME"):
@@ -140,7 +138,7 @@ def get_binance_flexible_interest_history(start_date: datetime = None) -> Iterat
     return out
 
 
-def get_binance_locked_interest_history(start_date: datetime = None) -> Iterator[list[BinanceLockedInterest]]:
+def get_binance_locked_interest_history(start_date: datetime | None = None) -> Iterator[list[BinanceLockedInterest]]:
     def interests(startTime: int, endTime: int) -> list[BinanceLockedInterest]:
         output = []
         response: BinanceLockedInterestHistoryResponse = client.get_locked_interest_history(
@@ -162,7 +160,7 @@ def get_binance_locked_interest_history(start_date: datetime = None) -> Iterator
     return out
 
 
-def get_binance_beth_interest_history(start_date: datetime = None) -> Iterator[list[BinanceLockedInterest]]:
+def get_binance_beth_interest_history(start_date: datetime | None = None) -> Iterator[list[BinanceLockedInterest]]:
     def interests(startTime: int, endTime: int) -> list[BinanceLockedInterest]:
         output = []
         response: BinanceLockedInterestHistoryResponse = client.get_beth_interest_history(

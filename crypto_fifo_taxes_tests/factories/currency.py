@@ -35,7 +35,7 @@ class CryptoCurrencyFactory(DjangoModelFactory):
         return "".join(random.choices(string.ascii_uppercase, k=3)) + f".{n}"
 
     name = factory.LazyAttribute(lambda self: f"CRYPTO-{self.symbol}")
-    cg_id = factory.LazyAttribute(lambda self: CG_IDS[self.symbol.lower()] if self.symbol.lower() in CG_IDS else None)
+    cg_id = factory.LazyAttribute(lambda self: CG_IDS.get(self.symbol.lower(), f"CG-ID-{self.symbol}"))
     icon = None
     is_fiat = False
 

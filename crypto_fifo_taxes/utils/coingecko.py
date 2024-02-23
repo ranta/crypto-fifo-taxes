@@ -1,12 +1,13 @@
 import logging
 import time
 from collections import namedtuple
-from datetime import datetime
+import datetime
 from decimal import Decimal
 from functools import lru_cache
 
 import requests
 from django.conf import settings
+from django.utils import timezone
 
 from crypto_fifo_taxes.exceptions import MissingPriceError
 from crypto_fifo_taxes.models import Currency, CurrencyPrice
@@ -85,10 +86,10 @@ def fetch_currency_price(currency: Currency, date: datetime.date):
 
     # Coin was returned, but has no market data for the date. Maybe the coin is "too new"? (VTHO)
     if "market_data" not in response_json:
-        for fiat_symbol in settings.ALL_FIAT_CURRENCIES.keys():
+        for fiat_symbol in settings.ALL_FIAT_CURRENCIES:
             fiat_currency = get_currency(fiat_symbol)
             CurrencyPrice.objects.update_or_create(
-                currency=currency, fiat=fiat_currency, date=date, defaults=dict(price=0, market_cap=0, volume=0)
+                currency=currency, fiat=fiat_currency, date=date, defaults={"price": 0, "market_cap": 0, "volume": 0}
             )
         return
 
@@ -96,24 +97,22 @@ def fetch_currency_price(currency: Currency, date: datetime.date):
     # if currency.icon is None:
     #     currency.icon = response_json["image"]["small"]
 
-    for fiat_symbol in settings.ALL_FIAT_CURRENCIES.keys():
+    for fiat_symbol in settings.ALL_FIAT_CURRENCIES:
         fiat_currency = get_or_create_currency(fiat_symbol)
         CurrencyPrice.objects.update_or_create(
             currency=currency,
             fiat=fiat_currency,
             date=date,
-            defaults=dict(
-                price=Decimal(str(response_json["market_data"]["current_price"][fiat_symbol.lower()])),
-                market_cap=Decimal(str(response_json["market_data"]["market_cap"][fiat_symbol.lower()])),
-                volume=Decimal(str(response_json["market_data"]["total_volume"][fiat_symbol.lower()])),
-            ),
+            defaults={
+                "price": Decimal(str(response_json["market_data"]["current_price"][fiat_symbol.lower()])),
+                "market_cap": Decimal(str(response_json["market_data"]["market_cap"][fiat_symbol.lower()])),
+                "volume": Decimal(str(response_json["market_data"]["total_volume"][fiat_symbol.lower()])),
+            },
         )
 
 
-def fetch_currency_market_chart(currency: Currency, start_date: datetime.date = None):
-    """
-    Update historical prices for given currency and date using the CoinGecko API
-    """
+def fetch_currency_market_chart(currency: Currency, start_date: datetime.date | None = None):
+    """Update historical prices for given currency and date using the CoinGecko API"""
     if currency.is_fiat:
         return
 
@@ -128,13 +127,13 @@ def fetch_currency_market_chart(currency: Currency, start_date: datetime.date = 
     if currency.symbol in settings.COINGECKO_ASSUME_ZERO_PRICE_TOKENS:
         return
 
-    for fiat_symbol in settings.ALL_FIAT_CURRENCIES.keys():
+    for fiat_symbol in settings.ALL_FIAT_CURRENCIES:
         fiat = get_currency(fiat_symbol)
         currency_price_qs = CurrencyPrice.objects.filter(fiat=fiat, currency=currency, date__gte=start_date)
 
         # Check if required prices already exist in db
         existing_prices_count = currency_price_qs.count()
-        delta_days = (datetime.now().date() - start_date).days + 1
+        delta_days = (timezone.now().date() - start_date).days + 1
         if existing_prices_count == delta_days:
             continue
 
@@ -171,9 +170,9 @@ def fetch_currency_market_chart(currency: Currency, start_date: datetime.date = 
                 currency=currency,
                 fiat=fiat,
                 date=from_timestamp(market_data.timestamp),
-                defaults=dict(
-                    price=Decimal(str(market_data.price)),
-                    market_cap=Decimal(str(market_data.market_cap)),
-                    volume=Decimal(str(market_data.volume)),
-                ),
+                defaults={
+                    "price": Decimal(str(market_data.price)),
+                    "market_cap": Decimal(str(market_data.market_cap)),
+                    "volume": Decimal(str(market_data.volume)),
+                },
             )

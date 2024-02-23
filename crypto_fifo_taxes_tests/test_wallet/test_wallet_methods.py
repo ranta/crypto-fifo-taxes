@@ -20,7 +20,7 @@ def test_wallet_get_used_currency_ids():
 
     # Create deposits
     TransactionFactory.create(to_detail=TransactionDetailFactory.create(wallet=wallet, currency="BTC"))
-    for i in range(9):
+    for _i in range(9):
         TransactionFactory.create(to_detail=TransactionDetailFactory.create(wallet=wallet))
 
     currencies = wallet.get_used_currency_ids()
@@ -64,9 +64,8 @@ def test_wallet_get_current_balance_deposit_and_withdrawal_multiple_currencies()
     wallet_helper.deposit(currency="NANO", quantity=1000)
 
     # Withdraw more than wallet has balance
-    with pytest.raises(ValueError):
-        with atomic():
-            wallet_helper.withdraw(currency="DOGE", quantity=Decimal("42069.1337"))
+    with pytest.raises(ValueError), atomic():
+        wallet_helper.withdraw(currency="DOGE", quantity=Decimal("42069.1337"))
 
     balances = wallet.get_current_balance(exclude_zero_balances=False)
     assert len(balances) == 3

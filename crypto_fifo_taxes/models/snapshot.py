@@ -16,9 +16,7 @@ from crypto_fifo_taxes.utils.models import TransactionDecimalField
 logger = logging.getLogger(__name__)
 
 class Snapshot(models.Model):
-    """
-    Aggregate model for a snapshot of a user's balance at the end of a date
-    """
+    """Aggregate model for a snapshot of a user's balance at the end of a date"""
 
     user = models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="snapshots")
     date = models.DateField()
@@ -71,7 +69,7 @@ class Snapshot(models.Model):
                 currency_price = currency.get_fiat_price(date=self.date)
             # If the price is missing, we skip the currency and add its cost basis to the sums
             except MissingPriceError as e:
-                logger.error(e)
+                logger.exception(e)
 
                 sum_worth += balance["cost_basis"]
                 sum_cost_basis += balance["cost_basis"]

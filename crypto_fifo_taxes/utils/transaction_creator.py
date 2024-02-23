@@ -143,19 +143,20 @@ class TransactionCreator:
 
         # Validate correct details are entered for transaction type
         if self.transaction_type == TransactionType.DEPOSIT:
-            assert self.from_detail is None and self.to_detail is not None
+            assert self.from_detail is None
+            assert self.to_detail is not None
         elif self.transaction_type == TransactionType.WITHDRAW:
-            assert self.from_detail is not None and self.to_detail is None
+            assert self.from_detail is not None
+            assert self.to_detail is None
             if self.fee_detail:
                 # Having a larger fee than amount sent makes no sense
                 assert self.from_detail.quantity > self.fee_detail.quantity
         else:
-            assert self.from_detail is not None and self.to_detail is not None
+            assert self.from_detail is not None
+            assert self.to_detail is not None
 
     def _set_mining_label(self) -> None:
-        """
-        Set mining label for ETH deposits that originate from mining pools.
-        """
+        """Set mining label for ETH deposits that originate from mining pools."""
         if self.tx_id and self.transaction_type == TransactionType.DEPOSIT and self.to_detail.currency.symbol == "ETH":
             client = get_ethplorer_client()
             is_mining = client.is_tx_from_mining_pool(self.tx_id)
@@ -170,7 +171,7 @@ class TransactionCreator:
         self._set_mining_label()
 
         details = self._get_details()
-        for key, detail in details.items():
+        for _key, detail in details.items():
             detail.save()
 
         transaction = Transaction(

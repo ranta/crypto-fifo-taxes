@@ -80,7 +80,7 @@ class Command(BaseCommand):
             transaction.save()
 
     def handle_imported_rows(self, data: list) -> None:
-        tx_ids = set(self.build_transaction_id(row) for row in data)
+        tx_ids = {self.build_transaction_id(row) for row in data}
         existing_transactions = Transaction.objects.filter(tx_id__in=tx_ids).values_list("tx_id", flat=True)
 
         for row in data:

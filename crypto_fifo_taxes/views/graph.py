@@ -28,9 +28,7 @@ class GraphView(TemplateView):
 
     @lru_cache
     def get_starting_date(self) -> date:
-        """
-        Usage: `?start=2020-1-1`
-        """
+        """Usage: `?start=2020-1-1`"""
         first_snapshot_date = Snapshot.objects.order_by("date").first().date
 
         query_params: QueryDict = self.request.GET

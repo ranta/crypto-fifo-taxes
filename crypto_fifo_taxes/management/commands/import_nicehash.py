@@ -58,7 +58,8 @@ class Command(BaseCommand):
             assert len(nicehash_transactions) == 2  # Reward and Fee
             reward = next(filter(lambda r: r["Purpose"] == "Hashpower mining", nicehash_transactions))
             fee = next(filter(lambda r: r["Purpose"] == "Hashpower mining fee", nicehash_transactions))
-            assert reward and fee
+            assert reward
+            assert fee
 
             tx_creator = TransactionCreator(
                 timestamp=self.nstrptime(date),

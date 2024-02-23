@@ -68,7 +68,8 @@ class Currency(models.Model):
             from crypto_fifo_taxes.utils.currency import get_default_fiat
 
             fiat = get_default_fiat()
-        assert isinstance(fiat, Currency) and fiat.is_fiat is True
+        assert isinstance(fiat, Currency)
+        assert fiat.is_fiat is True
 
         if isinstance(date, datetime.datetime):
             date = date.date()

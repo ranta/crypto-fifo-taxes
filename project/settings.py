@@ -38,7 +38,8 @@ BASE_APPS = [
     "django.contrib.staticfiles",
 ]
 
-INSTALLED_APPS = BASE_APPS + [
+INSTALLED_APPS = [
+    *BASE_APPS,
     "crypto_fifo_taxes",
 ]
 

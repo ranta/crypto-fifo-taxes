@@ -408,10 +408,7 @@ class TransactionDetail(models.Model):
         return f"{self.currency.symbol} ({str(self.quantity).rstrip('0').rstrip('.')})"
 
     def __repr__(self):
-        if self.transaction is not None:
-            detail_type = self.transaction.transaction_type.label
-        else:
-            detail_type = "UNKNOWN-TYPE"
+        detail_type = self.transaction.transaction_type.label if self.transaction is not None else "UNKNOWN-TYPE"
         return f"<{self.__class__.__name__} ({self.id}): {detail_type} '{self.currency}' ({self.quantity})>"
 
     @property

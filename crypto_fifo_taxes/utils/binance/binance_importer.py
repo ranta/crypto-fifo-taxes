@@ -13,10 +13,8 @@ from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 logger = logging.getLogger(__name__)
 
 def import_deposits(wallet: Wallet, deposits: list) -> None:
-    """
-    https://binance-docs.github.io/apidocs/spot/en/#deposit-history-supporting-network-user_data
-    """
-    importable_txs = set(t["txId"] for t in deposits)
+    """https://binance-docs.github.io/apidocs/spot/en/#deposit-history-supporting-network-user_data"""
+    importable_txs = {t["txId"] for t in deposits}
     existing_transactions = Transaction.objects.filter(tx_id__in=importable_txs).values_list("tx_id", flat=True)
 
     for deposit in deposits:
@@ -38,10 +36,8 @@ def import_deposits(wallet: Wallet, deposits: list) -> None:
 
 
 def import_withdrawals(wallet: Wallet, deposits: list) -> None:
-    """
-    https://binance-docs.github.io/apidocs/spot/en/#withdraw-history-supporting-network-user_data
-    """
-    importable_txs = set(t["txId"] for t in deposits)
+    """https://binance-docs.github.io/apidocs/spot/en/#withdraw-history-supporting-network-user_data"""
+    importable_txs = {t["txId"] for t in deposits}
     existing_transactions = Transaction.objects.filter(tx_id__in=importable_txs).values_list("tx_id", flat=True)
 
     for withdrawal in deposits:
@@ -69,13 +65,11 @@ def import_withdrawals(wallet: Wallet, deposits: list) -> None:
 
 
 def import_pair_trades(wallet: Wallet, trading_pair: CurrencyPair, trades: list) -> None:
-    """
-    https://binance-docs.github.io/apidocs/spot/en/#account-trade-list-user_data
-    """
+    """https://binance-docs.github.io/apidocs/spot/en/#account-trade-list-user_data"""
     assert wallet is not None
     assert trading_pair is not None
 
-    importable_orders = set(str(t["orderId"]) for t in trades)
+    importable_orders = {str(t["orderId"]) for t in trades}
     existing_orders = Transaction.objects.filter(tx_id__in=importable_orders).values_list("tx_id", flat=True)
 
     for trade in trades:
@@ -102,10 +96,8 @@ def import_pair_trades(wallet: Wallet, trading_pair: CurrencyPair, trades: list)
 
 
 def import_dust(wallet: Wallet, converts: list) -> None:
-    """
-    https://binance-docs.github.io/apidocs/spot/en/#dustlog-user_data
-    """
-    convert_ids = set(str(t["transId"]) for t in converts)
+    """https://binance-docs.github.io/apidocs/spot/en/#dustlog-user_data"""
+    convert_ids = {str(t["transId"]) for t in converts}
     existing_converts = Transaction.objects.filter(tx_id__in=convert_ids).values_list("tx_id", flat=True)
 
     bnb = get_or_create_currency("BNB")
@@ -131,15 +123,13 @@ def import_dust(wallet: Wallet, converts: list) -> None:
 
 
 def import_dividends(wallet: Wallet, dividends: list) -> None:
-    """
-    https://binance-docs.github.io/apidocs/spot/en/#asset-dividend-record-user_data
-    """
+    """https://binance-docs.github.io/apidocs/spot/en/#asset-dividend-record-user_data"""
 
     def build_transaction_id(row: dict) -> str:
         timestamp = to_timestamp(from_timestamp(row["divTime"]).replace(hour=0, minute=0, second=0))
         return f"{wallet.name}_{timestamp}_{row['amount']}_{row['asset']}"
 
-    dividend_ids = set(build_transaction_id(t) for t in dividends)
+    dividend_ids = {build_transaction_id(t) for t in dividends}
     existing_dividends = Transaction.objects.filter(tx_id__in=dividend_ids).values_list("tx_id", flat=True)
 
     for row in dividends:
@@ -185,9 +175,9 @@ def _get_interest_quantity(row: BinanceFlexibleInterest | BinanceLockedInterest)
 def _build_transaction_id(wallet: Wallet, row: BinanceFlexibleInterest | BinanceLockedInterest) -> str:
     try:
         timestamp_datetime = from_timestamp(row["time"]).replace(hour=0, minute=0, second=0)
-    except (KeyError, TypeError) as e:
-        logger.error(f"Invalid interest row: {row}")
-        raise e
+    except (KeyError, TypeError):
+        logger.exception(f"Invalid interest row: {row}")
+        raise
 
     timestamp = to_timestamp(timestamp_datetime)
     quantity = _get_interest_quantity(row)
@@ -195,7 +185,7 @@ def _build_transaction_id(wallet: Wallet, row: BinanceFlexibleInterest | Binance
 
 
 def import_interest(wallet: Wallet, interests: list[BinanceFlexibleInterest] | list[BinanceLockedInterest]) -> None:
-    interest_ids = set(_build_transaction_id(wallet, i) for i in interests)
+    interest_ids = {_build_transaction_id(wallet, i) for i in interests}
     existing_interests = Transaction.objects.filter(tx_id__in=interest_ids).values_list("tx_id", flat=True)
 
     for row in interests:

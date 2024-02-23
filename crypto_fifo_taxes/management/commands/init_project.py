@@ -16,24 +16,24 @@ class Command(BaseCommand):
         for symbol, data in settings.ALL_FIAT_CURRENCIES.items():
             Currency.objects.update_or_create(
                 symbol=symbol,
-                defaults=dict(
-                    name=data["name"],
-                    cg_id=data["cg_id"],
-                    is_fiat=True,
-                ),
+                defaults={
+                    "name": data["name"],
+                    "cg_id": data["cg_id"],
+                    "is_fiat": True,
+                },
             )
 
         # Create admin user
         admin_user, admin_created = User.objects.get_or_create(
             username="admin",
-            defaults=dict(
-                email="admin@example.com",
-                first_name="Admin",
-                last_name="Superuser",
-                is_staff=True,
-                is_active=True,
-                is_superuser=True,
-            ),
+            defaults={
+                "email": "admin@example.com",
+                "first_name": "Admin",
+                "last_name": "Superuser",
+                "is_staff": True,
+                "is_active": True,
+                "is_superuser": True,
+            },
         )
         if admin_created:
             admin_user.set_password("admin")

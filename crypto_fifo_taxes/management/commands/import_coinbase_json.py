@@ -22,7 +22,7 @@ class Command(BaseCommand):
         parser.add_argument("--file", type=str)
 
     def handle_imported_rows(self, data):
-        trade_ids = set(str(row["trade id"]) for row in data)
+        trade_ids = {str(row["trade id"]) for row in data}
         existing_orders = Transaction.objects.filter(tx_id__in=trade_ids).values_list("tx_id", flat=True)
 
         for row in data:

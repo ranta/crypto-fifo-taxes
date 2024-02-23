@@ -29,7 +29,7 @@ def get_currency(currency: Currency | str | int) -> Currency:
 
         try:
             return Currency.objects.get(symbol=currency)
-        except Currency.DoesNotExist as e:
+        except Currency.DoesNotExist:
             # Check if the symbol has been changed, and try to find the currency again with the new or legacy symbol
             if currency in settings.RENAMED_SYMBOLS:
                 # If the currency is the old symbol, find the new symbol
@@ -42,7 +42,7 @@ def get_currency(currency: Currency | str | int) -> Currency:
                 currency = renamed_keys[renamed_values.index(currency)]
                 return Currency.objects.get(symbol__iexact=currency)
             else:
-                raise e
+                raise
 
     return currency
 
@@ -78,22 +78,22 @@ def get_or_create_currency(symbol: str) -> Currency:
         try:
             return Currency.objects.get_or_create(
                 symbol=currency_data["symbol"].upper(),
-                defaults=dict(
-                    name=currency_data["name"],
-                    cg_id=currency_data["id"],
-                ),
+                defaults={
+                    "name": currency_data["name"],
+                    "cg_id": currency_data["id"],
+                },
             )[0]
-        except IntegrityError as e:
+        except IntegrityError:
             logger.warning(f"Currency `{currency_data['symbol'].upper()}` already exists in the database.")
-            raise e
+            raise
 
 
 @lru_cache
 def get_or_create_currency_pair(symbol: str, buy: Currency | str, sell: Currency | str) -> CurrencyPair:
     return CurrencyPair.objects.get_or_create(
         symbol=symbol,
-        defaults=dict(
-            buy=get_or_create_currency(buy),
-            sell=get_or_create_currency(sell),
-        ),
+        defaults={
+            "buy": get_or_create_currency(buy),
+            "sell": get_or_create_currency(sell),
+        },
     )[0]

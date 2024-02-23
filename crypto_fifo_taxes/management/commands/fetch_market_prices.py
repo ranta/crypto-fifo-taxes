@@ -38,7 +38,7 @@ class Command(BaseCommand):
         currency_ids = set(sum([list(c_tuple) for c_tuple in tx_currency_ids], list(snapshot_currency_ids)))
 
         excluded_symbols = (
-            [k.upper() for k in settings.DEPRECATED_TOKENS.keys()]
+            [k.upper() for k in settings.DEPRECATED_TOKENS]
             + settings.COINGECKO_ASSUME_ZERO_PRICE_TOKENS
             + settings.IGNORED_TOKENS
         )

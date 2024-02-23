@@ -9,9 +9,7 @@ from crypto_fifo_taxes.exceptions import PdfException
 
 
 def render_to_pdf(template: str, context: dict[str, Any]) -> HttpResponse:
-    """
-    Render passed template to a pdf file
-    """
+    """Render passed template to a pdf file"""
     html = get_template(template).render(context)
     result = BytesIO()
     pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)

@@ -12,6 +12,7 @@ def _set_timezone(timestamp):
     """Set UTC timezone to a datetime object"""
     if timestamp is not None:
         return timestamp.replace(tzinfo=pytz.UTC)
+    return None
 
 
 class TxTime:
@@ -74,7 +75,7 @@ class WalletHelper:
         to_currency_quantity: Decimal | int,
         fee_currency: Currency | str | None = None,
         fee_currency_quantity: Decimal | int | None = None,
-        timestamp: datetime = None,
+        timestamp: datetime | None = None,
     ):
         tx_creator = TransactionCreator(timestamp=_set_timezone(timestamp) or self.tx_time.next())
         tx_creator.from_detail = TransactionDetailFactory.build(

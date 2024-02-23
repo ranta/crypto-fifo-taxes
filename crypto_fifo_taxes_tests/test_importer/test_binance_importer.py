@@ -135,10 +135,10 @@ def test_binance_trade_import():
     ]
     trading_pair = CurrencyPair.objects.get_or_create(
         symbol="NANOETH",
-        defaults=dict(
-            buy=get_or_create_currency("NANO"),
-            sell=get_or_create_currency("ETH"),
-        ),
+        defaults={
+            "buy": get_or_create_currency("NANO"),
+            "sell": get_or_create_currency("ETH"),
+        },
     )[0]
 
     import_pair_trades(wallet, trading_pair, nano_eth_trades)
