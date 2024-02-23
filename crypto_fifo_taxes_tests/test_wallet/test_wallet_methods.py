@@ -3,6 +3,7 @@ from decimal import Decimal
 import pytest
 from django.db.transaction import atomic
 
+from crypto_fifo_taxes.exceptions import InsufficientFundsError
 from crypto_fifo_taxes.models import Currency
 from crypto_fifo_taxes_tests.factories import (
     CryptoCurrencyFactory,
@@ -64,7 +65,7 @@ def test_wallet_get_current_balance_deposit_and_withdrawal_multiple_currencies()
     wallet_helper.deposit(currency="NANO", quantity=1000)
 
     # Withdraw more than wallet has balance
-    with pytest.raises(ValueError), atomic():
+    with pytest.raises(InsufficientFundsError), atomic():
         wallet_helper.withdraw(currency="DOGE", quantity=Decimal("42069.1337"))
 
     balances = wallet.get_current_balance(exclude_zero_balances=False)

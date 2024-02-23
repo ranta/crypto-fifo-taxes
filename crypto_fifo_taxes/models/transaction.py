@@ -10,7 +10,11 @@ from django.db.transaction import atomic
 from enumfields import EnumIntegerField
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
-from crypto_fifo_taxes.exceptions import MissingCostBasis, MissingPriceHistoryError
+from crypto_fifo_taxes.exceptions import (
+    InsufficientFundsError,
+    MissingCostBasisError,
+    MissingPriceHistoryError,
+)
 from crypto_fifo_taxes.utils.db import CoalesceZero, SQAvg, SQSum
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
 
@@ -46,7 +50,7 @@ class Transaction(models.Model):
     fee_amount = TransactionDecimalField(null=True)  # Calculated field
 
     # Used to identify imported transactions
-    tx_id = models.CharField(max_length=256, blank=True, null=True)
+    tx_id = models.CharField(max_length=256, blank=True)
 
     objects = TransactionManager.from_queryset(TransactionQuerySet)()
 
@@ -114,7 +118,9 @@ class Transaction(models.Model):
                 break
 
             if balance.cost_basis is None:
-                raise MissingCostBasis(f"TransactionDetail (id: {balance.id}, {balance}) is missing its `cost_basis`.")
+                raise MissingCostBasisError(
+                    f"TransactionDetail (id: {balance.id}, {balance}) is missing its `cost_basis`."
+                )
 
             if required_quantity >= balance.quantity_left:
                 # Fully consume deposit balance
@@ -126,7 +132,7 @@ class Transaction(models.Model):
                 required_quantity -= required_quantity
 
         if required_quantity > Decimal(0):
-            raise ValueError(
+            raise InsufficientFundsError(
                 "Transaction from detail quantity is more than wallet has available to consume! "
                 f"Required: {required_quantity} {transaction_detail.currency}"
             )

@@ -45,7 +45,7 @@ class Command(BaseCommand):
 
         if transaction is None:
             logger.error(
-                f"Trying to update a transaction that has a tx_id ({tx_id}) set "
+                f"Trying to update a transaction that has a tx_id ({tx_id}) set "  # noqa: S608,RUF100
                 f"but matching transaction was not found!"
             )
             return

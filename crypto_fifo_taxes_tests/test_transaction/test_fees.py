@@ -3,6 +3,7 @@ from decimal import Decimal
 import pytest
 from django.db.transaction import atomic
 
+from crypto_fifo_taxes.exceptions import InsufficientFundsError
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 from crypto_fifo_taxes_tests.factories import (
     CryptoCurrencyFactory,
@@ -33,7 +34,7 @@ def test_fees_paid_with_new_currency():
     assert wallet.get_current_balance("BTC") == Decimal("9.99")
 
     # Trade BTC back to EUR fails, because user has less than 10 BTC due to fees
-    with pytest.raises(ValueError), atomic():
+    with pytest.raises(InsufficientFundsError), atomic():
         wallet_helper.trade(crypto, 10, fiat, 1000)
 
     wallet_helper.trade(crypto, Decimal("9.99"), fiat, 999, fiat, 1)

@@ -6,6 +6,7 @@ from django.http import QueryDict
 from django.views.generic import ListView
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
+from crypto_fifo_taxes.exceptions import MissingCostBasisError
 from crypto_fifo_taxes.models import CurrencyPrice, Transaction
 from crypto_fifo_taxes.utils.db import CoalesceZero
 
@@ -43,7 +44,7 @@ class TransactionListView(ListView):
             Q(from_detail__isnull=False, from_detail__cost_basis=None)
             | Q(to_detail__isnull=False, to_detail__cost_basis=None)
         ).exists():
-            raise Exception("Transactions with missing cost basis exist")
+            raise MissingCostBasisError("Transactions with missing cost basis exist")
 
         queryset = (
             Transaction.objects

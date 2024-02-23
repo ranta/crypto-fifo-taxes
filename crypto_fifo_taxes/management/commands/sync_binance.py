@@ -62,7 +62,7 @@ class Command(BaseCommand):
         while True:
             try:
                 # Full sync
-                if type(pair) is dict:
+                if isinstance(pair, dict):
                     trades = self.client.get_my_trades(symbol=pair["symbol"])
                     trading_pair = None
                     if trades != []:

@@ -69,8 +69,8 @@ class Snapshot(models.Model):
             try:
                 currency_price = currency.get_fiat_price(date=self.date)
             # If the price is missing, we skip the currency and add its cost basis to the sums
-            except MissingPriceError as e:
-                logger.exception(e)
+            except MissingPriceError:
+                logger.exception(f"Missing price for currency {currency}")
 
                 sum_worth += balance["cost_basis"]
                 sum_cost_basis += balance["cost_basis"]

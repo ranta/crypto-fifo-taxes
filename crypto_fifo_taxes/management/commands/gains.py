@@ -102,8 +102,8 @@ class Command(BaseCommand):
             price = currency.get_fiat_price(date=datetime.now().date()).price
             total_wallet_sum += price
 
-        logger.info("\nDeposits", deposits)
-        logger.info("Withdrawals", withdrawals)
-        logger.info("Current wallet balance", total_wallet_sum)
-        logger.info("Profit €", (withdrawals + total_wallet_sum) - deposits)
-        logger.info("Profit %", ((withdrawals + total_wallet_sum) / deposits - 1) * 100, "%")
+        logger.info(f"\nDeposits {deposits}")
+        logger.info(f"Withdrawals {withdrawals}")
+        logger.info(f"Current wallet balance {total_wallet_sum}")
+        logger.info(f"Profit € {(withdrawals + total_wallet_sum) - deposits}")
+        logger.info(f"Profit % {((withdrawals + total_wallet_sum) / deposits - 1) * 100}%")

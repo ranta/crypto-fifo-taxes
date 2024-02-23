@@ -27,12 +27,12 @@ class EtherscanClient:
     def _get_known_pool_addresses(self) -> None:
         """Ethplorer private API endpoint to get addresses with `miner` tag"""
         url = "https://ethplorer.io/service/service.php?search=miner&sm=spt"
-        results = requests.get(url).json()["results"]
+        results = requests.get(url, timeout=10).json()["results"]
         self.known_pool_addresses = [result[2] for result in results]
 
     def get_tx_info(self, tx_id: str) -> dict:
         url = f"https://api.ethplorer.io/getTxInfo/{tx_id}?apiKey={self.api_key}"
-        return requests.get(url).json()
+        return requests.get(url, timeout=10).json()
 
     def is_tx_from_mining_pool(self, tx_id: str) -> bool:
         tx_info = self.get_tx_info(tx_id)

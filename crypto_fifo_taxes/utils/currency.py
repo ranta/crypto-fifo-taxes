@@ -18,13 +18,13 @@ def get_default_fiat() -> Currency:
 
 @lru_cache
 def get_currency(currency: Currency | str | int) -> Currency:
-    if type(currency) is Currency:
+    if isinstance(currency, Currency):
         return currency
 
-    if type(currency) is int:
+    if isinstance(currency, int):
         return Currency.objects.get(id=currency)
 
-    if type(currency) is str:
+    if isinstance(currency, str):
         currency = currency.upper()
 
         try:

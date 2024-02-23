@@ -21,7 +21,7 @@ MarketChartData = namedtuple("MarketChartData", "timestamp price market_cap volu
 
 def retry_get_request_until_ok(url: str) -> dict | None:
     while True:
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
 
         if response.status_code == 200:
             return response.json()
@@ -117,9 +117,11 @@ def fetch_currency_market_chart(currency: Currency, start_date: datetime.date | 
         return
 
     # Use the date of the first transaction with the currency as the default start date
-    if start_date is None:
-        if (first_detail := currency.transaction_details.order_by("tx_timestamp").first()) is not None:
-            start_date = first_detail.tx_timestamp.date()
+    if (
+        start_date is None
+        and (first_detail := currency.transaction_details.order_by("tx_timestamp").first()) is not None
+    ):
+        start_date = first_detail.tx_timestamp.date()
 
     if currency.symbol.lower() in settings.DEPRECATED_TOKENS:
         return

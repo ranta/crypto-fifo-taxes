@@ -1,7 +1,6 @@
 import json
 from datetime import date, datetime, time
 from decimal import Decimal
-from functools import lru_cache
 from typing import Any
 
 from django.db.models import Case, DecimalField, ExpressionWrapper, F, FloatField, OuterRef, Q, QuerySet, Subquery, When
@@ -26,7 +25,6 @@ def qs_values_list_to_float(qs, field) -> QuerySet[Any]:
 class GraphView(TemplateView):
     template_name = "graph.html"
 
-    @lru_cache
     def get_starting_date(self) -> date:
         """Usage: `?start=2020-1-1`"""
         first_snapshot_date = Snapshot.objects.order_by("date").first().date
