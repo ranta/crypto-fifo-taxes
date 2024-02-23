@@ -27,8 +27,6 @@ class Currency(models.Model):
     # Unique string identifier for currency. Used for coingecko API
     cg_id = models.CharField(
         max_length=64,
-        null=True,
-        blank=True,
         unique=True,
     )
     icon = models.ImageField(

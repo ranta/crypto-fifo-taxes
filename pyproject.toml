@@ -39,7 +39,6 @@ norecursedirs = [
     "venv",
     "build",
 ]
-addopts = "--nomigrations"
 
 [tool.ruff]
 fix = true

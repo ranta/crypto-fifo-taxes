@@ -50,7 +50,7 @@ class Transaction(models.Model):
     fee_amount = TransactionDecimalField(null=True)  # Calculated field
 
     # Used to identify imported transactions
-    tx_id = models.CharField(max_length=256, blank=True)
+    tx_id = models.CharField(max_length=256, blank=True, default="")
 
     objects = TransactionManager.from_queryset(TransactionQuerySet)()
 
