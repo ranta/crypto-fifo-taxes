@@ -47,7 +47,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v3
 
-      - name: "Set up Python 3.10"
+      - name: "Set up Python"
         id: setup-python
         uses: actions/setup-python@v4
         with:
@@ -82,9 +82,8 @@ jobs:
 
       - name: "Check code style"
         run: >
-          black --check --diff .
-          && flake8 .
-          && isort --check-only --diff .
+          ruff check
+          && ruff format
 
       - name: "Run tests"
         run: pytest -vvv --cov=. .
