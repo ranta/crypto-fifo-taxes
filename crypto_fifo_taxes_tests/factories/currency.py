@@ -115,7 +115,7 @@ def create_currency_price_history(
         start_date = date(2010, 1, 1)
     assert days > 0
 
-    for day in range(0, days):
+    for day in range(days):
         CurrencyPriceFactory.create(
             currency=currency,
             fiat=fiat,

@@ -17,7 +17,6 @@ class Command(BaseCommand):
 
     def get_required_currencies(self) -> QuerySet[Currency]:
         """Get all currencies owned in the latest snapshot and ones traded after the start_date"""
-
         # Currencies in latest snapshot
         latest_snapshot = Snapshot.objects.filter(date__lte=self.date).order_by("-date").first()
         snapshot_currency_ids = []

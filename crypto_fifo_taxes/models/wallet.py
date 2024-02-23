@@ -137,7 +137,7 @@ class Wallet(models.Model):
         # refs. https://blog.oyam.dev/django-filter-by-window-function/
         sql, params = deposits.query.sql_with_params()
         deposits_filtered = TransactionDetail.objects.raw(
-            "SELECT * FROM ({}) deposits_with_accumed_quantity WHERE accum_quantity > %s".format(sql),
+            f"SELECT * FROM ({sql}) deposits_with_accumed_quantity WHERE accum_quantity > %s",
             [*params, total_spent],
         )
 

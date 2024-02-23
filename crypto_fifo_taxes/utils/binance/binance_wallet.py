@@ -29,12 +29,12 @@ def get_binance_wallet_balance() -> dict[str:Decimal]:
     for row in spot_wallet:
         balances[row["asset"]] = Decimal(row["free"]) + Decimal(row["locked"])
     for row in savings_wallet:
-        if row["asset"] in balances.keys():
+        if row["asset"] in balances:
             balances[row["asset"]] = balances[row["asset"]] + Decimal(row["totalAmount"])
         else:
             balances[row["asset"]] = Decimal(row["totalAmount"])
     for symbol, quantity in settings.LOCKED_STAKING.items():
-        if symbol in balances.keys():
+        if symbol in balances:
             balances[symbol] = balances[symbol] + quantity
         else:
             balances[symbol] = quantity

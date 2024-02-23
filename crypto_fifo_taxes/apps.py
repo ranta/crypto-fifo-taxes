@@ -6,4 +6,4 @@ class CryptoFifoTaxesConfig(AppConfig):
     name = "crypto_fifo_taxes"
 
     def ready(self):
-        from crypto_fifo_taxes import signals  # noqa: 401
+        from crypto_fifo_taxes import signals  # noqa

@@ -31,11 +31,10 @@ class GraphView(TemplateView):
         """
         Usage: `?start=2020-1-1`
         """
-
         first_snapshot_date = Snapshot.objects.order_by("date").first().date
 
         query_params: QueryDict = self.request.GET
-        if "start" in query_params and query_params["start"]:
+        if query_params.get("start"):
             return max(datetime.strptime(query_params["start"], "%Y-%m-%d").date(), first_snapshot_date)
         return first_snapshot_date
 

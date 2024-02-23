@@ -85,7 +85,6 @@ class Command(BaseCommand):
         If `self.date` is not set, it will be set to the first transaction date.
         If `self.date` is set, it will be validated and used as the starting date.
         """
-
         # Start from specific date
         if self.date is not None:
             self.starting_date = datetime.strptime(self.date, "%Y-%m-%d").date()

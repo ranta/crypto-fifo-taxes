@@ -28,7 +28,7 @@ class TransactionListView(ListView):
         query_params: QueryDict = self.request.GET
         filters = Q()
 
-        if "year" in query_params and query_params["year"]:
+        if query_params.get("year"):
             filters &= Q(timestamp__year=query_params["year"])
 
         if "mining" in query_params:

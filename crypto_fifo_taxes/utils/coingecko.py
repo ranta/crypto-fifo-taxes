@@ -63,12 +63,8 @@ def coingecko_request_market_chart(currency: Currency, vs_currency: Currency, st
 
     days = (datetime.now().date() - start_date).days
     api_url = (
-        "https://api.coingecko.com/api/v3/coins/{id}/market_chart?"
-        "vs_currency={vs_currency}&days={days}&interval=daily".format(
-            id=currency.cg_id,
-            vs_currency=vs_currency.cg_id,
-            days=days,
-        )
+        f"https://api.coingecko.com/api/v3/coins/{currency.cg_id}/market_chart?"
+        f"vs_currency={vs_currency.cg_id}&days={days}&interval=daily"
     )
     return retry_get_request_until_ok(api_url)
 

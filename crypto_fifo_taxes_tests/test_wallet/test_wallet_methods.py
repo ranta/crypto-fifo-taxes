@@ -20,7 +20,7 @@ def test_wallet_get_used_currency_ids():
 
     # Create deposits
     TransactionFactory.create(to_detail=TransactionDetailFactory.create(wallet=wallet, currency="BTC"))
-    for i in range(0, 9):
+    for i in range(9):
         TransactionFactory.create(to_detail=TransactionDetailFactory.create(wallet=wallet))
 
     currencies = wallet.get_used_currency_ids()
