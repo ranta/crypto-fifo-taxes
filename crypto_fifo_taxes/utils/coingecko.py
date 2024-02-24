@@ -82,7 +82,7 @@ def coingecko_request_market_chart(
     assert currency.cg_id is not None
     assert vs_currency.cg_id is not None
 
-    days = (timezone.now().date() - start_date).days
+    days = (timezone.now().date() - start_date).days + 1  # Add 1 to include end date (today)
     api_url = (
         f"https://api.coingecko.com/api/v3/coins/{currency.cg_id}/market_chart?"
         f"vs_currency={vs_currency.cg_id}&days={days}&interval=daily"
@@ -170,7 +170,7 @@ def fetch_currency_market_chart(currency: Currency) -> None:
         )
 
         # Days between first transaction and today
-        total_num_days_required = (timezone.now().date() - first_transaction_date).days
+        total_num_days_required = (timezone.now().date() - first_transaction_date).days + 1  # Add 1 to include end date
 
         currency_prices_count = currency_price_qs.count()
         # If we have as many prices saved as the number of days between first transaction and today, we have all prices.
