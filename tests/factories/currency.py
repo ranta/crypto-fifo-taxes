@@ -42,6 +42,7 @@ class CryptoCurrencyFactory(DjangoModelFactory):
 
 class FiatCurrencyFactory(CryptoCurrencyFactory):
     name = factory.LazyAttribute(lambda self: f"FIAT-{self.symbol}")
+    cg_id = factory.LazyAttribute(lambda self: self.symbol.lower())
     is_fiat = True
 
 
