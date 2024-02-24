@@ -70,32 +70,52 @@ def get_currency(currency: Currency | str | int) -> Currency:
 
 
 @lru_cache
+def get_coingecko_id_for_symbol(symbol: str) -> dict:
+    """
+    Return the CoinGecko API data for the given symbol.
+    If the symbol is not found, raise an exception.
+    """
+    from crypto_fifo_taxes.utils.coingecko import coingecko_get_currency_list
+
+    # In most cases symbols will match, but in a few cases where it doesn't the id should match. e.g. IOTA
+    def currency_filter(x: dict):
+        """Find the first currency that matches the symbol or id CoinGecko API"""
+        if "binance-peg" in x["id"]:  # Ignore Binance pegged tokens
+            return False
+        return x["symbol"] == symbol.lower() or x["id"] == symbol.lower()
+
+    cg_currency_list = coingecko_get_currency_list()
+
+    # In most cases symbols will match, but in a few cases where it doesn't the id should match. e.g. IOTA
+    try:
+        currency_data = next(filter(currency_filter, cg_currency_list))
+    # Currency was not found in CoinGecko API
+    except StopIteration:
+        if symbol.lower() in settings.DEPRECATED_TOKENS:
+            currency_data = settings.DEPRECATED_TOKENS[symbol.lower()]
+        else:
+            raise CoinGeckoMissingCurrency(f"Currency `{symbol}` not found in CoinGecko API")
+
+    assert currency_data
+
+    # If the currency has been renamed, use the new symbol
+    if currency_data["symbol"].upper() in settings.RENAMED_SYMBOLS:
+        new_symbol = settings.RENAMED_SYMBOLS[currency_data["symbol"].upper()]
+        currency_data["symbol"] = new_symbol
+
+    return currency_data
+
+
+@lru_cache
 def get_or_create_currency(symbol: str) -> Currency:
+    """
+    Return the currency object for the given symbol.
+    If the currency does not exist, create it.
+    """
     try:
         return get_currency(symbol)
     except Currency.DoesNotExist:
-        from crypto_fifo_taxes.utils.coingecko import coingecko_get_currency_list
-
-        cg_currency_list = coingecko_get_currency_list()
-        # In most cases symbols will match, but in a few cases where it doesn't the id should match. e.g. IOTA
-        try:
-
-            def currency_filter(x):
-                if "binance-peg" in x["id"]:
-                    return False
-                return x["symbol"] == symbol.lower() or x["id"] == symbol.lower()
-
-            currency_data = next(filter(currency_filter, cg_currency_list))
-        except StopIteration:
-            if symbol.lower() in settings.DEPRECATED_TOKENS:
-                currency_data = settings.DEPRECATED_TOKENS[symbol.lower()]
-            else:
-                raise CoinGeckoMissingCurrency(f"Currency `{symbol}` not found in CoinGecko API")
-
-        assert currency_data
-
-        if currency_data["symbol"].upper() in settings.RENAMED_SYMBOLS:
-            symbol = settings.RENAMED_SYMBOLS[currency_data["symbol"].upper()]
+        currency_data: dict = get_coingecko_id_for_symbol(symbol)
 
         try:
             return Currency.objects.get_or_create(
