@@ -155,6 +155,9 @@ class CurrencyPrice(models.Model):
     price = TransactionDecimalField()
     market_cap = TransactionDecimalField()
     volume = TransactionDecimalField()
+    # Number of missing days returned from CoinGecko API for this currency on this date.
+    # This can be used to reduce unnecessary API calls, when this CurrencyPrice is the latest one saved.
+    num_missing_days = models.IntegerField(default=0)
 
     class Meta:
         # Only one crypto price per day per FIAT currency
