@@ -126,13 +126,13 @@ IGNORED_TOKENS = [
 # The following symbols are ignored when getting prices from coingecko, a price of 0 is assumed instead
 COINGECKO_ASSUME_ZERO_PRICE_TOKENS = [
     "MC",  # Margin-call - Price is missing in Coingecko
-    "BCPT",  # Blockmason Credit Protocol - Price is missing in Coingecko
 ]
 
 # Tokens that have been deprecated and are not found in CoinGecko anymore, but still have trades that should be imported
 DEPRECATED_TOKENS = {
     "ven": {"id": "vechain-old", "symbol": "ven", "name": "VeChain OLD"},
     "wabi": {"id": "wabi", "symbol": "wabi", "name": "Wabi"},  # Price is missing in Coingecko
+    "bcpt": {"id": "bcpt", "symbol": "bcpt", "name": "Blockmason Credit Protocol"},  # Price is missing in Coingecko
 }
 
 # Symbols that have changed their symbols
@@ -142,6 +142,7 @@ DEPRECATED_TOKENS = {
 RENAMED_SYMBOLS = {
     "NANO": "XNO",
     "MIOTA": "IOTA",
+    "GTO": "GFT",
 }
 
 
