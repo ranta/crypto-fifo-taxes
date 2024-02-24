@@ -149,6 +149,7 @@ def fetch_currency_market_chart(currency: Currency) -> None:
         currency.is_fiat
         or currency.symbol.lower() in settings.DEPRECATED_TOKENS
         or currency.symbol in settings.COINGECKO_ASSUME_ZERO_PRICE_TOKENS
+        or currency.symbol in settings.IGNORED_TOKENS
     ):
         logger.debug(f"Skipping currency {currency}.")
         return
