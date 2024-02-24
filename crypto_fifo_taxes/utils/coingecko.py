@@ -169,27 +169,40 @@ def fetch_currency_market_chart(currency: Currency) -> None:
         )
 
         # Days between first transaction and today
-        num_days_required = (timezone.now().date() - first_transaction_date).days
+        total_num_days_required = (timezone.now().date() - first_transaction_date).days
+
         currency_prices_count = currency_price_qs.count()
         # If we have as many prices saved as the number of days between first transaction and today, we have all prices.
-        if currency_prices_count == num_days_required:
+        if currency_prices_count == total_num_days_required:
             logger.debug(f"Already have all prices for {currency} in {fiat_currency.symbol}.")
             continue
 
-        # Start fetching prices from the first transaction date
+        # By default, start fetching prices from the first transaction date to get the prices for every single date.
         start_date = first_transaction_date
 
         # We have some prices saved, but not all. Check if we can fetch fewer days from the API.
         if currency_prices_count > 0:
-            latest_currency_price = currency_price_qs.order_by("-date").first()
+            latest_currency_price: CurrencyPrice = currency_price_qs.order_by("-date").first()
 
-            num_days_expected = (timezone.now().date() - latest_currency_price.date).days
-            if num_days_required == num_days_expected:
-                # All dates between first_transaction_date and latest saved CurrencyPrice are in DB, so we can safely
-                # start fetching prices from the latest saved CurrencyPrice instead.
+            # If the CurrencyPrice has `num_missing_days`, we can deduct that from the total number of days required.
+            # The prices were not returned from the API before, so they are not expected to be returned now,
+            # making it pointless to try to fetch them again.
+            adjusted_num_days_required = total_num_days_required - latest_currency_price.num_missing_days
+            if currency_prices_count >= adjusted_num_days_required:
+                logger.debug(f"Already have all prices for {currency} in {fiat_currency.symbol}.")
+                continue
+
+            # Number of days we should have saved in the database.
+            num_expected_prices_in_db = (latest_currency_price.date - first_transaction_date).days
+            num_expected_prices_in_db -= latest_currency_price.num_missing_days
+
+            # All dates between first_transaction_date and latest saved CurrencyPrice are in DB.
+            if currency_prices_count >= num_expected_prices_in_db:
+                # We can safely fetch currency prices starting from the first missing date.
                 start_date = latest_currency_price.date + datetime.timedelta(days=1)
 
         response_json: CoingeckoMarketChart = coingecko_request_market_chart(currency, fiat_currency, start_date)
+
         # Parse the response and to MarketChartData objects
         combined_market_chart_data = [
             MarketChartData(timestamp=stamp, price=price, market_cap=market_cap, volume=volume)
@@ -212,4 +225,23 @@ def fetch_currency_market_chart(currency: Currency) -> None:
             )
             if created:
                 created_count += 1
-        logger.info(f"Created {created_count} new prices for {currency} in {fiat_currency.symbol}.")
+        if created_count > 0:
+            logger.info(f"Created {created_count} new prices for {currency} in {fiat_currency.symbol}.")
+        else:
+            expected_created_count = (timezone.now().date() - start_date).days
+            logger.warning(
+                f"No new prices were created for {currency} in {fiat_currency.symbol}, "
+                f"but {expected_created_count} new prices was expected. "
+                f"Saving this result to reduce useless future price fetches."
+            )
+
+            latest_currency_price: CurrencyPrice = currency_price_qs.order_by("-date").first()
+            if latest_currency_price is not None:
+                latest_currency_price.num_missing_days = expected_created_count
+                latest_currency_price.save()
+            else:
+                logger.error(
+                    f"No prices was returned for {currency} in {fiat_currency.symbol}. "
+                    f"Consider adding it to `COINGECKO_ASSUME_ZERO_PRICE_TOKENS` list."
+                )
+                continue
