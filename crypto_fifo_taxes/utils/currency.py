@@ -17,6 +17,24 @@ def get_default_fiat() -> Currency:
 
 
 @lru_cache
+def all_fiat_currencies() -> list[Currency]:
+    fiat_currencies = Currency.objects.filter(is_fiat=True)
+
+    if len(fiat_currencies) == len(settings.ALL_FIAT_CURRENCIES):
+        return fiat_currencies
+
+    # We are missing some currencies, create all required fiat currencies
+    fiat_currencies = []
+    for symbol, data in settings.ALL_FIAT_CURRENCIES.items():
+        currency, _ = Currency.objects.get_or_create(
+            symbol=symbol,
+            defaults={"name": data["name"], "cg_id": data["cg_id"], "is_fiat": True},
+        )
+        fiat_currencies.append(currency)
+    return fiat_currencies
+
+
+@lru_cache
 def get_currency(currency: Currency | str | int) -> Currency:
     if isinstance(currency, Currency):
         return currency

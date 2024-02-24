@@ -12,7 +12,7 @@ from django.utils import timezone
 from crypto_fifo_taxes.exceptions import MissingPriceError
 from crypto_fifo_taxes.models import Currency, CurrencyPrice
 from crypto_fifo_taxes.utils.binance.binance_api import from_timestamp
-from crypto_fifo_taxes.utils.currency import get_currency, get_or_create_currency
+from crypto_fifo_taxes.utils.currency import all_fiat_currencies
 
 logger = logging.getLogger(__name__)
 
@@ -86,27 +86,25 @@ def fetch_currency_price(currency: Currency, date: datetime.date):
 
     # Coin was returned, but has no market data for the date. Maybe the coin is "too new"? (VTHO)
     if "market_data" not in response_json:
-        for fiat_symbol in settings.ALL_FIAT_CURRENCIES:
-            fiat_currency = get_currency(fiat_symbol)
+        for fiat_currency in all_fiat_currencies():
             CurrencyPrice.objects.update_or_create(
-                currency=currency, fiat=fiat_currency, date=date, defaults={"price": 0, "market_cap": 0, "volume": 0}
+                currency=currency,
+                fiat=fiat_currency,
+                date=date,
+                defaults={"price": 0, "market_cap": 0, "volume": 0},
             )
         return
 
-    # FIXME: Save image locally
-    # if currency.icon is None:
-    #     currency.icon = response_json["image"]["small"]
-
-    for fiat_symbol in settings.ALL_FIAT_CURRENCIES:
-        fiat_currency = get_or_create_currency(fiat_symbol)
+    # Market data was returned
+    for fiat_currency in all_fiat_currencies():
         CurrencyPrice.objects.update_or_create(
             currency=currency,
             fiat=fiat_currency,
             date=date,
             defaults={
-                "price": Decimal(str(response_json["market_data"]["current_price"][fiat_symbol.lower()])),
-                "market_cap": Decimal(str(response_json["market_data"]["market_cap"][fiat_symbol.lower()])),
-                "volume": Decimal(str(response_json["market_data"]["total_volume"][fiat_symbol.lower()])),
+                "price": Decimal(str(response_json["market_data"]["current_price"][fiat_currency.symbol.lower()])),
+                "market_cap": Decimal(str(response_json["market_data"]["market_cap"][fiat_currency.symbol.lower()])),
+                "volume": Decimal(str(response_json["market_data"]["total_volume"][fiat_currency.symbol.lower()])),
             },
         )
 
@@ -126,9 +124,8 @@ def fetch_currency_market_chart(currency: Currency, start_date: datetime.date | 
         if first_detail is not None:
             start_date = first_detail.tx_timestamp.date()
 
-    for fiat_symbol in settings.ALL_FIAT_CURRENCIES:
-        fiat = get_currency(fiat_symbol)
-        currency_price_qs = CurrencyPrice.objects.filter(fiat=fiat, currency=currency, date__gte=start_date)
+    for fiat_currency in all_fiat_currencies():
+        currency_price_qs = CurrencyPrice.objects.filter(fiat=fiat_currency, currency=currency, date__gte=start_date)
 
         # Check if required prices already exist in db
         existing_prices_count = currency_price_qs.count()
@@ -146,12 +143,12 @@ def fetch_currency_market_chart(currency: Currency, start_date: datetime.date | 
                 # Only fetch prices for dates after latest saved CurrencyPrice
                 start_date = latest_currency_price.date
 
-        response_json = coingecko_request_market_chart(currency, fiat, start_date)
+        response_json = coingecko_request_market_chart(currency, fiat_currency, start_date)
 
         # Coin was unable to retrieved for some reason. e.g. deprecated (VEN)
         if response_json is None:
             # Retry once, as sometimes there are errors fetching data
-            response_json = coingecko_request_market_chart(currency, fiat, start_date)
+            response_json = coingecko_request_market_chart(currency, fiat_currency, start_date)
             if response_json is None:
                 raise MissingPriceError(f"Market chart not returned for {currency} starting from {start_date}.")
 
@@ -167,7 +164,7 @@ def fetch_currency_market_chart(currency: Currency, start_date: datetime.date | 
         for market_data in combined_market_data:
             CurrencyPrice.objects.update_or_create(
                 currency=currency,
-                fiat=fiat,
+                fiat=fiat_currency,
                 date=from_timestamp(market_data.timestamp),
                 defaults={
                     "price": Decimal(str(market_data.price)),
