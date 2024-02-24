@@ -9,7 +9,7 @@ import requests
 from django.conf import settings
 from django.utils import timezone
 
-from crypto_fifo_taxes.exceptions import MissingPriceError
+from crypto_fifo_taxes.exceptions import CoinGeckoAPIException, MissingPriceError
 from crypto_fifo_taxes.models import Currency, CurrencyPrice
 from crypto_fifo_taxes.utils.binance.binance_api import from_timestamp
 from crypto_fifo_taxes.utils.currency import all_fiat_currencies
@@ -33,6 +33,8 @@ def retry_get_request_until_ok(url: str) -> dict | None:
             logger.warning(f"Too Many Requests sent to CoinGecko API. Waiting {sleep_time}s until trying again")
             time.sleep(sleep_time)
             continue
+        elif response.status_code == 400:
+            raise CoinGeckoAPIException(f"Bad request to CoinGecko API url '{url}': {response.json()}")
         # Do not loop forever if response status is unexpected
         return None
 

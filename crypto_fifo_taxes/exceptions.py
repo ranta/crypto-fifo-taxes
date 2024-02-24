@@ -22,13 +22,17 @@ class TooManyResultsError(Exception):
     """Too many results returned from a binance endpoint, timeframe should be smaller"""
 
 
-class CoinGeckoMissingCurrency(Exception):
-    pass
-
-
 class EtherscanException(Exception):
     pass
 
 
 class InvalidImportRowException(Exception):
+    pass
+
+
+class CoinGeckoAPIException(Exception):
+    pass
+
+
+class CoinGeckoMissingCurrency(CoinGeckoAPIException):
     pass
