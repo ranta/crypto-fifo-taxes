@@ -1,6 +1,11 @@
+import logging
+import sys
+
 from django.core.management import BaseCommand, call_command
 
 from crypto_fifo_taxes.utils.wrappers import print_time_elapsed_new_transactions
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 
 class Command(BaseCommand):

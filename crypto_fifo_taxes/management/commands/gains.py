@@ -1,4 +1,5 @@
 import logging
+import sys
 from datetime import datetime
 from decimal import Decimal
 
@@ -13,6 +14,7 @@ from crypto_fifo_taxes.models.transaction import TransactionDetail, TransactionQ
 from crypto_fifo_taxes.utils.currency import get_currency
 from crypto_fifo_taxes.utils.wallet import get_wallet_balance_sum
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

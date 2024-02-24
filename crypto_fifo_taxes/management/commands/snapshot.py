@@ -1,4 +1,5 @@
 import logging
+import sys
 from datetime import datetime, time, timedelta
 
 import pytz
@@ -10,6 +11,7 @@ from django.utils import timezone
 from crypto_fifo_taxes.models import Snapshot, SnapshotBalance, Transaction, TransactionDetail
 from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

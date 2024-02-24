@@ -1,5 +1,6 @@
 import itertools
 import logging
+import sys
 from datetime import datetime
 
 from django.conf import settings
@@ -10,6 +11,7 @@ from crypto_fifo_taxes.models import Currency, Snapshot, Transaction
 from crypto_fifo_taxes.utils.coingecko import fetch_currency_market_chart
 from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

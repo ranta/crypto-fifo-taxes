@@ -1,4 +1,5 @@
 import logging
+import sys
 from datetime import datetime
 
 from django.core.management import BaseCommand
@@ -7,6 +8,7 @@ from django.db.models import Q, QuerySet
 from crypto_fifo_taxes.models import Transaction
 from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

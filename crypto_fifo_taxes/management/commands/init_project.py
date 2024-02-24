@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -8,6 +9,7 @@ from django.core.management import BaseCommand
 from crypto_fifo_taxes.models import Currency, Wallet
 from crypto_fifo_taxes.utils.currency import get_default_fiat
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

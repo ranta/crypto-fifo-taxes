@@ -1,6 +1,7 @@
 import csv
 import logging
 import os
+import sys
 from datetime import datetime
 from decimal import Decimal
 
@@ -14,6 +15,7 @@ from crypto_fifo_taxes.models import Transaction, Wallet
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

@@ -1,4 +1,5 @@
 import logging
+import sys
 import time
 from datetime import datetime
 
@@ -28,6 +29,7 @@ from crypto_fifo_taxes.utils.binance.binance_importer import (
 from crypto_fifo_taxes.utils.currency import get_or_create_currency_pair
 from crypto_fifo_taxes.utils.wrappers import print_time_elapsed_new_transactions
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

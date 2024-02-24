@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import sys
 from decimal import Decimal
 
 from django.conf import settings
@@ -13,6 +14,7 @@ from crypto_fifo_taxes.utils.binance.binance_api import from_timestamp, to_times
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
