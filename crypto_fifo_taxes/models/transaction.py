@@ -403,6 +403,11 @@ class TransactionDetailManager(models.Manager):
 
 
 class TransactionDetail(models.Model):
+    """
+    Holds the answer the questions:
+    What currency? Where did it come from/go to? How much of it? What was its cost basis?
+    """
+
     wallet = models.ForeignKey(to="Wallet", on_delete=models.CASCADE, related_name="transaction_details")
     currency = models.ForeignKey(to="Currency", on_delete=models.PROTECT, related_name="transaction_details")
     quantity = TransactionDecimalField()

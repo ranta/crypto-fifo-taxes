@@ -87,7 +87,7 @@ def coingecko_request_market_chart(
         f"https://api.coingecko.com/api/v3/coins/{currency.cg_id}/market_chart?"
         f"vs_currency={vs_currency.cg_id}&days={days}&interval=daily"
     )
-    logger.info(
+    logger.debug(
         f"Fetching market chart prices for {currency.symbol} "
         f"starting from {start_date} ({days} days) in {vs_currency.symbol}."
     )
@@ -150,7 +150,7 @@ def fetch_currency_market_chart(currency: Currency) -> None:
         or currency.symbol.lower() in settings.DEPRECATED_TOKENS
         or currency.symbol in settings.COINGECKO_ASSUME_ZERO_PRICE_TOKENS
     ):
-        logger.info(f"Skipping currency {currency}.")
+        logger.debug(f"Skipping currency {currency}.")
         return
 
     # First transaction date for the currency
