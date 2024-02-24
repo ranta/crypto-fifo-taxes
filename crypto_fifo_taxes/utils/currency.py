@@ -36,6 +36,10 @@ def all_fiat_currencies() -> list[Currency]:
 
 @lru_cache
 def get_currency(currency: Currency | str | int) -> Currency:
+    """
+    Return the currency object for the given symbol, id or object.
+    If the currency is not found, raise an exception.
+    """
     if isinstance(currency, Currency):
         return currency
 
@@ -43,22 +47,22 @@ def get_currency(currency: Currency | str | int) -> Currency:
         return Currency.objects.get(id=currency)
 
     if isinstance(currency, str):
-        currency = currency.upper()
+        symbol = currency.upper()
 
         try:
-            return Currency.objects.get(symbol=currency)
+            return Currency.objects.get(symbol=symbol)
         except Currency.DoesNotExist:
             # Check if the symbol has been changed, and try to find the currency again with the new or legacy symbol
-            if currency in settings.RENAMED_SYMBOLS:
+            if symbol in settings.RENAMED_SYMBOLS:
                 # If the currency is the old symbol, find the new symbol
-                currency = settings.RENAMED_SYMBOLS[currency]
-                return Currency.objects.get(symbol__iexact=currency)
-            elif currency in settings.RENAMED_SYMBOLS.values():
+                symbol = settings.RENAMED_SYMBOLS[symbol]
+                return Currency.objects.get(symbol__iexact=symbol)
+            elif symbol in settings.RENAMED_SYMBOLS.values():
                 # If the currency is the new symbol, find the old symbol
                 renamed_keys = list(settings.RENAMED_SYMBOLS.keys())
                 renamed_values = list(settings.RENAMED_SYMBOLS.values())
-                currency = renamed_keys[renamed_values.index(currency)]
-                return Currency.objects.get(symbol__iexact=currency)
+                symbol = renamed_keys[renamed_values.index(symbol)]
+                return Currency.objects.get(symbol__iexact=symbol)
             else:
                 raise
 
