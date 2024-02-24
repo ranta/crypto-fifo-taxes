@@ -109,42 +109,6 @@ def coingecko_request_market_chart(
     return response_json
 
 
-def fetch_currency_price(currency: Currency, date: datetime.date):
-    """Update historical prices for given currency and date using the CoinGecko API"""
-    response_json = coingecko_request_price_history(currency, date)
-
-    # Coin was unable to retrieved for some reason. e.g. deprecated (VEN)
-    if response_json is None:
-        if currency.symbol in settings.DEPRECATED_TOKENS:
-            return
-        # Note: Sometimes price is returned for a currency for no reason, trying again might help
-        raise MissingPriceError(f"Price not returned for {currency} on {date}")
-
-    # Coin was returned, but has no market data for the date. Maybe the coin is "too new"? (VTHO)
-    if "market_data" not in response_json:
-        for fiat_currency in all_fiat_currencies():
-            CurrencyPrice.objects.update_or_create(
-                currency=currency,
-                fiat=fiat_currency,
-                date=date,
-                defaults={"price": 0, "market_cap": 0, "volume": 0},
-            )
-        return
-
-    # Market data was returned
-    for fiat_currency in all_fiat_currencies():
-        CurrencyPrice.objects.update_or_create(
-            currency=currency,
-            fiat=fiat_currency,
-            date=date,
-            defaults={
-                "price": Decimal(str(response_json["market_data"]["current_price"][fiat_currency.symbol.lower()])),
-                "market_cap": Decimal(str(response_json["market_data"]["market_cap"][fiat_currency.symbol.lower()])),
-                "volume": Decimal(str(response_json["market_data"]["total_volume"][fiat_currency.symbol.lower()])),
-            },
-        )
-
-
 def fetch_currency_market_chart(currency: Currency) -> None:
     """Update historical prices for given currency and date using the CoinGecko API"""
     if (
