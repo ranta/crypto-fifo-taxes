@@ -67,7 +67,7 @@ class CoingeckoMarketChart(TypedDict):
 
 
 class MarketChartData(TypedDict):
-    timestamp: int
+    timestamp: datetime.datetime
     price: float
     market_cap: float
     volume: float
@@ -206,7 +206,7 @@ def fetch_currency_market_chart(currency: Currency) -> None:
 
         # Parse the response and to MarketChartData objects
         combined_market_chart_data = [
-            MarketChartData(timestamp=stamp, price=price, market_cap=market_cap, volume=volume)
+            MarketChartData(timestamp=from_timestamp(stamp), price=price, market_cap=market_cap, volume=volume)
             for (stamp, price), (__, market_cap), (__, volume) in zip(
                 response_json["prices"], response_json["market_caps"], response_json["total_volumes"]
             )
@@ -217,7 +217,7 @@ def fetch_currency_market_chart(currency: Currency) -> None:
             _, created = CurrencyPrice.objects.update_or_create(
                 currency=currency,
                 fiat=fiat_currency,
-                date=from_timestamp(market_chart_data["timestamp"]),
+                date=market_chart_data["timestamp"],
                 defaults={
                     "price": Decimal(str(market_chart_data["price"])),
                     "market_cap": Decimal(str(market_chart_data["market_cap"])),
