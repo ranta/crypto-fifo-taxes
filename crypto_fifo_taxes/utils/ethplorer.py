@@ -4,6 +4,8 @@ from functools import lru_cache
 import requests
 from django.conf import settings
 
+from crypto_fifo_taxes.exceptions import EtherscanException
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,10 +36,16 @@ class EtherscanClient:
         url = f"https://api.ethplorer.io/getTxInfo/{tx_id}?apiKey={self.api_key}"
         return requests.get(url, timeout=10).json()
 
+    def _is_real_tx_id(self, tx_id: str) -> bool:
+        return len(tx_id) == 66 and tx_id.startswith("0x")
+
     def is_tx_from_mining_pool(self, tx_id: str) -> bool:
+        if not self._is_real_tx_id(tx_id):
+            return False
+
         tx_info = self.get_tx_info(tx_id)
         if "error" in tx_info:
-            raise tx_info
+            raise EtherscanException(tx_info, tx_id)
         if "from" in tx_info:
             from_address = tx_info["from"]
             return from_address in self.known_pool_addresses

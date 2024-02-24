@@ -26,5 +26,9 @@ class CoinGeckoMissingCurrency(Exception):
     pass
 
 
+class EtherscanException(Exception):
+    pass
+
+
 class InvalidImportRowException(Exception):
     pass
