@@ -65,7 +65,7 @@ def coingecko_request_market_chart(currency: Currency, vs_currency: Currency, st
     assert currency.cg_id is not None
     assert vs_currency.cg_id is not None
 
-    days = (datetime.now().date() - start_date).days
+    days = (timezone.now().date() - start_date).days
     api_url = (
         f"https://api.coingecko.com/api/v3/coins/{currency.cg_id}/market_chart?"
         f"vs_currency={vs_currency.cg_id}&days={days}&interval=daily"
