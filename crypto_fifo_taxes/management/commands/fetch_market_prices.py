@@ -58,17 +58,14 @@ class Command(BaseCommand):
         currencies = self.get_required_currencies()
         count = currencies.count()
         logger.info(
-            f"Fetching market data since {self.start_date} for {count} currencies: "
+            f"Fetching market data starting from {self.start_date} for {count} currencies: "
             f"{', '.join(currencies.values_list('symbol', flat=True))}"
         )
         for i, currency in enumerate(currencies):
+            logger.info(f"Fetching market data for {currency.symbol} {(i + 1) / count * 100:>5.2f}% ({i+1}/{count})")
             first_transaction_date = currency.transaction_details.order_by("tx_timestamp").first()
             if first_transaction_date is not None:
                 first_transaction_date = first_transaction_date.tx_timestamp.date()
-            logger.info(
-                f"Fetching market chart prices for {currency.symbol} starting from {first_transaction_date}. "
-                f"{(i + 1) / count * 100:>5.2f}%",
-            )
             fetch_currency_market_chart(currency, start_date=first_transaction_date or self.start_date)
 
     def handle(self, *args, **kwargs):

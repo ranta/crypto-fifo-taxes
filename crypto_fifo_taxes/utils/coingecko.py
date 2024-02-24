@@ -21,6 +21,8 @@ MarketChartData = namedtuple("MarketChartData", "timestamp price market_cap volu
 
 def retry_get_request_until_ok(url: str) -> dict | None:
     while True:
+        logger.debug(f"Fetching {url}")
+
         response = requests.get(url, timeout=10)
 
         if response.status_code == 200:
@@ -69,6 +71,10 @@ def coingecko_request_market_chart(currency: Currency, vs_currency: Currency, st
     api_url = (
         f"https://api.coingecko.com/api/v3/coins/{currency.cg_id}/market_chart?"
         f"vs_currency={vs_currency.cg_id}&days={days}&interval=daily"
+    )
+    logger.info(
+        f"Fetching market chart prices for {currency.symbol} "
+        f"starting from {start_date} ({days} days) in {vs_currency.symbol}."
     )
     return retry_get_request_until_ok(api_url)
 
@@ -131,17 +137,22 @@ def fetch_currency_market_chart(currency: Currency, start_date: datetime.date | 
         existing_prices_count = currency_price_qs.count()
         delta_days = (timezone.now().date() - start_date).days + 1
         if existing_prices_count == delta_days:
+            # We already have all dates between given start_date and today
+            logger.debug(
+                f"Already have all prices for {currency} "
+                f"starting from {start_date} in {fiat_currency.symbol}, skipping."
+            )
             continue
 
-        # Check if we can query less dates than was requested
-        latest_currency_price = currency_price_qs.order_by("-date").first()
-        if latest_currency_price is not None:
-            existing_prices_count = currency_price_qs.filter(date__lt=latest_currency_price.date).count()
-            delta_days = (latest_currency_price.date - start_date).days + 1
-            if existing_prices_count == delta_days:
-                # We already have all dates between given start_date and latest saved CurrencyPrice saved in DB
-                # Only fetch prices for dates after latest saved CurrencyPrice
-                start_date = latest_currency_price.date
+        # Check if we can fetch fewer dates than was requested.
+        # If we have all dates between given start_date and latest saved CurrencyPrice saved in DB
+        # Only fetch prices for dates after latest saved CurrencyPrice
+        newest_currency_price = currency_price_qs.order_by("-date").first()
+        if newest_currency_price is not None:
+            prices_before_newest_price_count = currency_price_qs.filter(date__lt=newest_currency_price.date).count()
+            delta_days = (newest_currency_price.date - start_date).days + 1
+            if prices_before_newest_price_count == delta_days:
+                start_date = newest_currency_price.date
 
         response_json = coingecko_request_market_chart(currency, fiat_currency, start_date)
 
@@ -161,6 +172,7 @@ def fetch_currency_market_chart(currency: Currency, start_date: datetime.date | 
                 response_json["prices"], response_json["market_caps"], response_json["total_volumes"]
             )
         ]
+
         for market_data in combined_market_data:
             CurrencyPrice.objects.update_or_create(
                 currency=currency,
@@ -172,3 +184,7 @@ def fetch_currency_market_chart(currency: Currency, start_date: datetime.date | 
                     "volume": Decimal(str(market_data.volume)),
                 },
             )
+        logger.info(
+            f"Created {currency_price_qs.count() - existing_prices_count} new prices "
+            f"for {currency} in {fiat_currency.symbol}."
+        )
