@@ -24,3 +24,7 @@ class TooManyResultsError(Exception):
 
 class CoinGeckoMissingCurrency(Exception):
     pass
+
+
+class InvalidImportRowException(Exception):
+    pass

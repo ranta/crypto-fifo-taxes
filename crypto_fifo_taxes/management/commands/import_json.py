@@ -9,6 +9,7 @@ from django.core.management import BaseCommand
 from django.db.transaction import atomic
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
+from crypto_fifo_taxes.exceptions import InvalidImportRowException
 from crypto_fifo_taxes.models import Transaction, Wallet
 from crypto_fifo_taxes.utils.binance.binance_api import bstrptime, to_timestamp
 from crypto_fifo_taxes.utils.currency import get_or_create_currency
@@ -93,6 +94,13 @@ class Command(BaseCommand):
             if tx_id in existing_transactions:
                 self.update_existing_transaction(row, tx_id)
                 continue
+
+            if not row.get("timestamp"):
+                logger.error(
+                    f"Missing timestamp or wallet in row: '{row}'. "
+                    f"Did you try to update an existing transaction which is not yet imported?"
+                )
+                raise InvalidImportRowException("Missing timestamp or wallet in row.")
 
             wallets = self.get_wallets(row)
             tx_creator = TransactionCreator(
