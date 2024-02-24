@@ -113,21 +113,18 @@ def fetch_currency_price(currency: Currency, date: datetime.date):
 
 def fetch_currency_market_chart(currency: Currency, start_date: datetime.date | None = None):
     """Update historical prices for given currency and date using the CoinGecko API"""
-    if currency.is_fiat:
-        return
-
-    # Use the date of the first transaction with the currency as the default start date
     if (
-        start_date is None
-        and (first_detail := currency.transaction_details.order_by("tx_timestamp").first()) is not None
+        currency.is_fiat
+        or currency.symbol.lower() in settings.DEPRECATED_TOKENS
+        or currency.symbol in settings.COINGECKO_ASSUME_ZERO_PRICE_TOKENS
     ):
-        start_date = first_detail.tx_timestamp.date()
-
-    if currency.symbol.lower() in settings.DEPRECATED_TOKENS:
         return
 
-    if currency.symbol in settings.COINGECKO_ASSUME_ZERO_PRICE_TOKENS:
-        return
+    # Default to the first transaction date with the currency if `start_date` is not defined
+    if start_date is None:
+        first_detail = currency.transaction_details.order_by("tx_timestamp").first()
+        if first_detail is not None:
+            start_date = first_detail.tx_timestamp.date()
 
     for fiat_symbol in settings.ALL_FIAT_CURRENCIES:
         fiat = get_currency(fiat_symbol)
