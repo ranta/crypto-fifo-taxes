@@ -65,10 +65,7 @@ class Command(BaseCommand):
         )
         for i, currency in enumerate(currencies):
             logger.info(f"Fetching market data for {currency.symbol} {(i + 1) / count * 100:>5.2f}% ({i+1}/{count})")
-            first_transaction_date = currency.transaction_details.order_by("tx_timestamp").first()
-            if first_transaction_date is not None:
-                first_transaction_date = first_transaction_date.tx_timestamp.date()
-            fetch_currency_market_chart(currency, start_date=first_transaction_date or self.start_date)
+            fetch_currency_market_chart(currency)
 
     def handle(self, *args, **kwargs):
         self.mode = kwargs.pop("mode", None)

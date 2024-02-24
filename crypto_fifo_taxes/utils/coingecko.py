@@ -1,9 +1,9 @@
 import datetime
 import logging
 import time
-from collections import namedtuple
 from decimal import Decimal
 from functools import lru_cache
+from typing import TypedDict
 
 import requests
 from django.conf import settings
@@ -15,8 +15,6 @@ from crypto_fifo_taxes.utils.binance.binance_api import from_timestamp
 from crypto_fifo_taxes.utils.currency import all_fiat_currencies
 
 logger = logging.getLogger(__name__)
-
-MarketChartData = namedtuple("MarketChartData", "timestamp price market_cap volume")
 
 
 def retry_get_request_until_ok(url: str) -> dict | None:
@@ -62,8 +60,25 @@ def coingecko_request_price_history(currency: Currency, date: datetime.date) -> 
     return retry_get_request_until_ok(api_url)
 
 
+class CoingeckoMarketChart(TypedDict):
+    prices: list[list[int, float]]
+    market_caps: list[list[int, float]]
+    total_volumes: list[list[int, float]]
+
+
+class MarketChartData(TypedDict):
+    timestamp: int
+    price: float
+    market_cap: float
+    volume: float
+
+
 @lru_cache
-def coingecko_request_market_chart(currency: Currency, vs_currency: Currency, start_date: datetime.date) -> dict:
+def coingecko_request_market_chart(
+    currency: Currency,
+    vs_currency: Currency,
+    start_date: datetime.date,
+) -> CoingeckoMarketChart:
     assert currency.cg_id is not None
     assert vs_currency.cg_id is not None
 
@@ -76,7 +91,20 @@ def coingecko_request_market_chart(currency: Currency, vs_currency: Currency, st
         f"Fetching market chart prices for {currency.symbol} "
         f"starting from {start_date} ({days} days) in {vs_currency.symbol}."
     )
-    return retry_get_request_until_ok(api_url)
+
+    response_json = retry_get_request_until_ok(api_url)
+
+    # Coin was unable to retrieved for some reason. e.g. deprecated (VEN)
+    if response_json is None:
+        # Retry once, as sometimes there are errors fetching data
+        response_json = retry_get_request_until_ok(api_url)
+        if response_json is None:
+            raise MissingPriceError(f"Market chart not returned for {currency} starting from {start_date}.")
+
+    if "prices" not in response_json:
+        raise MissingPriceError(f"Market chart for {currency} starting from {start_date} didn't include prices.")
+
+    return response_json
 
 
 def fetch_currency_price(currency: Currency, date: datetime.date):
@@ -115,76 +143,73 @@ def fetch_currency_price(currency: Currency, date: datetime.date):
         )
 
 
-def fetch_currency_market_chart(currency: Currency, start_date: datetime.date | None = None):
+def fetch_currency_market_chart(currency: Currency) -> None:
     """Update historical prices for given currency and date using the CoinGecko API"""
     if (
         currency.is_fiat
         or currency.symbol.lower() in settings.DEPRECATED_TOKENS
         or currency.symbol in settings.COINGECKO_ASSUME_ZERO_PRICE_TOKENS
     ):
+        logger.info(f"Skipping currency {currency}.")
         return
 
-    # Default to the first transaction date with the currency if `start_date` is not defined
-    if start_date is None:
-        first_detail = currency.transaction_details.order_by("tx_timestamp").first()
-        if first_detail is not None:
-            start_date = first_detail.tx_timestamp.date()
+    # First transaction date for the currency
+    first_transaction_details = currency.transaction_details.order_by("tx_timestamp").first()
+    if first_transaction_details is None:
+        logger.debug(f"Currency {currency} has no transactions, so we don't need to fetch historical prices for it.")
+        return
+
+    first_transaction_date = first_transaction_details.tx_timestamp.date()
 
     for fiat_currency in all_fiat_currencies():
-        currency_price_qs = CurrencyPrice.objects.filter(fiat=fiat_currency, currency=currency, date__gte=start_date)
+        currency_price_qs = CurrencyPrice.objects.filter(
+            fiat=fiat_currency,
+            currency=currency,
+            date__gte=first_transaction_date,
+        )
 
-        # Check if required prices already exist in db
-        existing_prices_count = currency_price_qs.count()
-        delta_days = (timezone.now().date() - start_date).days + 1
-        if existing_prices_count == delta_days:
-            # We already have all dates between given start_date and today
-            logger.debug(
-                f"Already have all prices for {currency} "
-                f"starting from {start_date} in {fiat_currency.symbol}, skipping."
-            )
+        # Days between first transaction and today
+        num_days_required = (timezone.now().date() - first_transaction_date).days
+        currency_prices_count = currency_price_qs.count()
+        # If we have as many prices saved as the number of days between first transaction and today, we have all prices.
+        if currency_prices_count == num_days_required:
+            logger.debug(f"Already have all prices for {currency} in {fiat_currency.symbol}.")
             continue
 
-        # Check if we can fetch fewer dates than was requested.
-        # If we have all dates between given start_date and latest saved CurrencyPrice saved in DB
-        # Only fetch prices for dates after latest saved CurrencyPrice
-        newest_currency_price = currency_price_qs.order_by("-date").first()
-        if newest_currency_price is not None:
-            prices_before_newest_price_count = currency_price_qs.filter(date__lt=newest_currency_price.date).count()
-            delta_days = (newest_currency_price.date - start_date).days + 1
-            if prices_before_newest_price_count == delta_days:
-                start_date = newest_currency_price.date
+        # Start fetching prices from the first transaction date
+        start_date = first_transaction_date
 
-        response_json = coingecko_request_market_chart(currency, fiat_currency, start_date)
+        # We have some prices saved, but not all. Check if we can fetch fewer days from the API.
+        if currency_prices_count > 0:
+            latest_currency_price = currency_price_qs.order_by("-date").first()
 
-        # Coin was unable to retrieved for some reason. e.g. deprecated (VEN)
-        if response_json is None:
-            # Retry once, as sometimes there are errors fetching data
-            response_json = coingecko_request_market_chart(currency, fiat_currency, start_date)
-            if response_json is None:
-                raise MissingPriceError(f"Market chart not returned for {currency} starting from {start_date}.")
+            num_days_expected = (timezone.now().date() - latest_currency_price.date).days
+            if num_days_required == num_days_expected:
+                # All dates between first_transaction_date and latest saved CurrencyPrice are in DB, so we can safely
+                # start fetching prices from the latest saved CurrencyPrice instead.
+                start_date = latest_currency_price.date + datetime.timedelta(days=1)
 
-        if "prices" not in response_json:
-            raise MissingPriceError(f"Market chart for {currency} starting from {start_date} didn't include prices.")
-
-        combined_market_data = [
-            MarketChartData(stamp, price, cap, volume)
-            for (stamp, price), (__, cap), (__, volume) in zip(
+        response_json: CoingeckoMarketChart = coingecko_request_market_chart(currency, fiat_currency, start_date)
+        # Parse the response and to MarketChartData objects
+        combined_market_chart_data = [
+            MarketChartData(timestamp=stamp, price=price, market_cap=market_cap, volume=volume)
+            for (stamp, price), (__, market_cap), (__, volume) in zip(
                 response_json["prices"], response_json["market_caps"], response_json["total_volumes"]
             )
         ]
 
-        for market_data in combined_market_data:
-            CurrencyPrice.objects.update_or_create(
+        created_count = 0
+        for market_chart_data in combined_market_chart_data:
+            _, created = CurrencyPrice.objects.update_or_create(
                 currency=currency,
                 fiat=fiat_currency,
-                date=from_timestamp(market_data.timestamp),
+                date=from_timestamp(market_chart_data["timestamp"]),
                 defaults={
-                    "price": Decimal(str(market_data.price)),
-                    "market_cap": Decimal(str(market_data.market_cap)),
-                    "volume": Decimal(str(market_data.volume)),
+                    "price": Decimal(str(market_chart_data["price"])),
+                    "market_cap": Decimal(str(market_chart_data["market_cap"])),
+                    "volume": Decimal(str(market_chart_data["volume"])),
                 },
             )
-        logger.info(
-            f"Created {currency_price_qs.count() - existing_prices_count} new prices "
-            f"for {currency} in {fiat_currency.symbol}."
-        )
+            if created:
+                created_count += 1
+        logger.info(f"Created {created_count} new prices for {currency} in {fiat_currency.symbol}.")
