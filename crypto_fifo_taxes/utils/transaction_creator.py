@@ -40,7 +40,7 @@ class TransactionCreator:
         tx_id: str | None = "",
         type=TransactionType.UNKNOWN,
         label=TransactionLabel.UNKNOWN,
-        fill_cost_basis: bool = True,
+        fill_cost_basis: bool = False,
     ):
         self.timestamp: datetime | None = timestamp
         self.description: str = description
@@ -184,6 +184,7 @@ class TransactionCreator:
         )
         transaction.save()
 
+        # TODO: Deprecate fill_cost_basis in TransactionCreator in favor adding a separate Cost Basis helper class
         if self.fill_cost_basis:
             transaction.fill_cost_basis()
 

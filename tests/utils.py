@@ -56,12 +56,12 @@ class WalletHelper:
         return self.tx_time.date()
 
     def deposit(self, currency, quantity, timestamp=None):
-        tx_creator = TransactionCreator(timestamp=_set_timezone(timestamp) or self.tx_time.next())
+        tx_creator = TransactionCreator(timestamp=_set_timezone(timestamp) or self.tx_time.next(), fill_cost_basis=True)
         tx_creator.to_detail = TransactionDetailFactory.build(wallet=self.wallet, currency=currency, quantity=quantity)
         return tx_creator.create_deposit()
 
     def withdraw(self, currency, quantity, timestamp=None):
-        tx_creator = TransactionCreator(timestamp=_set_timezone(timestamp) or self.tx_time.next())
+        tx_creator = TransactionCreator(timestamp=_set_timezone(timestamp) or self.tx_time.next(), fill_cost_basis=True)
         tx_creator.from_detail = TransactionDetailFactory.build(
             wallet=self.wallet, currency=currency, quantity=quantity
         )
@@ -77,7 +77,7 @@ class WalletHelper:
         fee_currency_quantity: Decimal | int | None = None,
         timestamp: datetime | None = None,
     ):
-        tx_creator = TransactionCreator(timestamp=_set_timezone(timestamp) or self.tx_time.next())
+        tx_creator = TransactionCreator(timestamp=_set_timezone(timestamp) or self.tx_time.next(), fill_cost_basis=True)
         tx_creator.from_detail = TransactionDetailFactory.build(
             wallet=self.wallet, currency=from_currency, quantity=from_currency_quantity
         )
