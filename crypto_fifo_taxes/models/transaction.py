@@ -165,22 +165,19 @@ class Transaction(models.Model):
 
     def _handle_to_trade_crypto_to_crypto_cost_basis(self) -> None:
         # Get currency's FIAT price
-        currency_value = self.to_detail.currency.get_fiat_price(self.timestamp, self.to_detail.wallet.fiat)
+        try:
+            currency_value = self.to_detail.currency.get_fiat_price(self.timestamp, self.to_detail.wallet.fiat)
+            self.to_detail.cost_basis = currency_value.price
+        except MissingPriceHistoryError:
+            # Price was unable to be retrieved from the CoinGecko API
+            # If the 'to' currency is deprecated, preserve the cost basis of the currency it was traded from
+            is_deprecated = self.to_detail.currency.symbol.lower() in settings.COINGECKO_DEPRECATED_TOKENS
+            if not is_deprecated:
+                raise
 
-        if currency_value is None:
-            # Token is deprecated and not available in the API, use closest possible known value instead
-            if self.to_detail.currency.symbol.lower() in settings.DEPRECATED_TOKENS:
-                self.to_detail.cost_basis = (
-                    self.from_detail.quantity * self._get_detail_cost_basis(self.from_detail)[0]
-                ) / self.to_detail.quantity
-                self.to_detail.save()
-                return
+            calculated_from_detail_total_value = self.from_detail.quantity * self._get_from_detail_cost_basis()[0]
+            self.to_detail.cost_basis = calculated_from_detail_total_value / self.to_detail.quantity
 
-            raise MissingPriceHistoryError(
-                f"Currency: `{self.from_detail.currency}` does not have a price for {self.timestamp.date()} "
-                f"in {self.from_detail.wallet.fiat}"
-            )
-        self.to_detail.cost_basis = currency_value.price
         self.to_detail.save()
 
     def _handle_from_crypto_cost_basis(self) -> bool:
