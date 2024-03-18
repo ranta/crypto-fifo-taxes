@@ -26,6 +26,17 @@ class Command(BaseCommand):
                 },
             )
 
+        # Create all predefined currencies
+        for symbol, data in settings.COINGECKO_MAPPED_CRYPTO_CURRENCIES.items():
+            Currency.objects.update_or_create(
+                symbol=symbol,
+                defaults={
+                    "name": data["name"],
+                    "cg_id": data["cg_id"],
+                    "is_fiat": False,
+                },
+            )
+
         # Create admin user
         admin_user, admin_created = User.objects.get_or_create(
             username="admin",

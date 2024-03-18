@@ -111,28 +111,84 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Default FIAT currency. Used if when no other currency is defined
 DEFAULT_FIAT_SYMBOL = "EUR"
 
-# Save records for these currencies
 ALL_FIAT_CURRENCIES = {
     "EUR": {"name": "Euro", "cg_id": "eur"},
     "USD": {"name": "US Dollar", "cg_id": "usd"},
 }
 
-# The following symbols are ignored when importing dividends
-IGNORED_TOKENS = [
-    "JEX",  # Not worth anything, Coingecko doesn't even have any price history data on this
-    "EDG",  # Unable to be traded in Binance
-]
-
-# The following symbols are ignored when getting prices from coingecko, a price of 0 is assumed instead
-COINGECKO_ASSUME_ZERO_PRICE_TOKENS = [
-    "MC",  # Margin-call - Price is missing in Coingecko
-]
-
-# Tokens that have been deprecated and are not found in CoinGecko anymore, but still have trades that should be imported
-DEPRECATED_TOKENS = {
-    "ven": {"id": "vechain-old", "symbol": "ven", "name": "VeChain OLD"},
-    "wabi": {"id": "wabi", "symbol": "wabi", "name": "Wabi"},  # Price is missing in Coingecko
-    "bcpt": {"id": "bcpt", "symbol": "bcpt", "name": "Blockmason Credit Protocol"},  # Price is missing in Coingecko
+# Due to CoinGecko allowing multiple ids for the same currency, we need to map the ids to the correct currency.
+# Not all currencies need to be mapped, but it helps to prevent errors when fetching prices.
+COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
+    # STABLECOINS
+    "USDT": {"name": "Tether", "cg_id": "tether"},
+    "USDC": {"name": "USDC", "cg_id": "usd-coin"},
+    "FDUSD": {"name": "First Digital USD", "cg_id": "first-digital-usd"},
+    "BUSD": {"name": "Binance USD", "cg_id": "binance-usd"},
+    # CRYPTO
+    "AAVE": {"name": "Aave", "cg_id": "aave"},
+    "ACE": {"name": "Fusionist", "cg_id": "endurance"},
+    "ADA": {"name": "Cardano", "cg_id": "cardano"},
+    "AI": {"name": "Sleepless AI", "cg_id": "sleepless-ai"},
+    "ALICE": {"name": "My Neighbor Alice", "cg_id": "my-neighbor-alice"},
+    "ALT": {"name": "AltLayer", "cg_id": "altlayer"},
+    "ANC": {"name": "Anchor Protocol", "cg_id": "anchor-protocol"},
+    "ATA": {"name": "ATA Token", "cg_id": "automata"},
+    "ATOM": {"name": "Cosmos Hub", "cg_id": "cosmos"},
+    "AVAX": {"name": "Avalanche", "cg_id": "avalanche-2"},
+    "BCPT": {"name": "Blockmason Credit Protocol", "cg_id": "blockmason-credit-protocol"},  # Not in coingecko
+    "BEL": {"name": "Bella Protocol", "cg_id": "bella-protocol"},
+    "BETH": {"name": "Binance ETH staking", "cg_id": "binance-eth"},
+    "BNB": {"name": "Binance Coin", "cg_id": "binancecoin"},
+    "BTC": {"name": "Bitcoin", "cg_id": "bitcoin"},
+    "BTCST": {"name": "BTC Standard Hashrate Token", "cg_id": "btc-standard-hashrate-token"},
+    "CITY": {"name": "City Coin", "cg_id": "manchester-city-fan-token"},
+    "CYBER": {"name": "CyberConnect", "cg_id": "cyberconnect"},
+    "DAR": {"name": "Mines of Dalarnia", "cg_id": "mines-of-dalarnia"},
+    "DODO": {"name": "DODO", "cg_id": "dodo"},
+    "DOGE": {"name": "Dogecoin", "cg_id": "dogecoin"},
+    "DOT": {"name": "Polkadot", "cg_id": "polkadot"},
+    "EDG": {"name": "Edgeware", "cg_id": "edgeware"},
+    "ETH": {"name": "Ethereum", "cg_id": "ethereum"},
+    "ETHW": {"name": "EthereumPoW", "cg_id": "ethereum-pow-iou"},
+    "GAL": {"name": "Galatasaray Fan Token", "cg_id": "galatasaray-fan-token"},
+    "GFO": {"name": "Gifto", "cg_id": "gifto"},  # Previously GTO
+    "HBAR": {"name": "Hedera", "cg_id": "hedera-hashgraph"},
+    "HFT": {"name": "Hashflow", "cg_id": "hashflow"},
+    "HIGH": {"name": "Highstreet", "cg_id": "highstreet"},
+    "ICP": {"name": "Internet Computer", "cg_id": "internet-computer"},
+    "KLAY": {"name": "Klaytn", "cg_id": "klay-token"},
+    "LINK": {"name": "Chainlink", "cg_id": "chainlink"},
+    "LIT": {"name": "Litentry", "cg_id": "litentry"},
+    "LRC": {"name": "Loopring", "cg_id": "loopring"},
+    "MANTA": {"name": "Manta Network", "cg_id": "manta-network"},
+    "MATIC": {"name": "Polygon", "cg_id": "matic-network"},
+    "MAV": {"name": "Maverick Protocol", "cg_id": "maverick-protocol"},
+    "MBOX": {"name": "Mobox", "cg_id": "mobox"},
+    "MC": {"name": "Merit Circle", "cg_id": "merit-circle"},
+    "MEME": {"name": "Memecoin", "cg_id": "memecoin-2"},
+    "IOTA": {"name": "IOTA", "cg_id": "iota"},  # Previously MIOTA
+    "XNO": {"name": "Nano", "cg_id": "nano"},  # Previously NANO
+    "NAV": {"name": "Navcoin", "cg_id": "nav-coin"},
+    "NFP": {"name": "NFPrompt", "cg_id": "nfprompt-token"},
+    "NTRN": {"name": "Neutron", "cg_id": "neutron-3"},
+    "PENDLE": {"name": "Pendle", "cg_id": "pendle"},
+    "QI": {"name": "BENQI", "cg_id": "benqi"},
+    "RDNT": {"name": "Radiant Capital", "cg_id": "radiant-capital"},
+    "RVN": {"name": "Ravencoin", "cg_id": "ravencoin"},
+    "SANTOS": {"name": "Santos FC Fan Token", "cg_id": "santos-fc-fan-token"},
+    "SEI": {"name": "Sei", "cg_id": "sei-network"},
+    "SOL": {"name": "Solana", "cg_id": "solana"},
+    "SUI": {"name": "Sui", "cg_id": "sui"},
+    "SXP": {"name": "Sxp", "cg_id": "sxp"},
+    "TLM": {"name": "Alien Worlds", "cg_id": "alien-worlds"},
+    "VET": {"name": "VeChain", "cg_id": "vechain"},  # Previously VEN
+    "VTHO": {"name": "VeThor", "cg_id": "vethor-token"},
+    "WABI": {"name": "Wabi", "cg_id": "wabi"},  # No longer exists in Coingecko
+    "WING": {"name": "Wing Finance", "cg_id": "wing-finance"},
+    "XAI": {"name": "Xai", "cg_id": "xai-3"},
+    "XLM": {"name": "Stellar", "cg_id": "stellar"},
+    "XMR": {"name": "Monero", "cg_id": "monero"},
+    "XRP": {"name": "XRP", "cg_id": "ripple"},
 }
 
 # Symbols that have changed their symbols
@@ -143,8 +199,22 @@ RENAMED_SYMBOLS = {
     "NANO": "XNO",
     "MIOTA": "IOTA",
     "GTO": "GFT",
+    "VEN": "VET",
 }
 
+# Tokens that have been deprecated and are not found in CoinGecko anymore, but
+# previously used to have some value and have existing trades, which means that they should still be imported.
+COINGECKO_DEPRECATED_TOKENS = {
+    "ven": {"id": "vechain-old", "symbol": "ven", "name": "VeChain OLD"},
+    "wabi": {"id": "wabi", "symbol": "wabi", "name": "Wabi"},  # Price is missing in Coingecko
+    "bcpt": {"id": "bcpt", "symbol": "bcpt", "name": "Blockmason Credit Protocol"},  # Price is missing in Coingecko
+}
+
+# The following symbols are ignored when importing dividends
+IGNORED_TOKENS = [
+    "JEX",  # Not worth anything, Coingecko doesn't even have any price history data on this
+    "EDG",  # Unable to be traded in Binance
+]
 
 # Add coins currently in locked staking / locked savings, as they are not retrievable from any api endpoint
 # These values are added to `get_binance_wallet_balance` output

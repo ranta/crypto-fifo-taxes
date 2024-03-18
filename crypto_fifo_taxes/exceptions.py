@@ -36,3 +36,7 @@ class CoinGeckoAPIException(Exception):
 
 class CoinGeckoMissingCurrency(CoinGeckoAPIException):
     pass
+
+
+class CoinGeckoMultipleMatchingCurrenciesCurrency(CoinGeckoAPIException):
+    pass

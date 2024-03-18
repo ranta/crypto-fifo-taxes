@@ -4,7 +4,7 @@ from functools import lru_cache
 from django.conf import settings
 from django.db import IntegrityError
 
-from crypto_fifo_taxes.exceptions import CoinGeckoMissingCurrency
+from crypto_fifo_taxes.exceptions import CoinGeckoMissingCurrency, CoinGeckoMultipleMatchingCurrenciesCurrency
 from crypto_fifo_taxes.models import Currency, CurrencyPair
 
 logger = logging.getLogger(__name__)
@@ -78,6 +78,14 @@ def get_currency_data_from_coingecko_currency_list(symbol: str, cg_currency_list
         return x["symbol"] == symbol.lower() or x["id"] == symbol.lower()
 
     try:
+        matches = list(filter(currency_filter, cg_currency_list))
+        if len(matches) > 1:
+            logger.error(
+                f"Multiple matching currencies found for symbol '{symbol}' in CoinGecko API."
+                f"The correct data should be manually entered to 'COINGECKO_MAPPED_CRYPTO_CURRENCIES': {matches}"
+            )
+            msg = f"Multiple currencies found for symbol '{symbol}' in CoinGecko API."
+            raise CoinGeckoMultipleMatchingCurrenciesCurrency(msg)
         return next(filter(currency_filter, cg_currency_list))
     except StopIteration:
         # Currency was not found in CoinGecko currency list
@@ -92,6 +100,14 @@ def get_coingecko_id_for_symbol(symbol: str) -> dict:
     """
     from crypto_fifo_taxes.utils.coingecko import coingecko_get_currency_list
 
+    # Check if the symbol mapping is pre-defined in settings
+    if symbol in settings.COINGECKO_MAPPED_CRYPTO_CURRENCIES:
+        return {
+            "id": settings.COINGECKO_MAPPED_CRYPTO_CURRENCIES[symbol]["cg_id"],
+            "symbol": symbol,
+            "name": settings.COINGECKO_MAPPED_CRYPTO_CURRENCIES[symbol]["name"],
+        }
+
     cg_currency_list = coingecko_get_currency_list()
 
     currency_data = get_currency_data_from_coingecko_currency_list(symbol, cg_currency_list)
@@ -99,8 +115,8 @@ def get_coingecko_id_for_symbol(symbol: str) -> dict:
         return currency_data
 
     # If the currency is not found, check if it's a deprecated or renamed currency
-    if symbol.lower() in settings.DEPRECATED_TOKENS:
-        return settings.DEPRECATED_TOKENS[symbol.lower()]
+    if symbol.lower() in settings.COINGECKO_DEPRECATED_TOKENS:
+        return settings.COINGECKO_DEPRECATED_TOKENS[symbol.lower()]
     elif symbol in settings.RENAMED_SYMBOLS:
         # If the currency has been renamed, use the new symbol
         new_symbol = settings.RENAMED_SYMBOLS[symbol]
@@ -117,6 +133,10 @@ def get_or_create_currency(symbol: str) -> Currency:
     Return the currency object for the given symbol.
     If the currency does not exist, create it.
     """
+    symbol = symbol.upper()
+    if symbol in settings.RENAMED_SYMBOLS:
+        symbol = settings.RENAMED_SYMBOLS[symbol]
+
     try:
         return get_currency(symbol)
     except Currency.DoesNotExist:
@@ -124,14 +144,14 @@ def get_or_create_currency(symbol: str) -> Currency:
 
         try:
             return Currency.objects.get_or_create(
-                symbol=currency_data["symbol"].upper(),
+                symbol=symbol,
                 defaults={
                     "name": currency_data["name"],
                     "cg_id": currency_data["id"],
                 },
             )[0]
         except IntegrityError:
-            logger.warning(f"Currency `{currency_data['symbol'].upper()}` already exists in the database.")
+            logger.warning(f"Currency `{symbol}` already exists in the database.")
             raise
 
 
