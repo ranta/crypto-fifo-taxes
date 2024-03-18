@@ -211,37 +211,56 @@ class Transaction(models.Model):
         self.gain = Decimal(0)
         self.save()
 
+    def _handle_fiat_deposit_cost_basis(self) -> None:
+        # If deposit is FIAT, cost basis is always 1 (1 EUR == 1 EUR)
+        self.to_detail.cost_basis = Decimal(1)
+        self.gain = Decimal(0)
+        self.to_detail.save()
+        self.save()
+
     def _handle_deposit_cost_basis(self) -> None:
         """
-        If the funds came from `nowhere`, it 100% gains.
+        If the funds came from 'nowhere', it is always 100% gains.
         Deposits can be from e.g. Staking or Mining.
         """
-        if self.to_detail.currency.is_fiat:
-            self.to_detail.cost_basis = Decimal(1)
-            self.gain = Decimal(0)
-        else:
-            currency_value = self.to_detail.currency.get_fiat_price(self.timestamp, self.to_detail.wallet.fiat).price
+        try:
+            fiat_price = self.to_detail.currency.get_fiat_price(self.timestamp, self.to_detail.wallet.fiat)
+            currency_value = fiat_price.price
             self.to_detail.cost_basis = currency_value
             self.gain = currency_value * self.to_detail.quantity
+        except MissingPriceHistoryError:
+            # Price was unable to be retrieved from the CoinGecko API
+            # If the 'to' currency is deprecated, preserve the cost basis of the currency it was traded from
+            is_deprecated = self.to_detail.currency.symbol.lower() in settings.COINGECKO_DEPRECATED_TOKENS
+            if not is_deprecated:
+                raise
+
+            self.gain = Decimal(0)
+            if self.from_detail:
+                calculated_from_detail_total_value = self.from_detail.quantity * self._get_from_detail_cost_basis()[0]
+                self.to_detail.cost_basis = calculated_from_detail_total_value / self.to_detail.quantity
+            else:
+                self.to_detail.cost_basis = Decimal(0)
 
         self.to_detail.save()
+        self.save()
+
+    def _handle_fiat_withdrawal_cost_basis(self) -> None:
+        """Funds are e.g. withdrawn to a bank account, which does not realize any gains."""
+        self.from_detail.cost_basis = Decimal(1)
+        self.gain = Decimal(0)
+        self.from_detail.save()
         self.save()
 
     def _handle_withdrawal_cost_basis(self) -> None:
         """
         Funds are sent to some third party entity (e.g. Paying for goods and services directly with crypto),
         which realizes any profits made from value appreciation (use `transfer` if moving funds between wallets)
-        or withdrawn to a bank account (if fiat), which does not realize any gains.
         """
-        if self.from_detail.currency.is_fiat:
-            self.from_detail.cost_basis = Decimal(1)
-            self.gain = Decimal(0)
-        else:
-            sell_price = self.from_detail.currency.get_fiat_price(self.timestamp, self.from_detail.wallet.fiat).price
-            from_cost_basis, only_hmo_used = self._get_from_detail_cost_basis(sell_price=sell_price)
-            self.from_detail.cost_basis = from_cost_basis
-            self.gain = (sell_price - from_cost_basis) * self.from_detail.quantity
-
+        sell_price = self.from_detail.currency.get_fiat_price(self.timestamp, self.from_detail.wallet.fiat).price
+        from_cost_basis, only_hmo_used = self._get_from_detail_cost_basis(sell_price=sell_price)
+        self.from_detail.cost_basis = from_cost_basis
+        self.gain = (sell_price - from_cost_basis) * self.from_detail.quantity
         self.from_detail.save()
         self.save()
 
@@ -252,6 +271,7 @@ class Transaction(models.Model):
 
     @atomic()
     def fill_cost_basis(self) -> None:
+        # TODO: Refactor Cost Basis calculation to a separate helper class
         only_hmo_used = False
 
         # Trade / Transfer / Swap
@@ -278,11 +298,17 @@ class Transaction(models.Model):
 
         # Deposit
         if self.from_detail is None and self.to_detail is not None:
-            self._handle_deposit_cost_basis()
+            if self.to_detail.currency.is_fiat:
+                self._handle_fiat_deposit_cost_basis()
+            else:
+                self._handle_deposit_cost_basis()
 
         # Withdrawal
         if self.from_detail is not None and self.to_detail is None:
-            self._handle_withdrawal_cost_basis()
+            if self.from_detail.currency.is_fiat:
+                self._handle_fiat_withdrawal_cost_basis()
+            else:
+                self._handle_withdrawal_cost_basis()
 
         # Fees
         if self.fee_detail is not None:
@@ -297,7 +323,8 @@ class Transaction(models.Model):
     @atomic()
     def add_detail(self, type: str, wallet: "Wallet", currency: "Currency", quantity: Decimal):
         assert type in ["from_detail", "to_detail", "fee_detail"]
-        detail = getattr(self, type, None)
+
+        detail: TransactionDetail | None = getattr(self, type, None)
         if detail is not None:  # Update
             detail.wallet = wallet
             detail.currency = currency
