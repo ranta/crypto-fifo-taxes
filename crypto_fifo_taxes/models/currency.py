@@ -43,7 +43,8 @@ class Currency(models.Model):
         return f"{self.name} ({self.symbol})"
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} ({self.pk}): {self.name} [{'FIAT' if self.is_fiat else 'NON-FIAT'}]>"
+        fiat_str = " [FIAT]" if self.is_fiat else ""
+        return f"<{self.__class__.__name__} ({self.pk}): {self.name} ({self.symbol}){fiat_str}>"
 
     def get_fiat_price(
         self,
