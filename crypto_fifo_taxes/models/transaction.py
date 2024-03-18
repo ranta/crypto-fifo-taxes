@@ -171,7 +171,7 @@ class Transaction(models.Model):
         except MissingPriceHistoryError:
             # Price was unable to be retrieved from the CoinGecko API
             # If the 'to' currency is deprecated, preserve the cost basis of the currency it was traded from
-            is_deprecated = self.to_detail.currency.symbol.lower() in settings.COINGECKO_DEPRECATED_TOKENS
+            is_deprecated = self.to_detail.currency.symbol in settings.COINGECKO_DEPRECATED_TOKENS
             if not is_deprecated:
                 raise
 
@@ -231,7 +231,7 @@ class Transaction(models.Model):
         except MissingPriceHistoryError:
             # Price was unable to be retrieved from the CoinGecko API
             # If the 'to' currency is deprecated, preserve the cost basis of the currency it was traded from
-            is_deprecated = self.to_detail.currency.symbol.lower() in settings.COINGECKO_DEPRECATED_TOKENS
+            is_deprecated = self.to_detail.currency.symbol in settings.COINGECKO_DEPRECATED_TOKENS
             if not is_deprecated:
                 raise
 

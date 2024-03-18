@@ -113,7 +113,7 @@ def fetch_currency_market_chart(currency: Currency) -> None:
     """Update historical prices for given currency and date using the CoinGecko API"""
     if (
         currency.is_fiat
-        or currency.symbol.lower() in settings.COINGECKO_DEPRECATED_TOKENS
+        or currency.symbol in settings.COINGECKO_DEPRECATED_TOKENS
         or currency.symbol in settings.IGNORED_TOKENS
     ):
         logger.debug(f"Skipping currency {currency}.")

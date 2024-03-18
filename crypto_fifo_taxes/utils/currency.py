@@ -114,15 +114,8 @@ def get_coingecko_id_for_symbol(symbol: str) -> dict:
     if currency_data is not None:
         return currency_data
 
-    # If the currency is not found, check if it's a deprecated or renamed currency
-    if symbol.lower() in settings.COINGECKO_DEPRECATED_TOKENS:
-        return settings.COINGECKO_DEPRECATED_TOKENS[symbol.lower()]
-    elif symbol in settings.RENAMED_SYMBOLS:
-        # If the currency has been renamed, use the new symbol
-        new_symbol = settings.RENAMED_SYMBOLS[symbol]
-        currency_data = get_currency_data_from_coingecko_currency_list(new_symbol, cg_currency_list)
-        if currency_data is not None:
-            return currency_data
+    if symbol in settings.COINGECKO_DEPRECATED_TOKENS:
+        return {"id": None, "symbol": symbol, "name": None}
 
     raise CoinGeckoMissingCurrency(f"Currency `{symbol}` not found in CoinGecko API")
 

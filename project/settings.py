@@ -205,9 +205,8 @@ RENAMED_SYMBOLS = {
 # Tokens that have been deprecated and are not found in CoinGecko anymore, but
 # previously used to have some value and have existing trades, which means that they should still be imported.
 COINGECKO_DEPRECATED_TOKENS = {
-    "ven": {"id": "vechain-old", "symbol": "ven", "name": "VeChain OLD"},
-    "wabi": {"id": "wabi", "symbol": "wabi", "name": "Wabi"},  # Price is missing in Coingecko
-    "bcpt": {"id": "bcpt", "symbol": "bcpt", "name": "Blockmason Credit Protocol"},  # Price is missing in Coingecko
+    "WABI"  # Wabi, Price is missing in Coingecko
+    "BCPT"  # Blockmason Credit Protocol, Price is missing in Coingecko
 }
 
 # The following symbols are ignored when importing dividends
