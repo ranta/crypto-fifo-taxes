@@ -118,12 +118,6 @@ class CurrencyPair(models.Model):
         related_name="sell_pairs",
     )
 
-    class Meta:
-        unique_together = (
-            "buy",
-            "sell",
-        )
-
     def __str__(self):
         return f"{self.symbol}"
 

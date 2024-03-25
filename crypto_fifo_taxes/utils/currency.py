@@ -149,7 +149,7 @@ def get_or_create_currency(symbol: str) -> Currency:
 
 
 @lru_cache
-def get_or_create_currency_pair(symbol: str, buy: Currency | str, sell: Currency | str) -> CurrencyPair:
+def get_or_create_currency_pair(symbol: str, buy: str, sell: str) -> CurrencyPair:
     return CurrencyPair.objects.get_or_create(
         symbol=symbol,
         defaults={
