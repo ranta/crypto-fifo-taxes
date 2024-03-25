@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Management{% endblock %}
+
+{% block content %}
+    <h1>Management</h1>
+
+    <h5>Stats</h5>
+    <ul>
+        <li>Latest transaction timestamp: <b>{{ latest_transaction_timestamp }}</b></li>
+        <li>Latest currency price date: <b>{{ latest_currency_price_date }}</b></li>
+        <li>Latest snapshot date: <b>{{ latest_snapshot_timestamp }}</b></li>
+    </ul>
+
+    <h5>Commands</h5>
+    <ul>
+        <li><form method="post" action="{% url 'fetch_transactions' %}">
+            {% csrf_token %}
+            <button type="submit">Fetch Transactions</button>
+        </form></li>
+        <li><form method="post" action="{% url 'fetch_prices' %}">
+            {% csrf_token %}
+            <button type="submit">Fetch Prices</button>
+        </form></li>
+        <li><form method="post" action="{% url 'calculate_snapshots' %}">
+            {% csrf_token %}
+            <button type="submit">Calculate Snapshots</button>
+        </form></li>
+    </ul>
+{% endblock %}
