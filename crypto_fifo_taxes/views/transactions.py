@@ -16,26 +16,24 @@ class TransactionListView(ListView):
 
     def get_page_title(self) -> str:
         query_params: QueryDict = self.request.GET
-        time = "year" in query_params and query_params["year"] and f"the year {query_params['year']}" or "all time"
-        tx_type = "mining" in query_params and "Mining" or "Capital gains"
-        return f"{tx_type} transactions for {time}"
+        time = "all time"
+        if year := query_params.get("year"):
+            time = f"the year {year}"
+        return f"Capital gains transactions for {time}"
 
     def filter_queryset(self, queryset: QuerySet[Transaction]) -> QuerySet[Transaction]:
         """
         Filter examples:
         `?year=2020`
-        `?mining`  # No value needed.
         """
         query_params: QueryDict = self.request.GET
         filters = Q()
 
-        if query_params.get("year"):
-            filters &= Q(timestamp__year=query_params["year"])
+        if year := query_params.get("year"):
+            filters &= Q(timestamp__year=year)
 
-        if "mining" in query_params:
-            filters &= Q(transaction_label=TransactionLabel.MINING)
-        else:
-            filters &= ~Q(transaction_label=TransactionLabel.MINING)
+        # Exclude mining transactions
+        filters &= ~Q(transaction_label=TransactionLabel.MINING)
 
         return queryset.filter(filters)
 
@@ -97,3 +95,28 @@ class TransactionListView(ListView):
             sum_to_value=Sum("to_detail__total_value"),
         )
         return context
+
+
+class TransactionMiningListView(TransactionListView):
+    def get_page_title(self) -> str:
+        query_params: QueryDict = self.request.GET
+        time = "all time"
+        if year := query_params.get("year"):
+            time = f"the year {year}"
+        return f"Mining transactions for {time}"
+
+    def filter_queryset(self, queryset: QuerySet[Transaction]) -> QuerySet[Transaction]:
+        """
+        Filter examples:
+        `?year=2020`
+        """
+        query_params: QueryDict = self.request.GET
+        filters = Q()
+
+        if year := query_params.get("year"):
+            filters &= Q(timestamp__year=year)
+
+        # Include only mining transactions
+        filters &= Q(transaction_label=TransactionLabel.MINING)
+
+        return queryset.filter(filters)

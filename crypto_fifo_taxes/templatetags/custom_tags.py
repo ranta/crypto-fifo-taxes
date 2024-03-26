@@ -9,6 +9,15 @@ register = template.Library()
 
 @register.filter
 def round_normalize(value: Decimal, precision: int) -> Decimal:
+    """
+    Rounds and normalizes a Decimal value.
+
+    Example:
+    {{ value|round_normalize:2 }}
+    """
+    if not value:
+        return Decimal(0)
+
     return round(value, precision).normalize()
 
 

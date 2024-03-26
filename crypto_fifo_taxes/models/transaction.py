@@ -464,5 +464,7 @@ class TransactionDetail(models.Model):
         )
 
     @property
-    def total_value(self) -> Decimal:
+    def total_value(self) -> Decimal | None:
+        if self.cost_basis is None:
+            return None
         return self.cost_basis * self.quantity
