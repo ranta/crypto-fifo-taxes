@@ -94,6 +94,11 @@ class TransactionListView(ListView):
             sum_from_value=Sum("from_detail__total_value"),
             sum_to_value=Sum("to_detail__total_value"),
         )
+        context["years"] = (
+            Transaction.objects.values_list("timestamp__year", flat=True)
+            .order_by("timestamp__year")
+            .distinct("timestamp__year")
+        )
         return context
 
 

@@ -19,6 +19,8 @@
 
 <body>
 <div id="content">
+    <a href="{% url 'index' %}">Back</a>
+    <h1>{% block page_header %}Title{% endblock %}</h1>
     {% block content %}{% endblock %}
 </div>
 

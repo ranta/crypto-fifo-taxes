@@ -2,9 +2,14 @@
 {% load custom_tags %}
 
 {% block title %}Transaction List{% endblock %}
+{% block page_header %}{{ page_title }}{% endblock %}
 
 {% block content %}
-    <h1>{{ page_title }}</h1>
+    Year filter:
+    {% for year in years %}
+        <a href="?year={{ year }}">{{ year }}</a> {% if not forloop.last %}|{% endif %}
+    {% endfor %}
+
     {% if transaction_list %}
         <table class="table table-striped table-bordered table-hover table-sm">
             <colgroup>
@@ -93,7 +98,7 @@
                 <td></td>
                 <td></td>
                 <td>EUR {{ totals.sum_to_value|floatformat:2 }}</td>
-            
+
                 <td>{% if totals.sum_gain %}EUR {{ totals.sum_gain|floatformat:2 }}{% endif %}</td>
                 <td>{% if totals.sum_fee_amount %}EUR {{ totals.sum_fee_amount|floatformat:2 }}{% endif %}</td>
                 <td>{% if totals.sum_profit %}EUR {{ totals.sum_profit|floatformat:2 }}{% endif %}</td>
