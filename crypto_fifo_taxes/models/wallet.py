@@ -56,8 +56,7 @@ class Wallet(models.Model):
         {"EUR": Decimal(1000.0), "BTC": Decimal(5.123123)}
         """
         qs = (
-            self.transaction_details.annotate(
-                symbol=F("currency__symbol"),
+            self.transaction_details.alias(
                 deposits=SQSum(
                     self.transaction_details.filter(
                         currency_id=OuterRef("currency_id"),
@@ -74,8 +73,12 @@ class Wallet(models.Model):
                     ),
                     sum_field="quantity",
                 ),
+            )
+            .annotate(
+                symbol=F("currency__symbol"),
                 balance=ExpressionWrapper(
-                    CoalesceZero(F("deposits")) - CoalesceZero(F("withdrawals")), output_field=DecimalField()
+                    CoalesceZero(F("deposits")) - CoalesceZero(F("withdrawals")),
+                    output_field=DecimalField(),
                 ),
             )
             .order_by("currency_id")
