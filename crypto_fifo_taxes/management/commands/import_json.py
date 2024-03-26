@@ -54,6 +54,9 @@ class Command(BaseCommand):
             return
 
         transaction.description = "Manually updated transaction"
+        if rox_description := row.get("description"):
+            transaction.description += f" ({rox_description})"
+
         wallets = self.get_wallets(row)
         if "from_symbol" in row:
             transaction.add_detail(
@@ -78,10 +81,9 @@ class Command(BaseCommand):
             )
         if "type" in row:
             transaction.transaction_type = TransactionType[row["type"]]
-            transaction.save()
         if "label" in row:
             transaction.transaction_label = TransactionLabel[row["label"]]
-            transaction.save()
+        transaction.save()
 
     def handle_imported_rows(self, data: list) -> None:
         tx_ids = {self.build_transaction_id(row) for row in data}
@@ -103,9 +105,12 @@ class Command(BaseCommand):
                 raise InvalidImportRowException("Missing timestamp or wallet in row.")
 
             wallets = self.get_wallets(row)
+            tx_description = "Manually imported transaction"
+            if rox_description := row.get("description"):
+                tx_description += f" ({rox_description})"
             tx_creator = TransactionCreator(
                 timestamp=bstrptime(row["timestamp"]),
-                description="Manually imported transaction",
+                description=tx_description,
                 tx_id=tx_id,
                 type=TransactionType[row["type"]],
                 fill_cost_basis=False,
