@@ -119,14 +119,14 @@ def get_binance_flexible_interest_history(
 ) -> Iterator[list[BinanceFlexibleInterest]]:
     def interests(startTime: int, endTime: int) -> list[BinanceFlexibleInterest]:
         output = []
-        for type in ("BONUS", "REALTIME"):
+        for type in ("BONUS", "REALTIME", "REWARDS"):
             response: BinanceFlexibleInterestHistoryResponse = client.get_flexible_interest_history(
                 startTime=startTime,
                 endTime=endTime,
                 size=100,
                 type=type,
             )
-            if len(response) >= 100:
+            if response["total"] >= 100:
                 raise TooManyResultsError
             if response["total"] == 0:
                 continue
@@ -148,7 +148,7 @@ def get_binance_locked_interest_history(start_date: datetime | None = None) -> I
             endTime=endTime,
             size=100,
         )
-        if len(response) >= 100:
+        if response["total"] >= 100:
             raise TooManyResultsError
         if response["total"] == 0:
             return []
@@ -170,7 +170,7 @@ def get_binance_beth_interest_history(start_date: datetime | None = None) -> Ite
             endTime=endTime,
             size=100,
         )
-        if len(response) >= 100:
+        if response["total"] >= 100:
             raise TooManyResultsError
         if response["total"] == 0:
             return []
