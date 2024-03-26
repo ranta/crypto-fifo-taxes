@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import F, Q, Sum
 
-from crypto_fifo_taxes.exceptions import MissingPriceError
+from crypto_fifo_taxes.exceptions import MissingPriceHistoryError
 from crypto_fifo_taxes.utils.currency import get_currency
 from crypto_fifo_taxes.utils.db import CoalesceZero
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
@@ -69,7 +69,7 @@ class Snapshot(models.Model):
             try:
                 currency_price = currency.get_fiat_price(date=self.date)
             # If the price is missing, we skip the currency and add its cost basis to the sums
-            except MissingPriceError:
+            except MissingPriceHistoryError:
                 logger.exception(f"Missing price for currency {currency}")
 
                 sum_worth += balance["cost_basis"]

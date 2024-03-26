@@ -2,10 +2,6 @@ class InsufficientFundsError(Exception):
     """Not enough funds in wallet to withdraw the given quantity"""
 
 
-class MissingPriceError(Exception):
-    pass
-
-
 class MissingPriceHistoryError(Exception):
     pass
 

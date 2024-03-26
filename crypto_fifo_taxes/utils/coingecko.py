@@ -9,7 +9,7 @@ import requests
 from django.conf import settings
 from django.utils import timezone
 
-from crypto_fifo_taxes.exceptions import CoinGeckoAPIException, MissingPriceError
+from crypto_fifo_taxes.exceptions import CoinGeckoAPIException, MissingPriceHistoryError
 from crypto_fifo_taxes.models import Currency, CurrencyPrice
 from crypto_fifo_taxes.utils.binance.binance_api import from_timestamp
 from crypto_fifo_taxes.utils.currency import all_fiat_currencies
@@ -101,10 +101,10 @@ def coingecko_request_market_chart(
         # Retry once, as sometimes there are errors fetching data
         response_json = retry_get_request_until_ok(api_url)
         if response_json is None:
-            raise MissingPriceError(f"Market chart not returned for {currency} starting from {start_date}.")
+            raise MissingPriceHistoryError(f"Market chart not returned for {currency} starting from {start_date}.")
 
     if "prices" not in response_json:
-        raise MissingPriceError(f"Market chart for {currency} starting from {start_date} didn't include prices.")
+        raise MissingPriceHistoryError(f"Market chart for {currency} starting from {start_date} didn't include prices.")
 
     return response_json
 
