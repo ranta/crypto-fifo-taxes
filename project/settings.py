@@ -215,13 +215,19 @@ COINGECKO_DEPRECATED_TOKENS = {
 # Sometimes the price is not found in CoinGecko, but the token still has value.
 # These tokens are allowed to have missing prices.
 COINGECKO_FLAKY_PRICES = {
+    "AI",  # does not have a price for 2024-01-04 in Euro (EUR).
     "CYBER",  # does not have a price for 2023-08-03 in Euro (EUR)
+    "MANTA",  # does not have a price for 2024-01-18 in Euro (EUR)
     "MAV",  # does not have a price for 2023-06-15 in Euro (EUR)
+    "MEME",  # does not have a price for 2023-10-29 in Euro (EUR)
+    "NFP",  # does not have a price for 2023-12-27 in Euro (EUR)
+    "NTRN",  # does not have a price for 2023-10-12 in Euro (EUR)
     "PENDLE",  # does not have a price for 2023-07-05 in Euro (EUR)
     "RDNT",  # does not have a price for 2023-04-01 in Euro (EUR)
     "SUI",  # does not have a price for 2023-05-02 in Euro (EUR)
     "VET",
     "VTHO",
+    "XAI",  # does not have a price for 2024-01-09 in Euro (EUR).
 }
 
 # The following symbols are ignored when importing dividends
