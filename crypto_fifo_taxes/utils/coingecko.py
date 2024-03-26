@@ -85,6 +85,9 @@ def coingecko_request_market_chart(
     assert vs_currency.cg_id is not None
 
     days = (timezone.now().date() - start_date).days + 1  # Add 1 to include end date (today)
+    if days <= 0:
+        raise ValueError("Start date should be before today.")
+
     api_url = (
         f"https://api.coingecko.com/api/v3/coins/{currency.cg_id}/market_chart?"
         f"vs_currency={vs_currency.cg_id}&days={days}&interval=daily"
@@ -167,7 +170,10 @@ def fetch_currency_market_chart(currency: Currency) -> None:
                 # We can safely fetch currency prices starting from the first missing date.
                 start_date = latest_currency_price.date + datetime.timedelta(days=1)
 
-        response_json: CoingeckoMarketChart = coingecko_request_market_chart(currency, fiat_currency, start_date)
+        try:
+            response_json: CoingeckoMarketChart = coingecko_request_market_chart(currency, fiat_currency, start_date)
+        except ValueError:
+            continue
 
         # Parse the response and to MarketChartData objects
         combined_market_chart_data = [
