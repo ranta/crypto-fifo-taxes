@@ -70,11 +70,11 @@ def test_wallet_get_current_balance_deposit_and_withdrawal_multiple_currencies()
     with pytest.raises(InsufficientFundsError), atomic():
         wallet_helper.withdraw(currency="DOGE", quantity=Decimal("42069.1337"))
 
-    balances = wallet.get_current_balance(exclude_zero_balances=False)
-    assert len(balances) == 3
+    balances = wallet.get_current_balance()
+    assert len(balances) == 2
 
     assert balances["BTC"] == 3
-    assert balances["ETH"] == 0
+    assert "ETH" not in balances
     assert balances["NANO"] == 1000
     assert "DOGE" not in balances
 

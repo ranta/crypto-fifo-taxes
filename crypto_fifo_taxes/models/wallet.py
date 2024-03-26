@@ -2,15 +2,13 @@ from datetime import datetime
 from decimal import Decimal
 
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from django.db.models import DecimalField, ExpressionWrapper, F, OuterRef, Q, Sum, Window
+from django.db.models import DecimalField, ExpressionWrapper, F, Q, Sum, Window
 from django.utils.translation import gettext_lazy as _
 
 from crypto_fifo_taxes.enums import TransactionType
 from crypto_fifo_taxes.models import Currency, TransactionDetail
 from crypto_fifo_taxes.utils.currency import get_currency
-from crypto_fifo_taxes.utils.db import CoalesceZero, SQSum
 
 
 class Wallet(models.Model):
@@ -46,53 +44,44 @@ class Wallet(models.Model):
         """Returns a list of currencies that have ever passed through this wallet"""
         return self.transaction_details.values_list("currency_id", flat=True).distinct()
 
-    def get_current_balance(
-        self, currency: Currency | str | int | None = None, exclude_zero_balances: bool = True
-    ) -> dict[str, Decimal] | Decimal:
+    def get_current_balance(self, currency: Currency | str | int | None = None) -> dict[str, Decimal] | Decimal:
         """
         Returns wallet's current currencies balances
         If currency is given, return only it's balance
         Otherwise return a dict with currency symbols as keys and balances as value:
         {"EUR": Decimal(1000.0), "BTC": Decimal(5.123123)}
         """
-        qs = (
-            self.transaction_details.alias(
-                deposits=SQSum(
-                    self.transaction_details.filter(
-                        currency_id=OuterRef("currency_id"),
-                        to_detail__isnull=False,
-                    ),
-                    sum_field="quantity",
-                ),
-                withdrawals=SQSum(
-                    self.transaction_details.filter(
-                        currency_id=OuterRef("currency_id"),
-                    ).filter(
-                        Q(from_detail__isnull=False)
-                        | Q(fee_detail__isnull=False) & ~Q(fee_detail__transaction_type=TransactionType.WITHDRAW)
-                    ),
-                    sum_field="quantity",
-                ),
-            )
-            .annotate(
-                symbol=F("currency__symbol"),
-                balance=ExpressionWrapper(
-                    CoalesceZero(F("deposits")) - CoalesceZero(F("withdrawals")),
-                    output_field=DecimalField(),
-                ),
-            )
-            .order_by("currency_id")
-            .distinct("currency_id")
-        )
+        base_qs = TransactionDetail.objects.filter(wallet=self)
         if currency is not None:
-            try:
-                return qs.get(currency=get_currency(currency)).balance
-            except ObjectDoesNotExist:
-                return Decimal(0)
-        if exclude_zero_balances:
-            qs = qs.exclude(balance=0)
+            currency = get_currency(currency)
+            base_qs = base_qs.filter(currency=currency)
 
-        return {c.symbol: c.balance for c in qs.values_list("symbol", "balance", named=True)}
+        deposits = (
+            base_qs.filter(to_detail__isnull=False)
+            .values("currency__symbol")
+            .order_by("currency__symbol")
+            .annotate(sum=Sum("quantity"))
+        )
+        withdrawals = (
+            base_qs.filter(
+                Q(from_detail__isnull=False)
+                | (Q(fee_detail__isnull=False) & ~Q(fee_detail__transaction_type=TransactionType.WITHDRAW))
+            )
+            .values("currency__symbol")
+            .order_by("currency__symbol")
+            .annotate(sum=Sum("quantity"))
+        )
+
+        combined = {d["currency__symbol"]: d["sum"] for d in deposits}
+        for w in withdrawals:
+            combined[w["currency__symbol"]] = combined.get(w["currency__symbol"], Decimal(0)) - w["sum"]
+            if combined[w["currency__symbol"]] == Decimal(0):
+                combined.pop(w["currency__symbol"])
+
+        if currency is not None:
+            return combined.get(currency.symbol, Decimal(0))
+
+        return combined
 
     def get_consumable_currency_balances(
         self, currency: Currency, timestamp: datetime | None = None, quantity: Decimal | int | None = None

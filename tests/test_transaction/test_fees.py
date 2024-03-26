@@ -106,11 +106,7 @@ def test_fee_withdrawal():
     # Fees should be removed from the `withdrawn amount` instead of from wallet
     tx_creator = TransactionCreator(timestamp=wallet_helper.tx_time.timestamp)
     tx_creator.add_fee_detail(wallet=wallet, currency=crypto, quantity=Decimal(1))
-    tx_creator.create_withdrawal(
-        wallet=wallet,
-        currency=crypto,
-        quantity=Decimal(10),
-    )
+    tx_creator.create_withdrawal(wallet=wallet, currency=crypto, quantity=Decimal(10))
     assert wallet.get_current_balance("BTC") == Decimal(0)
 
 
