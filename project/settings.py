@@ -234,6 +234,7 @@ COINGECKO_FLAKY_PRICES = {
 IGNORED_TOKENS = [
     "JEX",  # Not worth anything, Coingecko doesn't even have any price history data on this
     "EDG",  # Unable to be traded in Binance
+    "ETHW",  # Unable to be traded in Binance
 ]
 
 # Add coins currently in locked staking / locked savings, as they are not retrievable from any api endpoint
