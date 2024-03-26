@@ -215,7 +215,11 @@ COINGECKO_DEPRECATED_TOKENS = {
 # Sometimes the price is not found in CoinGecko, but the token still has value.
 # These tokens are allowed to have missing prices.
 COINGECKO_FLAKY_PRICES = {
-    # "SXP",
+    "CYBER",  # does not have a price for 2023-08-03 in Euro (EUR)
+    "MAV",  # does not have a price for 2023-06-15 in Euro (EUR)
+    "PENDLE",  # does not have a price for 2023-07-05 in Euro (EUR)
+    "RDNT",  # does not have a price for 2023-04-01 in Euro (EUR)
+    "SUI",  # does not have a price for 2023-05-02 in Euro (EUR)
     "VET",
     "VTHO",
 }
