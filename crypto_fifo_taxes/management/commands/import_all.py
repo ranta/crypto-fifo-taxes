@@ -29,7 +29,7 @@ class Command(BaseCommand):
         call_command("cost_basis", date=self.date)
 
         # Generate snapshots for every day
-        call_command("snapshot", date=self.date)
+        call_command("snapshot")
 
     def handle(self, *args, **kwargs):
         self.date = kwargs.pop("date")
