@@ -208,8 +208,8 @@ RENAMED_SYMBOLS = {
 # Tokens that have been deprecated and are not found in CoinGecko anymore, but
 # previously used to have some value and have existing trades, which means that they should still be imported.
 COINGECKO_DEPRECATED_TOKENS = {
-    "WABI"  # Wabi, Price is missing in Coingecko
-    "BCPT"  # Blockmason Credit Protocol, Price is missing in Coingecko
+    "WABI",  # Wabi, Price is missing in Coingecko
+    "BCPT",  # Blockmason Credit Protocol, Price is missing in Coingecko
 }
 
 # The following symbols are ignored when importing dividends
