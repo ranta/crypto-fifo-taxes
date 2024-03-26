@@ -17,7 +17,10 @@ class ManagementView(TemplateView):
                 latest_currency = latest_tx.from_detail.currency
             else:
                 latest_currency = latest_tx.to_detail.currency
-            context["latest_currency_price_date"] = str(latest_currency.prices.order_by("-date").first().date)
+
+            latest_price = latest_currency.prices.order_by("-date").first()
+            if latest_price is not None:
+                context["latest_currency_price_date"] = str(latest_price.date)
 
         latest_snapshot = Snapshot.objects.order_by("-date").first()
         if latest_snapshot is not None:
