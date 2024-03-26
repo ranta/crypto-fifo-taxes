@@ -9,6 +9,7 @@ from crypto_fifo_taxes.models import Currency
 from tests.factories import (
     CryptoCurrencyFactory,
     CurrencyPriceFactory,
+    FiatCurrencyFactory,
     TransactionDetailFactory,
     TransactionFactory,
     WalletFactory,
@@ -188,28 +189,47 @@ def test_get_consumable_currency_balances__same_timestamp():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
-    CurrencyPriceFactory.create(currency="BTC", fiat="EUR", date=wallet_helper.date())
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
+    CurrencyPriceFactory.create(currency=crypto, fiat=wallet.fiat, date=wallet_helper.date())
 
     # Deposit some cryptocurrency to wallet in two separate events
-    timestamp = datetime.datetime(2021, 1, 1, 12)
+    timestamp = datetime.datetime.combine(wallet_helper.date(), datetime.time(12))
     tx_1 = wallet_helper.deposit(crypto, quantity=100, timestamp=timestamp)
     tx_2 = wallet_helper.deposit(crypto, quantity=200, timestamp=timestamp)
+
+    assert tx_1.timestamp == tx_2.timestamp - datetime.timedelta(milliseconds=1)
 
     # Current balance = 300
     currencies = wallet.get_consumable_currency_balances(crypto)
     assert len(currencies) == 2
-    # Transactions with identical timestamps have duplicate quantity_left
-    assert currencies[0].quantity_left == 300
+    assert currencies[0].quantity_left == 100
     assert currencies[1].quantity_left == 300
-    assert tx_1.to_detail.get_last_consumable_balance().quantity_left == 300
+    assert tx_1.to_detail.get_last_consumable_balance().quantity_left == 100
     assert tx_2.to_detail.get_last_consumable_balance().quantity_left == 300
 
     currencies = wallet.get_consumable_currency_balances(crypto, quantity=50)
     assert len(currencies) == 1
-    assert currencies[0].quantity_left == 300
+    assert currencies[0].quantity_left == 100
 
     currencies = wallet.get_consumable_currency_balances(crypto, quantity=150)
     assert len(currencies) == 2
-    assert currencies[0].quantity_left == 300
+    assert currencies[0].quantity_left == 100
     assert currencies[1].quantity_left == 300
+
+
+@pytest.mark.django_db()
+def test_same_from_to_symbol():
+    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    crypto = CryptoCurrencyFactory.create(symbol="BTC")
+
+    wallet = WalletFactory.create(fiat=fiat)
+    wallet_helper = WalletHelper(wallet)
+    CurrencyPriceFactory.create(currency=crypto, fiat=fiat, date=wallet_helper.date(), price=1000)
+
+    tx_1 = wallet_helper.deposit(crypto, 1000)
+    tx_2 = wallet_helper.trade(crypto, 1000, crypto, 500)
+
+    assert wallet.get_current_balance(crypto.symbol) == 500
+
+    assert tx_1.to_detail.get_last_consumable_balance().quantity_left == 1000
+    assert tx_2.to_detail.get_last_consumable_balance().quantity_left == 500

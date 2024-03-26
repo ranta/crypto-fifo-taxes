@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from django.db.transaction import atomic
@@ -163,6 +163,14 @@ class TransactionCreator:
             if is_mining:
                 self.transaction_label = TransactionLabel.MINING
 
+    def _get_final_timestamp(self):
+        # Ensure the timestamp is unique by adding milliseconds until it is
+        while True:
+            if not Transaction.objects.filter(timestamp=self.timestamp).exists():
+                break
+            self.timestamp += timedelta(milliseconds=1)
+        return self.timestamp
+
     @atomic()
     def create_transaction(self) -> Transaction:
         assert self.timestamp is not None
@@ -175,7 +183,7 @@ class TransactionCreator:
             detail.save()
 
         transaction = Transaction(
-            timestamp=self.timestamp,
+            timestamp=self._get_final_timestamp(),
             description=self.description,
             tx_id=self.tx_id,
             transaction_type=self.transaction_type,

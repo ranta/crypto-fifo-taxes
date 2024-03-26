@@ -38,7 +38,10 @@ class TransactionManager(models.Manager):
 class Transaction(models.Model):
     """Contains static values for a transaction"""
 
-    timestamp = models.DateTimeField()
+    # Unique timestamp is required for each transaction, as
+    # and having multiple transactions with the same timestamp will cause issues
+    # In case of Transactions with the same timestamp, the transactions should be staggered by microseconds.
+    timestamp = models.DateTimeField(unique=True)
     transaction_type = EnumIntegerField(TransactionType, default=TransactionType.UNKNOWN)
     transaction_label = EnumIntegerField(TransactionLabel, default=TransactionLabel.UNKNOWN)
     description = models.TextField(blank=True, default="")
@@ -125,14 +128,19 @@ class Transaction(models.Model):
                     f"TransactionDetail (id: {balance.id}, {balance}) is missing its `cost_basis`."
                 )
 
-            if required_quantity >= balance.quantity:
-                # Fully consume deposit balance
-                cost_bases.append((balance.quantity, apply_hmo(balance.cost_basis)))
-                required_quantity -= balance.quantity
-            else:
-                # Consume only the required quantity
+            # Use the lesser of the two quantities
+            # 1. If the original balance is partially used, use the remaining quantity
+            # 2. Otherwise, use original quantity
+            available_quantity = min(balance.quantity, balance.quantity_left)
+
+            # Deposit has more than enough to cover the transaction, consume only what is needed.
+            if required_quantity <= available_quantity:
                 cost_bases.append((required_quantity, apply_hmo(balance.cost_basis)))
                 required_quantity -= required_quantity
+            # Deposit has less than needed, consume all of it.
+            else:
+                cost_bases.append((available_quantity, apply_hmo(balance.cost_basis)))
+                required_quantity -= available_quantity
 
         if required_quantity > Decimal(0):
             raise InsufficientFundsError(
@@ -472,8 +480,8 @@ class TransactionDetail(models.Model):
     def get_last_consumable_balance(self) -> TransactionDetail | None:
         """Get the balance of this currency after this transaction has been processed."""
         timestamp = self.transaction.timestamp
-        if hasattr(self, "from_detail"):
-            timestamp += datetime.timedelta(seconds=1)
+        # Include self in the query by adding 1 microsecond to the timestamp
+        timestamp += datetime.timedelta(microseconds=1)
 
         last_balance_only = self.wallet.get_consumable_currency_balances(
             self.currency, quantity=None, timestamp=timestamp

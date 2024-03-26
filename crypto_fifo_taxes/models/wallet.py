@@ -121,9 +121,12 @@ class Wallet(models.Model):
             to_filter |= Q(to_detail__timestamp__lte=timestamp)
             fee_filter |= Q(fee_detail__timestamp__lte=timestamp)
 
-        total_spent = self.transaction_details.filter(currency=currency).filter(
-            (Q(from_detail__isnull=False) & from_filter)
-            | (Q(fee_detail__isnull=False) & fee_filter & ~Q(fee_detail__transaction_type=TransactionType.WITHDRAW))
+        total_spent = self.transaction_details.filter(
+            Q(currency=currency)
+            & (
+                (Q(from_detail__isnull=False) & from_filter)
+                | (Q(fee_detail__isnull=False) & fee_filter & ~Q(fee_detail__transaction_type=TransactionType.WITHDRAW))
+            )
         ).aggregate(total_spent=Sum("quantity"))["total_spent"] or Decimal(0)
 
         # All deposits of currency to the wallet, annotated with
@@ -148,13 +151,8 @@ class Wallet(models.Model):
 
         if quantity is not None:
             assert quantity > 0
-
-            # Do not use `deposit.quantity_left` as it breaks for transactions with identical timestamps
-            # (Both transactions have the same `accum_quantity`, which includes both transaction quantities).
-            quantity_left = Decimal(0)
             # Return only minimum amount of deposits, exclude all that exceed requested quantity.
             for n, deposit in enumerate(deposits_filtered):
-                quantity_left += deposit.quantity
-                if quantity_left >= quantity:
+                if deposit.quantity_left >= quantity:
                     return deposits_filtered[: n + 1]
         return deposits_filtered
