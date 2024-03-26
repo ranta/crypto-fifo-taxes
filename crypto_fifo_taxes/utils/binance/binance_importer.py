@@ -65,6 +65,31 @@ def import_withdrawals(wallet: Wallet, deposits: list) -> None:
         )
 
 
+def import_convert_trade_history(wallet: Wallet, converts: list) -> None:
+    """https://binance-docs.github.io/apidocs/spot/en/#query-limit-open-orders-user_data"""
+    importable_txs_ids = {str(t["orderId"]) for t in converts}
+    existing_transactions = Transaction.objects.filter(tx_id__in=importable_txs_ids).values_list("tx_id", flat=True)
+
+    for trade in converts:
+        if trade["orderStatus"] != "SUCCESS":
+            continue
+        # If transaction has already been imported, skip it
+        if str(trade["orderId"]) in existing_transactions:
+            continue
+
+        tx_creator = TransactionCreator(
+            timestamp=from_timestamp(trade["createTime"]),
+            description="Convert Trade (Imported from Binance API)",
+            tx_id=str(trade["orderId"]),
+            fill_cost_basis=False,
+        )
+        from_currency = get_or_create_currency(trade["fromAsset"])
+        to_currency = get_or_create_currency(trade["toAsset"])
+        tx_creator.add_from_detail(wallet=wallet, currency=from_currency, quantity=Decimal(trade["fromAmount"]))
+        tx_creator.add_to_detail(wallet=wallet, currency=to_currency, quantity=Decimal(trade["toAmount"]))
+        tx_creator.create_trade()
+
+
 def import_pair_trades(wallet: Wallet, trading_pair: CurrencyPair, trades: list) -> None:
     """https://binance-docs.github.io/apidocs/spot/en/#account-trade-list-user_data"""
     assert wallet is not None

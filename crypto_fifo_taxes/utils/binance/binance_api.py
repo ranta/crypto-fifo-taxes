@@ -1,8 +1,11 @@
+import logging
+import time
 from collections.abc import Callable, Iterator
 from datetime import datetime, timedelta
 from functools import lru_cache
 
 import pytz
+from binance.exceptions import BinanceAPIException
 from django.conf import settings
 
 from crypto_fifo_taxes.exceptions import TooManyResultsError
@@ -13,6 +16,8 @@ from crypto_fifo_taxes.utils.binance.types import (
     BinanceLockedInterest,
     BinanceLockedInterestHistoryResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def to_timestamp(dt: datetime) -> int:
@@ -47,10 +52,18 @@ def binance_history_iterator(
     end_date = (end_date if end_date is not None else datetime.now()).replace(hour=23, minute=59, second=59)
     while start_date.date() < end_date.date():
         try:
-            yield fetch_function(
-                startTime=to_timestamp(start_date),
-                endTime=to_timestamp(min(start_date + timedelta(days=period_length), end_date)),
-            )
+            while True:
+                try:
+                    yield fetch_function(
+                        startTime=to_timestamp(start_date),
+                        endTime=to_timestamp(min(start_date + timedelta(days=period_length), end_date)),
+                    )
+                    break
+                except BinanceAPIException as err:
+                    if "Too much request weight used" in str(err):
+                        logger.info("Too much Binance API weight used, on cooldown")
+                        time.sleep(15)  # API cool down time is not accessible. Try again soon
+
         except TooManyResultsError:
             # Too many results returned in fetch_function so not all data may be included.
             # Try again with a smaller period
@@ -85,6 +98,11 @@ def get_binance_deposits(start_date: datetime | None = None) -> Iterator[list[di
 def get_binance_withdraws(start_date: datetime | None = None) -> Iterator[list[dict]]:
     client = get_binance_client()
     return binance_history_iterator(client.get_withdraw_history, start_date=start_date)
+
+
+def get_convert_trade_history(start_date: datetime | None = None) -> Iterator[list[dict]]:
+    client = get_binance_client()
+    return binance_history_iterator(client.get_convert_trade_history, start_date=start_date, period_length=30)
 
 
 def get_binance_dust_log() -> list:

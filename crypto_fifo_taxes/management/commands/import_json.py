@@ -102,7 +102,7 @@ class Command(BaseCommand):
                     f"Missing timestamp or wallet in row: '{row}'. "
                     f"Did you try to update an existing transaction which is not yet imported?"
                 )
-                raise InvalidImportRowException("Missing timestamp or wallet in row.")
+                raise InvalidImportRowException(f"Missing timestamp or wallet in row. {row}")
 
             wallets = self.get_wallets(row)
             tx_description = "Manually imported transaction"

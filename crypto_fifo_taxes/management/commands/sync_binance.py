@@ -17,8 +17,10 @@ from crypto_fifo_taxes.utils.binance.binance_api import (
     get_binance_flexible_interest_history,
     get_binance_locked_interest_history,
     get_binance_withdraws,
+    get_convert_trade_history,
 )
 from crypto_fifo_taxes.utils.binance.binance_importer import (
+    import_convert_trade_history,
     import_deposits,
     import_dividends,
     import_dust,
@@ -103,6 +105,12 @@ class Command(BaseCommand):
             import_withdrawals(self.wallet, withdraws)
 
     @print_time_elapsed_new_transactions
+    def sync_convert_trade_history(self) -> None:
+        for converts in get_convert_trade_history(start_date=self.date):
+            self.print_dot()
+            import_convert_trade_history(self.wallet, converts["list"])
+
+    @print_time_elapsed_new_transactions
     def sync_dust(self):
         import_dust(self.wallet, get_binance_dust_log())
 
@@ -157,6 +165,7 @@ class Command(BaseCommand):
         self.sync_trades()
         self.sync_deposits()
         self.sync_withdrawals()
+        self.sync_convert_trade_history()
         self.sync_dust()
         self.sync_dividends()
         self.sync_interest_flexible()

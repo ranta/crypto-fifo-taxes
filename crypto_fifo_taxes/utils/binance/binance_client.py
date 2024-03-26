@@ -46,3 +46,13 @@ class BinanceClient(Client):
         https://binance-docs.github.io/apidocs/spot/en/#get-locked-redemption-record-user_data
         """
         return self._request_margin_api("get", "eth-staking/eth/history/rewardsHistory", signed=True, data=params)
+
+    def get_flexible_redemption_history(self, **params):
+        """
+        Get Flexible Redemption History
+
+        https://binance-docs.github.io/apidocs/spot/en/#get-flexible-redemption-record-user_data
+        """
+        return self._request_margin_api(
+            "get", "simple-earn/flexible/history/redemptionRecord", signed=True, data=params
+        )
