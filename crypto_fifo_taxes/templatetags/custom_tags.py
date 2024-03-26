@@ -24,5 +24,6 @@ def round_normalize(value: Decimal, precision: int) -> Decimal:
 @register.filter
 def get_spending_cost_basis(transaction: Transaction) -> Decimal:
     return transaction.from_detail.currency.get_fiat_price(
-        transaction.timestamp, transaction.from_detail.wallet.fiat
+        transaction.timestamp,
+        transaction.from_detail.wallet.fiat,
     ).price

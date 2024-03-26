@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+
+{% block title %}Transaction List{% endblock %}
+{% block page_header %}{{ page_title }}{% endblock %}
+
+{% block content %}
+    Currency filter:
+    {% for currency_symbol in currency_symbols %}
+        <a href="?currency_symbol={{ currency_symbol }}">{{ currency_symbol }}</a> {% if not forloop.last %}|{% endif %}
+    {% endfor %}
+
+    {% if transaction_list %}
+        <table class="table table-striped table-bordered table-hover table-sm">
+            <colgroup>
+                <col span="4"/>
+                <col span="2" style="background-color: #F3E5E5;"/>
+                <col span="2" style="background-color: #E6F1E2;"/>
+                <col span="2" style="background-color: #E5EEF3;"/>
+            </colgroup>
+            <thead>
+            <tr>
+                <td colspan="4" style="text-align: center;">Info</td>
+                <td colspan="2" style="text-align: center;">From</td>
+                <td colspan="2" style="text-align: center;">To</td>
+                <td colspan="2" style="text-align: center;">Results</td>
+            </tr>
+            <tr>
+                <th scope="col">Timestamp</th>
+                <th scope="col">Type</th>
+                <th scope="col">ID</th>
+                <th scope="col">Description</th>
+
+                <th scope="col">Currency</th>
+                <th scope="col">Cost basis</th>
+
+                <th scope="col">Currency</th>
+                <th scope="col">Cost basis</th>
+
+                <th scope="col">Fees</th>
+                <th scope="col">Profit</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for transaction in transaction_list %}
+                <tr>
+                    <td>{{ transaction.timestamp|date:'Y-m-d H:i:s' }}</td>
+                    <td>
+                    {% if transaction.transaction_label.label == "Unknown" or transaction.transaction_type.label == "Swap" %}
+                        {{ transaction.transaction_type.label }}
+                    {% else %}
+                        {{ transaction.transaction_label.label }}
+                    {% endif %}
+                    </td>
+                    <td>{{ transaction.id }}</td>
+                    <td>{{ transaction.description }}</td>
+
+                    {% if transaction.from_detail and transaction.from_detail.currency.symbol == selected_currency_symbol %}
+                        <td><b>{{ transaction.from_detail.currency.symbol }}</b> {{ transaction.from_detail.quantity.normalize }}</td>
+                        {% if transaction.transaction_type.label != "Withdraw" or transaction.transaction_label.label == "Spending"%}
+                            <td>EUR {{ transaction.from_detail.cost_basis|round_normalize:8 }}</td>
+                        {% else %}
+                            <td></td>
+                        {% endif %}
+                    {% else %}
+                        <td></td>
+                        <td></td>
+                    {% endif %}
+
+                    {% if transaction.to_detail and transaction.to_detail.currency.symbol == selected_currency_symbol %}
+                        <td><b>{{ transaction.to_detail.currency.symbol }}</b> {{ transaction.to_detail.quantity.normalize }}</td>
+                        <td>EUR {{ transaction.to_detail.cost_basis|round_normalize:8 }}</td>
+                    {% elif transaction.transaction_label.label == "Spending" %}
+                        <td>{{ transaction.from_detail.currency.symbol }} {{ transaction.from_detail.quantity.normalize }}</td>
+                        <td>EUR {{ transaction|get_spending_cost_basis|floatformat:2 }}</td>
+                    {% else %}
+                        <td></td>
+                        <td></td>
+                    {% endif %}
+
+                    <td>{% if transaction.fee_amount and transaction.fee_detail.currency.symbol == selected_currency_symbol %}<b>{{ transaction.to_detail.currency.symbol }}</b> {{ transaction.fee_detail.quantity|round_normalize:8 }}{% endif %}</td>
+                    <td>
+                        {% if transaction.to_detail and transaction.to_detail.currency.symbol == selected_currency_symbol %}
+                            <b>{{ transaction.to_detail.currency.symbol }}</b>
+                            {{ transaction.to_detail.get_last_consumable_balance.quantity_left|round_normalize:8 }}
+                        {% elif transaction.from_detail and transaction.from_detail.currency.symbol == selected_currency_symbol %}
+                            <b>{{ transaction.from_detail.currency.symbol }}</b>
+                            {{ transaction.from_detail.get_last_consumable_balance.quantity_left|round_normalize:8 }}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            <tr>
+                <td>Total ({{ transaction_list.count }} transactions)</td>
+                <td></td>
+
+                <td></td>
+                <td>EUR {{ totals.sum_from_value|floatformat:2 }}</td>
+
+                <td></td>
+                <td>EUR {{ totals.sum_to_value|floatformat:2 }}</td>
+
+                <td>{% if totals.sum_fee_amount %}EUR {{ totals.sum_fee_amount|floatformat:2 }}{% endif %}</td>
+                <td>{% if totals.sum_profit %}EUR {{ totals.sum_profit|floatformat:2 }}{% endif %}</td>
+            </tr>
+            </tbody>
+        </table>
+    {% else %}
+        <p>No transactions are available.</p>
+    {% endif %}
+
+{% endblock %}

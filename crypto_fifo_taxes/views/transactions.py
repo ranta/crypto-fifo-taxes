@@ -7,7 +7,7 @@ from django.views.generic import ListView
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.exceptions import MissingCostBasisError
-from crypto_fifo_taxes.models import CurrencyPrice, Transaction
+from crypto_fifo_taxes.models import Currency, CurrencyPrice, Transaction
 from crypto_fifo_taxes.utils.db import CoalesceZero
 
 
@@ -125,3 +125,37 @@ class TransactionMiningListView(TransactionListView):
         filters &= Q(transaction_label=TransactionLabel.MINING)
 
         return queryset.filter(filters)
+
+
+class TransactionByCurrencyListView(ListView):
+    model = Transaction
+    template_name = "crypto_fifo_taxes/transaction_by_currency_list.html"
+
+    def get_page_title(self) -> str:
+        query_params: QueryDict = self.request.GET
+        if currency_symbol := query_params.get("currency_symbol"):
+            currency = Currency.objects.get(symbol=currency_symbol)
+            return f"All transactions for {currency.name} ({currency.symbol})"
+        return "Select a currency"
+
+    def filter_queryset(self, queryset: QuerySet[Transaction]) -> QuerySet[Transaction]:
+        """
+        Filter examples:
+        `?currency=btc`
+        """
+        query_params: QueryDict = self.request.GET
+        if currency_symbol := query_params.get("currency_symbol"):
+            return queryset.filter_currency(currency_symbol)
+        else:
+            return queryset.none()
+
+    def get_queryset(self) -> QuerySet[Transaction]:
+        queryset = Transaction.objects.order_by("timestamp", "pk")
+        return self.filter_queryset(queryset)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["page_title"] = self.get_page_title()
+        context["selected_currency_symbol"] = self.request.GET.get("currency_symbol")
+        context["currency_symbols"] = Currency.objects.values_list("symbol", flat=True).order_by("symbol")
+        return context
