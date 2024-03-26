@@ -65,16 +65,18 @@ def _create_initial_wallets(admin_user: User) -> None:
 def _check_renamed_symbols() -> None:
     renamed_currencies = Currency.objects.filter(symbol__in=settings.RENAMED_SYMBOLS.keys())
     if len(renamed_currencies):
-        logger.warning("Some currencies have been renamed. Please rename them to match the new symbols.")
+        logger.warning("Some currencies have been renamed.")
         for currency in renamed_currencies:
-            logger.warning(f"Currency: {currency.symbol} -> {settings.RENAMED_SYMBOLS[currency.symbol]}")
+            logger.warning(f"Renaming: {currency.symbol} -> {settings.RENAMED_SYMBOLS[currency.symbol]}")
+            currency.symbol = settings.RENAMED_SYMBOLS[currency.symbol]
+            currency.save()
 
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
+        _check_renamed_symbols()
         _create_initial_currencies()
         admin_user = _create_admin_user()
         _create_initial_wallets(admin_user=admin_user)
-        _check_renamed_symbols()
 
         logger.info("Project initialized!")
