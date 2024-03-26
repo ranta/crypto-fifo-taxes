@@ -172,7 +172,8 @@ class Transaction(models.Model):
             # Price was unable to be retrieved from the CoinGecko API
             # If the 'to' currency is deprecated, preserve the cost basis of the currency it was traded from
             is_deprecated = self.to_detail.currency.symbol in settings.COINGECKO_DEPRECATED_TOKENS
-            if not is_deprecated:
+            is_flaky_price = self.to_detail.currency.symbol in settings.COINGECKO_FLAKY_PRICES
+            if not is_deprecated and not is_flaky_price:
                 raise
 
             calculated_from_detail_total_value = self.from_detail.quantity * self._get_from_detail_cost_basis()[0]
@@ -232,7 +233,8 @@ class Transaction(models.Model):
             # Price was unable to be retrieved from the CoinGecko API
             # If the 'to' currency is deprecated, preserve the cost basis of the currency it was traded from
             is_deprecated = self.to_detail.currency.symbol in settings.COINGECKO_DEPRECATED_TOKENS
-            if not is_deprecated:
+            is_flaky_price = self.to_detail.currency.symbol in settings.COINGECKO_FLAKY_PRICES
+            if not is_deprecated and not is_flaky_price:
                 raise
 
             self.gain = Decimal(0)

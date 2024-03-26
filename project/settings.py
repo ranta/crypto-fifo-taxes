@@ -181,7 +181,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "SOL": {"name": "Solana", "cg_id": "solana"},
     "STRK": {"name": "Starknet", "cg_id": "starknet"},
     "SUI": {"name": "Sui", "cg_id": "sui"},
-    "SXP": {"name": "Sxp", "cg_id": "sxp"},
+    "SXP": {"name": "Sxp", "cg_id": "swipe"},
     "TLM": {"name": "Alien Worlds", "cg_id": "alien-worlds"},
     "VET": {"name": "VeChain", "cg_id": "vechain"},  # Previously VEN
     "VTHO": {"name": "VeThor", "cg_id": "vethor-token"},
@@ -210,6 +210,14 @@ RENAMED_SYMBOLS = {
 COINGECKO_DEPRECATED_TOKENS = {
     "WABI",  # Wabi, Price is missing in Coingecko
     "BCPT",  # Blockmason Credit Protocol, Price is missing in Coingecko
+}
+
+# Sometimes the price is not found in CoinGecko, but the token still has value.
+# These tokens are allowed to have missing prices.
+COINGECKO_FLAKY_PRICES = {
+    # "SXP",
+    "VET",
+    "VTHO",
 }
 
 # The following symbols are ignored when importing dividends
