@@ -149,13 +149,15 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "DOT": {"name": "Polkadot", "cg_id": "polkadot"},
     "EDG": {"name": "Edgeware", "cg_id": "edgeware"},
     "ETH": {"name": "Ethereum", "cg_id": "ethereum"},
+    "ETHFI": {"name": "Ether.fi", "cg_id": "ether-fi"},
     "ETHW": {"name": "EthereumPoW", "cg_id": "ethereum-pow-iou"},
     "GAL": {"name": "Galatasaray Fan Token", "cg_id": "galatasaray-fan-token"},
-    "GFO": {"name": "Gifto", "cg_id": "gifto"},  # Previously GTO
+    "GFT": {"name": "Gifto", "cg_id": "gifto"},  # Previously GTO
     "HBAR": {"name": "Hedera", "cg_id": "hedera-hashgraph"},
     "HFT": {"name": "Hashflow", "cg_id": "hashflow"},
     "HIGH": {"name": "Highstreet", "cg_id": "highstreet"},
     "ICP": {"name": "Internet Computer", "cg_id": "internet-computer"},
+    "IOTA": {"name": "IOTA", "cg_id": "iota"},  # Previously MIOTA
     "KLAY": {"name": "Klaytn", "cg_id": "klay-token"},
     "LINK": {"name": "Chainlink", "cg_id": "chainlink"},
     "LIT": {"name": "Litentry", "cg_id": "litentry"},
@@ -166,18 +168,18 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "MBOX": {"name": "Mobox", "cg_id": "mobox"},
     "MC": {"name": "Merit Circle", "cg_id": "merit-circle"},
     "MEME": {"name": "Memecoin", "cg_id": "memecoin-2"},
-    "IOTA": {"name": "IOTA", "cg_id": "iota"},  # Previously MIOTA
-    "XNO": {"name": "Nano", "cg_id": "nano"},  # Previously NANO
     "NAV": {"name": "Navcoin", "cg_id": "nav-coin"},
     "NFP": {"name": "NFPrompt", "cg_id": "nfprompt-token"},
     "NTRN": {"name": "Neutron", "cg_id": "neutron-3"},
     "PENDLE": {"name": "Pendle", "cg_id": "pendle"},
+    "PIXEL": {"name": "Pixels", "cg_id": "pixels"},
     "QI": {"name": "BENQI", "cg_id": "benqi"},
     "RDNT": {"name": "Radiant Capital", "cg_id": "radiant-capital"},
     "RVN": {"name": "Ravencoin", "cg_id": "ravencoin"},
     "SANTOS": {"name": "Santos FC Fan Token", "cg_id": "santos-fc-fan-token"},
     "SEI": {"name": "Sei", "cg_id": "sei-network"},
     "SOL": {"name": "Solana", "cg_id": "solana"},
+    "STRK": {"name": "Starknet", "cg_id": "starknet"},
     "SUI": {"name": "Sui", "cg_id": "sui"},
     "SXP": {"name": "Sxp", "cg_id": "sxp"},
     "TLM": {"name": "Alien Worlds", "cg_id": "alien-worlds"},
@@ -188,6 +190,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "XAI": {"name": "Xai", "cg_id": "xai-3"},
     "XLM": {"name": "Stellar", "cg_id": "stellar"},
     "XMR": {"name": "Monero", "cg_id": "monero"},
+    "XNO": {"name": "Nano", "cg_id": "nano"},  # Previously NANO
     "XRP": {"name": "XRP", "cg_id": "ripple"},
 }
 
