@@ -1,3 +1,4 @@
+import datetime
 from decimal import Decimal
 
 import pytest
@@ -82,8 +83,8 @@ def test_get_consumable_currency_balances():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
-    CurrencyPriceFactory.create(currency="BTC", fiat="ADA", date=wallet_helper.date())
-    crypto = CryptoCurrencyFactory.create(symbol="ADA")
+    CurrencyPriceFactory.create(currency="BTC", fiat="EUR", date=wallet_helper.date())
+    crypto = CryptoCurrencyFactory.create(symbol="BTC")
 
     # No deposits, nothing should be returned
     assert len(wallet.get_consumable_currency_balances(crypto)) == 0
@@ -91,28 +92,124 @@ def test_get_consumable_currency_balances():
     # Deposit some cryptocurrency to wallet in two separate events
     wallet_helper.deposit(crypto, quantity=100)
     wallet_helper.deposit(crypto, quantity=50)
+
+    # Current balance = 150
     currencies = wallet.get_consumable_currency_balances(crypto)
     assert len(currencies) == 2
     assert currencies[0].quantity_left == 100
     assert currencies[1].quantity_left == 150
+
     # Test the method with quantity kwarg
-    assert len(wallet.get_consumable_currency_balances(crypto, quantity=99)) == 1
-    assert len(wallet.get_consumable_currency_balances(crypto, quantity=101)) == 2
-    assert len(wallet.get_consumable_currency_balances(crypto, quantity=1000)) == 2
+    currencies = wallet.get_consumable_currency_balances(crypto, quantity=99)
+    assert len(currencies) == 1
+    assert currencies[0].quantity_left == 100
+
+    currencies = wallet.get_consumable_currency_balances(crypto, quantity=101)
+    assert len(currencies) == 2
+    assert currencies[0].quantity_left == 100
+    assert currencies[1].quantity_left == 150
+
+    currencies = wallet.get_consumable_currency_balances(crypto, quantity=1000)
+    assert len(currencies) == 2
+    assert currencies[0].quantity_left == 100
+    assert currencies[1].quantity_left == 150
 
     # Withdraw a part of the funds
     wallet_helper.withdraw(crypto, quantity=20)
+    # Current balance = 130
     currencies = wallet.get_consumable_currency_balances(crypto)
     assert len(currencies) == 2
     assert currencies[0].quantity_left == 80
     assert currencies[1].quantity_left == 130
 
     # Withdraw enough to consume the first deposit and part of the second
+    # Current balance = 30
     wallet_helper.withdraw(crypto, quantity=100)
     currencies = wallet.get_consumable_currency_balances(crypto)
     assert len(currencies) == 1
     assert currencies[0].quantity_left == 30
 
     # Everything is withdrawn, nothing should be returned anymore
+    # Current balance = 0
     wallet_helper.withdraw(crypto, quantity=30)
     assert len(wallet.get_consumable_currency_balances(crypto)) == 0
+
+
+@pytest.mark.django_db()
+def test_get_consumable_currency_balances__insufficient_funds():
+    wallet = WalletFactory.create()
+    wallet_helper = WalletHelper(wallet)
+
+    CurrencyPriceFactory.create(currency="BTC", fiat="EUR", date=wallet_helper.date())
+    crypto = CryptoCurrencyFactory.create(symbol="BTC")
+
+    # Deposit some cryptocurrency to wallet in two separate events
+    wallet_helper.deposit(crypto, quantity=100)
+    wallet_helper.deposit(crypto, quantity=250)
+
+    # Current balance = 350
+    currencies = wallet.get_consumable_currency_balances(crypto)
+    assert len(currencies) == 2
+    assert currencies[0].quantity_left == 100
+    assert currencies[1].quantity_left == 350
+
+    # Withdraw more than should be allowed
+    with pytest.raises(InsufficientFundsError):
+        wallet_helper.withdraw(crypto, quantity=400)
+
+
+@pytest.mark.django_db()
+def test_get_consumable_currency_balances__get_last_consumable_balance():
+    wallet = WalletFactory.create()
+    wallet_helper = WalletHelper(wallet)
+
+    CurrencyPriceFactory.create(currency="BTC", fiat="EUR", date=wallet_helper.date())
+    crypto = CryptoCurrencyFactory.create(symbol="BTC")
+
+    tx_1 = wallet_helper.deposit(crypto, quantity=100)
+    tx_2 = wallet_helper.deposit(crypto, quantity=200)
+    tx_3 = wallet_helper.withdraw(crypto, quantity=150)
+    tx_4 = wallet_helper.deposit(crypto, quantity=100)
+
+    # Current balance = 250
+    currencies = wallet.get_consumable_currency_balances(crypto)
+    assert len(currencies) == 2
+    assert currencies[0].quantity_left == 150
+    assert currencies[1].quantity_left == 250
+
+    assert tx_1.to_detail.get_last_consumable_balance().quantity_left == 100
+    assert tx_2.to_detail.get_last_consumable_balance().quantity_left == 300
+    assert tx_3.from_detail.get_last_consumable_balance().quantity_left == 150
+    assert tx_4.to_detail.get_last_consumable_balance().quantity_left == 250
+
+
+@pytest.mark.django_db()
+def test_get_consumable_currency_balances__same_timestamp():
+    wallet = WalletFactory.create()
+    wallet_helper = WalletHelper(wallet)
+
+    CurrencyPriceFactory.create(currency="BTC", fiat="EUR", date=wallet_helper.date())
+    crypto = CryptoCurrencyFactory.create(symbol="BTC")
+
+    # Deposit some cryptocurrency to wallet in two separate events
+    timestamp = datetime.datetime(2021, 1, 1, 12)
+    tx_1 = wallet_helper.deposit(crypto, quantity=100, timestamp=timestamp)
+    tx_2 = wallet_helper.deposit(crypto, quantity=200, timestamp=timestamp)
+
+    # Current balance = 300
+    currencies = wallet.get_consumable_currency_balances(crypto)
+    assert len(currencies) == 2
+    # Transactions with identical timestamps have duplicate quantity_left
+    assert currencies[0].quantity_left == 300
+    assert currencies[1].quantity_left == 300
+    assert tx_1.to_detail.get_last_consumable_balance().quantity_left == 300
+    assert tx_2.to_detail.get_last_consumable_balance().quantity_left == 300
+
+    currencies = wallet.get_consumable_currency_balances(crypto, quantity=50)
+    assert len(currencies) == 1
+    assert currencies[0].quantity_left == 300
+
+    currencies = wallet.get_consumable_currency_balances(crypto, quantity=150)
+    assert len(currencies) == 2
+    assert currencies[0].quantity_left == 300
+    assert currencies[1].quantity_left == 300

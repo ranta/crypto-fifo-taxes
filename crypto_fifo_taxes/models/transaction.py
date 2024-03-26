@@ -1,6 +1,9 @@
+from __future__ import annotations
+
+import datetime
 from datetime import date
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.db import models
@@ -77,7 +80,7 @@ class Transaction(models.Model):
 
     @staticmethod
     def _get_detail_cost_basis(
-        transaction_detail: "TransactionDetail", sell_price: Decimal | None = None
+        transaction_detail: TransactionDetail, sell_price: Decimal | None = None
     ) -> tuple[Decimal, bool]:
         """
         Use FIFO to get used currency quantities and cost bases.
@@ -93,7 +96,7 @@ class Transaction(models.Model):
         If it's advantageous to use deemed acquisition cost, it is used
         https://www.vero.fi/henkiloasiakkaat/omaisuus/sijoitukset/osakkeiden_myynt/
         """
-        consumable_balances: list["TransactionDetail"] = transaction_detail.get_consumable_balances()
+        consumable_balances: list[TransactionDetail] = transaction_detail.get_consumable_balances()
         required_quantity: Decimal = transaction_detail.quantity
         cost_bases: list[tuple] = []  # [(quantity, cost_basis)]
         only_hmo_used = True
@@ -122,10 +125,10 @@ class Transaction(models.Model):
                     f"TransactionDetail (id: {balance.id}, {balance}) is missing its `cost_basis`."
                 )
 
-            if required_quantity >= balance.quantity_left:
+            if required_quantity >= balance.quantity:
                 # Fully consume deposit balance
-                cost_bases.append((balance.quantity_left, apply_hmo(balance.cost_basis)))
-                required_quantity -= balance.quantity_left
+                cost_bases.append((balance.quantity, apply_hmo(balance.cost_basis)))
+                required_quantity -= balance.quantity
             else:
                 # Consume only the required quantity
                 cost_bases.append((required_quantity, apply_hmo(balance.cost_basis)))
@@ -134,7 +137,8 @@ class Transaction(models.Model):
         if required_quantity > Decimal(0):
             raise InsufficientFundsError(
                 "Transaction from detail quantity is more than wallet has available to consume! "
-                f"Required: {required_quantity} {transaction_detail.currency}"
+                f"Required: {required_quantity} {transaction_detail.currency}. "
+                f"{transaction_detail.transaction.id=} {transaction_detail.id=}"
             )
 
         sum_quantity = sum(i for i, _ in cost_bases)
@@ -323,7 +327,7 @@ class Transaction(models.Model):
             self.save()
 
     @atomic()
-    def add_detail(self, type: str, wallet: "Wallet", currency: "Currency", quantity: Decimal):
+    def add_detail(self, type: str, wallet: Wallet, currency: Currency, quantity: Decimal):
         assert type in ["from_detail", "to_detail", "fee_detail"]
 
         detail: TransactionDetail | None = getattr(self, type, None)
@@ -449,7 +453,7 @@ class TransactionDetail(models.Model):
         return f"<{self.__class__.__name__} ({self.id}): {detail_type} '{self.currency}' ({self.quantity})>"
 
     @property
-    def transaction(self) -> Optional["Transaction"]:
+    def transaction(self) -> Transaction | None:
         if hasattr(self, "from_detail"):
             return self.from_detail
         elif hasattr(self, "to_detail"):
@@ -458,10 +462,26 @@ class TransactionDetail(models.Model):
             return self.fee_detail
         return None
 
-    def get_consumable_balances(self) -> list["TransactionDetail"]:
+    def get_consumable_balances(self) -> list[TransactionDetail]:
         return self.wallet.get_consumable_currency_balances(
-            self.currency, quantity=self.quantity, timestamp=self.transaction.timestamp
+            currency=self.currency,
+            timestamp=self.transaction.timestamp,
+            quantity=self.quantity,
         )
+
+    def get_last_consumable_balance(self) -> TransactionDetail | None:
+        """Get the balance of this currency after this transaction has been processed."""
+        timestamp = self.transaction.timestamp
+        if hasattr(self, "from_detail"):
+            timestamp += datetime.timedelta(seconds=1)
+
+        last_balance_only = self.wallet.get_consumable_currency_balances(
+            self.currency, quantity=None, timestamp=timestamp
+        )
+
+        if last_balance_only:
+            return last_balance_only[-1]
+        return None
 
     @property
     def total_value(self) -> Decimal | None:

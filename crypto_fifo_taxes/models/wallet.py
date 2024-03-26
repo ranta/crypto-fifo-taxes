@@ -117,6 +117,7 @@ class Wallet(models.Model):
             from_filter |= Q(from_detail__timestamp__lt=timestamp)
             to_filter |= Q(to_detail__timestamp__lte=timestamp)
             fee_filter |= Q(fee_detail__timestamp__lte=timestamp)
+
         total_spent = self.transaction_details.filter(currency=currency).filter(
             (Q(from_detail__isnull=False) & from_filter)
             | (Q(fee_detail__isnull=False) & fee_filter & ~Q(fee_detail__transaction_type=TransactionType.WITHDRAW))
@@ -140,12 +141,17 @@ class Wallet(models.Model):
             f"SELECT * FROM ({sql}) deposits_with_accumed_quantity WHERE accum_quantity > %s",  # noqa: S608,RUF100
             [*params, total_spent],
         )
-
         deposits_filtered = list(deposits_filtered)
+
         if quantity is not None:
             assert quantity > 0
+
+            # Do not use `deposit.quantity_left` as it breaks for transactions with identical timestamps
+            # (Both transactions have the same `accum_quantity`, which includes both transaction quantities).
+            quantity_left = Decimal(0)
             # Return only minimum amount of deposits, exclude all that exceed requested quantity.
             for n, deposit in enumerate(deposits_filtered):
-                if deposit.quantity_left >= quantity:
+                quantity_left += deposit.quantity
+                if quantity_left >= quantity:
                     return deposits_filtered[: n + 1]
         return deposits_filtered
