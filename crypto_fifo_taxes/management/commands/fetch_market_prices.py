@@ -3,7 +3,7 @@ import sys
 
 from django.core.management import BaseCommand
 
-from crypto_fifo_taxes.models import Currency
+from crypto_fifo_taxes.models import Currency, Transaction
 from crypto_fifo_taxes.utils.coingecko import fetch_currency_market_chart
 from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 
@@ -19,7 +19,19 @@ class Command(BaseCommand):
         logger.info(
             f"Fetching market data for {count} currencies: ({', '.join(currency_qs.values_list('symbol', flat=True))})"
         )
+
+        # Only fetch prices for currencies that don't have prices for the last transaction date
         for i, currency in enumerate(currency_qs):
+            last_transaction = Transaction.objects.filter_currency(currency.symbol).order_by("timestamp").last()
+            if last_transaction is None:
+                logger.warning(f"Currency {currency} has no transactions.")
+                continue
+
+            last_transaction_date = last_transaction.timestamp.date()
+            if currency.prices.filter(date=last_transaction_date).exists():
+                logger.info(f"Currency {currency} already has prices for {last_transaction_date}.")
+                continue
+
             logger.info(f"Fetching market data for {currency.symbol} {(i + 1) / count * 100:>5.2f}% ({i+1}/{count})")
             fetch_currency_market_chart(currency)
 

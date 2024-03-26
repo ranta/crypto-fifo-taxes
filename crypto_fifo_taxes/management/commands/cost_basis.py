@@ -8,7 +8,7 @@ from django.db.models import Q, QuerySet
 from crypto_fifo_taxes.models import Transaction
 from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
