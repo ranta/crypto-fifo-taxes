@@ -1,3 +1,4 @@
+import datetime
 from decimal import Decimal
 
 from django.db.models import Case, DateField, F, OuterRef, Q, QuerySet, Subquery, Sum, When
@@ -29,8 +30,8 @@ class TransactionListView(ListView):
         query_params: QueryDict = self.request.GET
         filters = Q()
 
-        if year := query_params.get("year"):
-            filters &= Q(timestamp__year=year)
+        year = query_params.get("year", datetime.datetime.now().year)
+        filters &= Q(timestamp__year=year)
 
         # Exclude mining transactions
         filters &= ~Q(transaction_label=TransactionLabel.MINING)
