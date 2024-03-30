@@ -3,7 +3,6 @@ import sys
 from datetime import datetime
 from decimal import Decimal
 
-from django.contrib.auth.models import User
 from django.core.management import BaseCommand
 from django.db.models import F, Sum
 from django.db.transaction import atomic
@@ -94,7 +93,7 @@ class Command(BaseCommand):
             .aggregate(sum=Sum("cost"))["sum"]
         )
 
-        combined_wallet_balance = get_wallet_balance_sum(User.objects.first())
+        combined_wallet_balance = get_wallet_balance_sum()
         total_wallet_sum = Decimal()
         for symbol, quantity in combined_wallet_balance.items():
             currency = get_currency(symbol)

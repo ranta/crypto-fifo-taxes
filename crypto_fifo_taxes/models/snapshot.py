@@ -1,7 +1,6 @@
 import logging
 from typing import Any
 
-from django.conf import settings
 from django.db import models
 
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
@@ -12,7 +11,6 @@ logger = logging.getLogger(__name__)
 class Snapshot(models.Model):
     """Aggregate model for a snapshot of a user's balance at the end of a date"""
 
-    user = models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="snapshots")
     date = models.DateField()
     worth = TransactionDecimalField(null=True, blank=True)
     cost_basis = TransactionDecimalField(null=True, blank=True)
@@ -22,10 +20,10 @@ class Snapshot(models.Model):
         ordering = ("date",)
 
     def __str__(self):
-        return f"{self.user.get_full_name()}'s Snapshot for {self.date}"
+        return f"Snapshot for {self.date}"
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} ({self.pk}): User: {self.user.username} ({self.date}))>"
+        return f"<{self.__class__.__name__} ({self.pk}): ({self.date}))>"
 
     def get_balances(self) -> list[dict[str, Any]]:
         """Return the last calculated snapshot balance for user"""

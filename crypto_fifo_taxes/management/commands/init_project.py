@@ -56,10 +56,10 @@ def _create_admin_user() -> User:
     return admin_user
 
 
-def _create_initial_wallets(admin_user: User) -> None:
+def _create_initial_wallets() -> None:
     wallet_names = [w.strip() for w in os.environ.get("WALLET_NAMES").split(",")]
     for wallet_name in wallet_names:
-        Wallet.objects.get_or_create(user=admin_user, name=wallet_name, fiat=get_default_fiat())
+        Wallet.objects.get_or_create(name=wallet_name, fiat=get_default_fiat())
 
 
 def _check_renamed_symbols() -> None:
@@ -76,7 +76,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         _check_renamed_symbols()
         _create_initial_currencies()
-        admin_user = _create_admin_user()
-        _create_initial_wallets(admin_user=admin_user)
+        _create_admin_user()
+        _create_initial_wallets()
 
         logger.info("Project initialized!")

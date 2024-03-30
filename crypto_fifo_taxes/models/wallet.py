@@ -1,7 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
 
-from django.conf import settings
 from django.db import models
 from django.db.models import DecimalField, ExpressionWrapper, F, Q, Sum, Window
 from django.utils.translation import gettext_lazy as _
@@ -12,11 +11,6 @@ from crypto_fifo_taxes.utils.currency import get_currency
 
 
 class Wallet(models.Model):
-    user = models.ForeignKey(
-        to=settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="wallets",
-    )
     name = models.CharField(
         max_length=50,
         verbose_name=_("Wallet Name"),
@@ -35,10 +29,10 @@ class Wallet(models.Model):
     )
 
     def __str__(self):
-        return f"{self.user.get_full_name()}'s Wallet ({self.name})"
+        return f"{self.name} Wallet"
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} ({self.pk}): User: {self.user.username} ({self.name}))>"
+        return f"<{self.__class__.__name__} ({self.pk})>"
 
     def get_used_currency_ids(self):
         """Returns a list of currencies that have ever passed through this wallet"""

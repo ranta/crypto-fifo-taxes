@@ -2,11 +2,13 @@ from decimal import Decimal
 
 from django.conf import settings
 
+from crypto_fifo_taxes.models import Wallet
 
-def get_wallet_balance_sum(user: settings.AUTH_USER_MODEL) -> dict[str, Decimal]:
+
+def get_wallet_balance_sum() -> dict[str, Decimal]:
     wallet_sum = {}
 
-    for wallet in user.wallets.all():
+    for wallet in Wallet.objects.all():
         balance = wallet.get_current_balance()
         for symbol, quantity in balance.items():
             if symbol in settings.IGNORED_TOKENS:

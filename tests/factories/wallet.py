@@ -10,12 +10,8 @@ fake = Faker()
 class WalletFactory(DjangoModelFactory):
     class Meta:
         model = Wallet
-        django_get_or_create = (
-            "user",
-            "name",
-        )
+        django_get_or_create = ["name"]
 
-    user = factory.SubFactory("tests.factories.UserFactory")
     name = factory.Sequence(lambda n: f"Wallet-{n}: {fake.word()}")
     icon = None
     fiat = factory.SubFactory("tests.factories.FiatCurrencyFactory", symbol="EUR")

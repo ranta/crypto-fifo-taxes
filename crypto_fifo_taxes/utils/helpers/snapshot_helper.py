@@ -6,7 +6,6 @@ from decimal import Decimal
 from typing import Annotated
 
 import pytz
-from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db.models import F, Q, Sum
 
@@ -32,13 +31,11 @@ class BalanceDelta:
 
 
 class SnapshotHelper:
-    user: User
     starting_date: datetime.date
     today: datetime.date
     total_days_to_generate: int
 
     def __init__(self) -> None:
-        self.user = User.objects.first()
         self.starting_date = self._get_starting_date()
         self._validate_starting_date(self.starting_date)
 
@@ -102,7 +99,7 @@ class SnapshotHelper:
         snapshots = []
         for date_index in range(self.total_days_to_generate + 1):
             current_date = self.starting_date + datetime.timedelta(days=date_index)
-            snapshot = Snapshot(user=self.user, date=current_date)
+            snapshot = Snapshot(date=current_date)
             snapshots.append(snapshot)
 
         Snapshot.objects.bulk_create(snapshots)

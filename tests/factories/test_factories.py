@@ -6,7 +6,7 @@ from tests import factories
 
 @pytest.mark.django_db()
 def test_user_factory():
-    factories.WalletFactory.create()
+    factories.UserFactory.create()
 
 
 @pytest.mark.django_db()
