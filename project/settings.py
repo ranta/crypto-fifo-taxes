@@ -1,5 +1,4 @@
 import os
-from decimal import Decimal
 
 import dj_database_url
 import environ
@@ -233,11 +232,3 @@ IGNORED_TOKENS = [
     "EDG",  # Unable to be traded in Binance
     "ETHW",  # Unable to be traded in Binance
 ]
-
-# Add coins currently in locked staking / locked savings, as they are not retrievable from any api endpoint
-# These values are added to `get_binance_wallet_balance` output
-# https://www.binance.com/en/my/wallet/account/saving
-LOCKED_STAKING = {
-    "BTC": Decimal("0.0"),
-    "BNB": Decimal("0.0"),
-}

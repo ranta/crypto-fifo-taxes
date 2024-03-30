@@ -56,3 +56,19 @@ class BinanceClient(Client):
         return self._request_margin_api(
             "get", "simple-earn/flexible/history/redemptionRecord", signed=True, data=params
         )
+
+    def get_earn_flexible_position(self, **params):
+        """
+        Get Flexible Product Position
+
+        https://binance-docs.github.io/apidocs/spot/en/#get-flexible-product-position-user_data
+        """
+        return self._request_margin_api("get", "simple-earn/flexible/position", signed=True, data=params)
+
+    def get_earn_locked_position(self, **params):
+        """
+        Get Locked Product Position
+
+        https://binance-docs.github.io/apidocs/spot/en/#get-locked-product-position-user_data
+        """
+        return self._request_margin_api("get", "simple-earn/locked/position", signed=True, data=params)

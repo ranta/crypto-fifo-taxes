@@ -26,7 +26,7 @@ class Wallet(models.Model):
         return f"{self.name} Wallet"
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} ({self.pk})>"
+        return f"<{self.__class__.__name__} ({self.pk}): {self.name}>"
 
     def get_used_currency_ids(self):
         """Returns a list of currencies that have ever passed through this wallet"""

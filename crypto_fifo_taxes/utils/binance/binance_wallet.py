@@ -7,45 +7,38 @@ from crypto_fifo_taxes.utils.binance.binance_api import get_binance_client
 
 
 def get_binance_wallet_balance() -> dict[str:Decimal]:
-    def filter_spot_balances(row):
-        if row["asset"] in settings.IGNORED_TOKENS:
-            return False
-        if len(row["asset"]) >= 5 and row["asset"].startswith("LD"):
-            # Lending asset
-            return False
-        return Decimal(row["free"]) > 0 or Decimal(row["locked"]) > 0
-
-    def filter_savings_balances(row):
-        return Decimal(row["totalAmount"]) > 0
-
     client = get_binance_client()
+    balances: dict[str, Decimal] = {}
 
-    # Get positive balances from binance SPOT and SAVINGS accounts
-    spot_wallet = filter(filter_spot_balances, client.get_account()["balances"])
-    savings_wallet = filter(filter_savings_balances, client.get_lending_position())
+    # SPOT Wallet
+    for row in client.get_account()["balances"]:
+        symbol = row["asset"]
+        if not Decimal(row["free"]) and not Decimal(row["locked"]):
+            continue
+        if symbol in settings.IGNORED_TOKENS:
+            continue
+        # Lending asset, ignore here as they are imported more accurately from the EARN endpoints
+        if len(symbol) >= 5 and symbol.startswith("LD"):
+            continue
+        balances[symbol] = Decimal(row["free"]) + Decimal(row["locked"])
 
-    # Combine balances
-    balances = {}
-    for row in spot_wallet:
-        balances[row["asset"]] = Decimal(row["free"]) + Decimal(row["locked"])
-    for row in savings_wallet:
-        if row["asset"] in balances:
-            balances[row["asset"]] = balances[row["asset"]] + Decimal(row["totalAmount"])
-        else:
-            balances[row["asset"]] = Decimal(row["totalAmount"])
-    for symbol, quantity in settings.LOCKED_STAKING.items():
+    # EARN Wallet (Flexible)
+    for row in client.get_earn_flexible_position(size=100)["rows"]:
+        symbol = row["asset"]
         if symbol in balances:
-            balances[symbol] = balances[symbol] + quantity
+            balances[symbol] += Decimal(row["totalAmount"])
         else:
-            balances[symbol] = quantity
+            balances[symbol] = Decimal(row["totalAmount"])
 
-    # Remove zero balances
-    balance_diff = {}
-    for symbol, quantity in balances.items():
-        if quantity != Decimal(0):
-            balance_diff[symbol] = quantity
+    # EARN Wallet (Locked)
+    for row in client.get_earn_locked_position(size=100)["rows"]:
+        symbol = row["asset"]
+        if symbol in balances:
+            balances[symbol] += Decimal(row["amount"])
+        else:
+            balances[symbol] = Decimal(row["amount"])
 
-    return balance_diff
+    return balances
 
 
 def get_binance_wallet_differences() -> dict[str, Decimal]:
