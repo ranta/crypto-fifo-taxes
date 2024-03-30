@@ -47,7 +47,7 @@ def test_binance_deposit_import():
     ]
     for deposit in deposits:
         crypto = CryptoCurrencyFactory.create(symbol=deposit["coin"])
-        CurrencyPriceFactory.create(currency=crypto, fiat=wallet.fiat, date=from_timestamp(deposit["insertTime"]))
+        CurrencyPriceFactory.create(currency=crypto, date=from_timestamp(deposit["insertTime"]))
 
     import_deposits(wallet, deposits)
     assert Transaction.objects.all().count() == 2
@@ -88,7 +88,7 @@ def test_binance_withdrawal_import():
     for withdrawal in withdrawals:
         crypto = CryptoCurrencyFactory.create(symbol=withdrawal["coin"])
         tx_time = bstrptime(withdrawal["applyTime"])
-        CurrencyPriceFactory.create(currency=crypto, fiat=wallet.fiat, date=tx_time.date())
+        CurrencyPriceFactory.create(currency=crypto, date=tx_time.date())
         wallet_helper.deposit(crypto, Decimal(withdrawal["amount"]), tx_time)
 
     import_withdrawals(wallet, withdrawals)

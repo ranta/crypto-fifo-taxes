@@ -178,7 +178,7 @@ class Transaction(models.Model):
     def _handle_to_trade_crypto_to_crypto_cost_basis(self) -> None:
         # Get currency's FIAT price
         try:
-            currency_value = self.to_detail.currency.get_fiat_price(self.timestamp, self.to_detail.wallet.fiat)
+            currency_value = self.to_detail.currency.get_fiat_price(self.timestamp)
             self.to_detail.cost_basis = currency_value.price
         except MissingPriceHistoryError:
             # Price was unable to be retrieved from the CoinGecko API
@@ -237,7 +237,7 @@ class Transaction(models.Model):
         Deposits can be from e.g. Staking or Mining.
         """
         try:
-            fiat_price = self.to_detail.currency.get_fiat_price(self.timestamp, self.to_detail.wallet.fiat)
+            fiat_price = self.to_detail.currency.get_fiat_price(self.timestamp)
             currency_value = fiat_price.price
             self.to_detail.cost_basis = currency_value
             self.gain = currency_value * self.to_detail.quantity
@@ -271,7 +271,7 @@ class Transaction(models.Model):
         Funds are sent to some third party entity (e.g. Paying for goods and services directly with crypto),
         which realizes any profits made from value appreciation (use `transfer` if moving funds between wallets)
         """
-        sell_price = self.from_detail.currency.get_fiat_price(self.timestamp, self.from_detail.wallet.fiat).price
+        sell_price = self.from_detail.currency.get_fiat_price(self.timestamp).price
         from_cost_basis, only_hmo_used = self._get_from_detail_cost_basis(sell_price=sell_price)
         self.from_detail.cost_basis = from_cost_basis
         self.gain = (sell_price - from_cost_basis) * self.from_detail.quantity

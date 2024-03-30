@@ -110,11 +110,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Default FIAT currency. Used if when no other currency is defined
 DEFAULT_FIAT_SYMBOL = "EUR"
+DEFAULT_FIAT_CURRENCY = {"name": "Euro", "cg_id": "eur"}
 
-ALL_FIAT_CURRENCIES = {
-    "EUR": {"name": "Euro", "cg_id": "eur"},
-    "USD": {"name": "US Dollar", "cg_id": "usd"},
-}
 
 # Due to CoinGecko allowing multiple ids for the same currency, we need to map the ids to the correct currency.
 # Not all currencies need to be mapped, but it helps to prevent errors when fetching prices.

@@ -9,7 +9,7 @@ from django.http import QueryDict
 from django.views.generic import TemplateView
 
 from crypto_fifo_taxes.models import CurrencyPrice, Snapshot
-from crypto_fifo_taxes.utils.currency import get_currency, get_default_fiat
+from crypto_fifo_taxes.utils.currency import get_currency
 from crypto_fifo_taxes.utils.db import CoalesceZero
 
 
@@ -41,7 +41,7 @@ class GraphView(TemplateView):
 
     # Currency prices
     def currency_price_returns(self, symbol) -> QuerySet[CurrencyPrice]:
-        qs = CurrencyPrice.objects.filter(fiat=get_default_fiat(), currency=get_currency(symbol)).order_by("date")
+        qs = CurrencyPrice.objects.filter(currency=get_currency(symbol)).order_by("date")
         qs = self.filter_queryset(qs)
         first_price = qs.first().price
 
@@ -50,7 +50,7 @@ class GraphView(TemplateView):
         ).values_list("returns", flat=True)
 
     def currency_price_values_list(self, symbol) -> QuerySet[CurrencyPrice]:
-        qs = CurrencyPrice.objects.filter(fiat=get_default_fiat(), currency=get_currency(symbol)).order_by("date")
+        qs = CurrencyPrice.objects.filter(currency=get_currency(symbol)).order_by("date")
         qs = self.filter_queryset(qs)
         return qs_values_list_to_float(qs, "price")
 

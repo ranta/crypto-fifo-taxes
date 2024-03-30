@@ -21,12 +21,6 @@ class Wallet(models.Model):
         blank=True,
         null=True,
     )
-    fiat = models.ForeignKey(
-        to=Currency,
-        on_delete=models.CASCADE,
-        related_name="wallets",
-        verbose_name=_("FIAT"),
-    )
 
     def __str__(self):
         return f"{self.name} Wallet"

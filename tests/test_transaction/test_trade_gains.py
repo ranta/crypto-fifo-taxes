@@ -18,7 +18,7 @@ def test_gain_fiat_crypto_crypto_fiat_trades():
     btc = CryptoCurrencyFactory.create(symbol="BTC")
     eth = CryptoCurrencyFactory.create(symbol="ETH")
 
-    wallet = WalletFactory.create(fiat=fiat)
+    wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
     # Deposit FIAT to wallet
@@ -29,8 +29,8 @@ def test_gain_fiat_crypto_crypto_fiat_trades():
     wallet_helper.trade(fiat, 800, btc, 2)  # 1 BTC == 400 EUR
 
     wallet_helper.tx_time.next_day()
-    CurrencyPriceFactory.create(currency=btc, fiat=fiat, date=wallet_helper.date(), price=900)
-    CurrencyPriceFactory.create(currency=eth, fiat=fiat, date=wallet_helper.date(), price=90)
+    CurrencyPriceFactory.create(currency=btc, date=wallet_helper.date(), price=900)
+    CurrencyPriceFactory.create(currency=eth, date=wallet_helper.date(), price=90)
 
     # Trade 1 BTC to 10 ETH
     tx = wallet_helper.trade(btc, 1, eth, 10)
@@ -39,8 +39,8 @@ def test_gain_fiat_crypto_crypto_fiat_trades():
     assert tx.gain == Decimal(300)  # 900 - 600 = 300 EUR in realized profit
 
     wallet_helper.tx_time.next_day()
-    CurrencyPriceFactory.create(currency=btc, fiat=fiat, date=wallet_helper.date(), price=1200)
-    CurrencyPriceFactory.create(currency=eth, fiat=fiat, date=wallet_helper.date(), price=120)
+    CurrencyPriceFactory.create(currency=btc, date=wallet_helper.date(), price=1200)
+    CurrencyPriceFactory.create(currency=eth, date=wallet_helper.date(), price=120)
 
     # Trade 2 BTC to 20 ETH
     tx = wallet_helper.trade(btc, 2, eth, 20)
@@ -49,8 +49,8 @@ def test_gain_fiat_crypto_crypto_fiat_trades():
     assert tx.gain == Decimal(1400)  # 1200 * 2 - (600 + 400)
 
     wallet_helper.tx_time.next_day()
-    CurrencyPriceFactory.create(currency=btc, fiat=fiat, date=wallet_helper.date(), price=1000)
-    CurrencyPriceFactory.create(currency=eth, fiat=fiat, date=wallet_helper.date(), price=120)
+    CurrencyPriceFactory.create(currency=btc, date=wallet_helper.date(), price=1000)
+    CurrencyPriceFactory.create(currency=eth, date=wallet_helper.date(), price=120)
 
     # Sell remaining 1 BTC to FIAT
     tx = wallet_helper.trade(btc, 1, fiat, 500)
@@ -65,7 +65,7 @@ def test_gain_fiat_crypto_crypto_fiat_trades():
     assert tx.gain == Decimal(300)  # (120 - 100) * 15
 
     wallet_helper.tx_time.next_day()
-    CurrencyPriceFactory.create(currency=eth, fiat=fiat, date=wallet_helper.date(), price=100)
+    CurrencyPriceFactory.create(currency=eth, date=wallet_helper.date(), price=100)
 
     # Sell all 15 ETH to FIAT
     tx = wallet_helper.trade(eth, 15, fiat, 1500)  # 1 ETH == 100 EUR

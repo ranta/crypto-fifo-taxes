@@ -2,10 +2,10 @@ from decimal import Decimal
 
 import pytest
 
+from crypto_fifo_taxes.utils.currency import get_fiat_currency
 from tests.factories import (
     CryptoCurrencyFactory,
     CurrencyPriceFactory,
-    FiatCurrencyFactory,
     WalletFactory,
 )
 from tests.utils import WalletHelper
@@ -14,10 +14,10 @@ from tests.utils import WalletHelper
 @pytest.mark.django_db()
 def test_cost_basis_fiat_crypto_fiat_trades_simple():
     """Test calculating cost basis for FIAT -> CRYPTO -> FIAT trades that don't require using FIFO"""
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    fiat = get_fiat_currency()
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
 
-    wallet = WalletFactory.create(fiat=fiat)
+    wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
     # Deposit FIAT to wallet
@@ -42,10 +42,10 @@ def test_cost_basis_fiat_crypto_fiat_trades_simple():
 @pytest.mark.django_db()
 def test_cost_basis_fiat_crypto_fiat_trades_fifo():
     """Test calculating cost basis for FIAT -> CRYPTO -> FIAT trades using FIFO"""
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    fiat = get_fiat_currency()
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
 
-    wallet = WalletFactory.create(fiat=fiat)
+    wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
     # Deposit FIAT to wallet
@@ -73,11 +73,11 @@ def test_cost_basis_fiat_crypto_fiat_trades_fifo():
 @pytest.mark.django_db()
 def test_cost_basis_fiat_crypto_crypto_fiat_trades_fifo():
     """Test calculating cost basis for FIAT -> CRYPTO -> CRYPTO-> FIAT trades using FIFO"""
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    fiat = get_fiat_currency()
     btc = CryptoCurrencyFactory.create(symbol="BTC")
     eth = CryptoCurrencyFactory.create(symbol="ETH")
 
-    wallet = WalletFactory.create(fiat=fiat)
+    wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
     # Deposit FIAT to wallet
@@ -86,21 +86,21 @@ def test_cost_basis_fiat_crypto_crypto_fiat_trades_fifo():
     wallet_helper.trade(fiat, 400, btc, 2)  # 1 BTC == 200 EUR
 
     # Trade 4*100 = 400 EUR BTC to ETH
-    CurrencyPriceFactory.create(currency=eth, fiat=fiat, date=wallet_helper.date(), price=20)
+    CurrencyPriceFactory.create(currency=eth, date=wallet_helper.date(), price=20)
     tx = wallet_helper.trade(btc, 4, eth, 20)
     assert tx.from_detail.cost_basis == Decimal(100)
     assert tx.to_detail.cost_basis == Decimal(20)
 
     # Trade 2*100 + 2*200 = 600 EUR to ETH
     wallet_helper.tx_time.next_day()
-    CurrencyPriceFactory.create(currency=eth, fiat=fiat, date=wallet_helper.date(), price=30)
+    CurrencyPriceFactory.create(currency=eth, date=wallet_helper.date(), price=30)
     tx = wallet_helper.trade(btc, 4, eth, 20)
     assert tx.from_detail.cost_basis == Decimal(150)
     assert tx.to_detail.cost_basis == Decimal(30)
 
     # Sell all 40 ETH to FIAT
     wallet_helper.tx_time.next_day()
-    CurrencyPriceFactory.create(currency=eth, fiat=fiat, date=wallet_helper.date(), price=25)
+    CurrencyPriceFactory.create(currency=eth, date=wallet_helper.date(), price=25)
     tx = wallet_helper.trade(eth, 40, fiat, 400)
     assert tx.from_detail.cost_basis == Decimal(25)
 
@@ -108,11 +108,11 @@ def test_cost_basis_fiat_crypto_crypto_fiat_trades_fifo():
 @pytest.mark.django_db()
 def test_cost_basis_deemed_acquisition_cost():
     """Test that deemed acquisition cost (Hankintameno-olettama) is used whenever applicable"""
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    fiat = get_fiat_currency()
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
     crypto2 = CryptoCurrencyFactory.create(symbol="ETH")
 
-    wallet = WalletFactory.create(fiat=fiat)
+    wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
     # Deposit FIAT to wallet
@@ -129,8 +129,8 @@ def test_cost_basis_deemed_acquisition_cost():
     tx = wallet_helper.trade(crypto, 1, fiat, 5000)
     assert tx.from_detail.cost_basis == 1000
 
-    CurrencyPriceFactory.create(currency=crypto, fiat=fiat, date=wallet_helper.date(), price=1000)
-    CurrencyPriceFactory.create(currency=crypto2, fiat=fiat, date=wallet_helper.date(), price=100)
+    CurrencyPriceFactory.create(currency=crypto, date=wallet_helper.date(), price=1000)
+    CurrencyPriceFactory.create(currency=crypto2, date=wallet_helper.date(), price=100)
     tx = wallet_helper.trade(crypto, 1, crypto2, 10, crypto2, 1)
     assert tx.from_detail.cost_basis == 200
     assert tx.gain == 800

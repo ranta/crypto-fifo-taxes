@@ -72,7 +72,6 @@ class TransactionListView(ListView):
                             CurrencyPrice.objects.filter(
                                 date=OuterRef("timestamp_date"),
                                 currency=OuterRef("from_detail__currency"),
-                                fiat=OuterRef("from_detail__wallet__fiat"),
                             ).values_list("price", flat=True)[:1]
                         )
                         * F("from_detail__quantity"),

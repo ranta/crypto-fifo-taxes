@@ -46,16 +46,11 @@ class Currency(models.Model):
         fiat_str = " [FIAT]" if self.is_fiat else ""
         return f"<{self.__class__.__name__} ({self.pk}): {self.name} ({self.symbol}){fiat_str}>"
 
-    def get_fiat_price(
-        self,
-        date: datetime.date | datetime.datetime,
-        fiat: "Currency" = None,
-    ) -> "CurrencyPrice":
+    def get_fiat_price(self, date: datetime.date | datetime.datetime) -> "CurrencyPrice":
         """
         Get the FIAT price for a crypto on a specific date.
 
-        If no `fiat` currency is defined, settings.DEFAULT_FIAT_SYMBOL will be used instead.
-        Fetch price for the crypto if no record for entered fiat and date is found.
+        Fetch price for the crypto if no record for date is found.
 
         Only way for this method to raise MissingPriceHistoryError, is if the price is unable to fetched from the API
         e.g. it's deprecated, ignored, etc.
@@ -68,19 +63,11 @@ class Currency(models.Model):
         if isinstance(date, datetime.datetime):
             date = date.date()
 
-        # Validate fiat
-        if fiat is None:
-            from crypto_fifo_taxes.utils.currency import get_default_fiat
-
-            fiat = get_default_fiat()
-        assert isinstance(fiat, Currency)
-        assert fiat.is_fiat is True
-
         if self.is_fiat is True:
             raise TypeError("Getting a FIAT currency's price in another FIAT currency is not supported.")
 
         # Get crypto price from db
-        currency_price = self.prices.filter(date=date, fiat=fiat).first()
+        currency_price = self.prices.filter(date=date).first()
 
         # Price was found in the database
         if currency_price is not None:
@@ -89,9 +76,9 @@ class Currency(models.Model):
         # Fetch prices from an API
         fetch_currency_market_chart(self)
 
-        currency_price = self.prices.filter(date=date, fiat=fiat).first()
+        currency_price = self.prices.filter(date=date).first()
         if currency_price is None:
-            raise MissingPriceHistoryError(f"Currency: `{self}` does not have a price for {date} in {fiat}.")
+            raise MissingPriceHistoryError(f"Currency: `{self}` does not have a price for {date}.")
 
         return currency_price
 
@@ -137,12 +124,6 @@ class CurrencyPrice(models.Model):
         related_name="prices",
         verbose_name=_("Currency"),
     )
-    fiat = models.ForeignKey(
-        to=Currency,
-        on_delete=models.CASCADE,
-        related_name="+",
-        verbose_name=_("FIAT"),
-    )
     date = models.DateField()
     price = TransactionDecimalField()
     market_cap = TransactionDecimalField()
@@ -153,17 +134,10 @@ class CurrencyPrice(models.Model):
 
     class Meta:
         # Only one crypto price per day per FIAT currency
-        unique_together = (
-            "currency",
-            "date",
-            "fiat",
-        )
+        unique_together = ("currency", "date")
 
     def __str__(self):
-        return f"{self.currency.symbol}'s price in {self.fiat.symbol} on {self.date} ({self.price})"
+        return f"{self.currency.symbol}'s price on {self.date} ({self.price})"
 
     def __repr__(self):
-        return (
-            f"<{self.__class__.__name__} ({self.pk}): "
-            f"FIAT: {self.fiat.symbol}, CRYPTO: {self.currency.symbol} ({self.date})>"
-        )
+        return f"<{self.__class__.__name__} ({self.pk}): {self.currency.symbol}: {self.price} ({self.date})>"

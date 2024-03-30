@@ -14,8 +14,8 @@ def test_transfer():
     fiat = FiatCurrencyFactory.create(symbol="EUR")
     btc = CryptoCurrencyFactory.create(symbol="BTC")
 
-    wallet_from = WalletFactory.create(fiat=fiat)
-    wallet_to = WalletFactory.create(fiat=fiat)
+    wallet_from = WalletFactory.create()
+    wallet_to = WalletFactory.create()
 
     now = timezone.now()
     # Add some BTC to wallet
@@ -43,7 +43,7 @@ def test_swap():
     vet = CryptoCurrencyFactory.create(symbol="VET")
     btc = CryptoCurrencyFactory.create(symbol="BTC")
 
-    wallet = WalletFactory.create(fiat=fiat)
+    wallet = WalletFactory.create()
 
     # Add some BTC to wallet
     wallet_helper = WalletHelper(wallet)

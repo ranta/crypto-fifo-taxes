@@ -11,27 +11,17 @@ logger = logging.getLogger(__name__)
 
 
 @lru_cache
-def get_default_fiat() -> Currency:
+def get_fiat_currency() -> Currency:
     """Return the currency object for default fiat currency"""
-    return Currency.objects.get(is_fiat=True, symbol=settings.DEFAULT_FIAT_SYMBOL)
-
-
-@lru_cache
-def all_fiat_currencies() -> list[Currency]:
-    fiat_currencies = Currency.objects.filter(is_fiat=True)
-
-    if len(fiat_currencies) == len(settings.ALL_FIAT_CURRENCIES):
-        return fiat_currencies
-
-    # We are missing some currencies, create all required fiat currencies
-    fiat_currencies = []
-    for symbol, data in settings.ALL_FIAT_CURRENCIES.items():
-        currency, _ = Currency.objects.get_or_create(
-            symbol=symbol,
-            defaults={"name": data["name"], "cg_id": data["cg_id"], "is_fiat": True},
-        )
-        fiat_currencies.append(currency)
-    return fiat_currencies
+    fiat, _ = Currency.objects.get_or_create(
+        symbol=settings.DEFAULT_FIAT_SYMBOL,
+        defaults={
+            "name": settings.DEFAULT_FIAT_CURRENCY["name"],
+            "cg_id": settings.DEFAULT_FIAT_CURRENCY["cg_id"],
+            "is_fiat": True,
+        },
+    )
+    return fiat
 
 
 @lru_cache

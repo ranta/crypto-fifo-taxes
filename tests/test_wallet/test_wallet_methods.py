@@ -9,7 +9,6 @@ from crypto_fifo_taxes.models import Currency
 from tests.factories import (
     CryptoCurrencyFactory,
     CurrencyPriceFactory,
-    FiatCurrencyFactory,
     TransactionDetailFactory,
     TransactionFactory,
     WalletFactory,
@@ -36,7 +35,7 @@ def test_wallet_get_used_currency_ids():
 def test_wallet_get_current_balance_deposit_and_withdrawal_single_currency():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
-    CurrencyPriceFactory.create(currency="BTC", fiat="EUR", date=wallet_helper.date(), price=1000)
+    CurrencyPriceFactory.create(currency="BTC", date=wallet_helper.date(), price=1000)
 
     wallet_helper.deposit(currency="BTC", quantity=5)
     wallet_helper.deposit(currency="BTC", quantity=10)
@@ -50,10 +49,10 @@ def test_wallet_get_current_balance_deposit_and_withdrawal_single_currency():
 def test_wallet_get_current_balance_deposit_and_withdrawal_multiple_currencies():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
-    CurrencyPriceFactory.create(currency="BTC", fiat="EUR", date=wallet_helper.date())
-    CurrencyPriceFactory.create(currency="ETH", fiat="EUR", date=wallet_helper.date())
-    CurrencyPriceFactory.create(currency="NANO", fiat="EUR", date=wallet_helper.date())
-    CurrencyPriceFactory.create(currency="DOGE", fiat="EUR", date=wallet_helper.date())
+    CurrencyPriceFactory.create(currency="BTC", date=wallet_helper.date())
+    CurrencyPriceFactory.create(currency="ETH", date=wallet_helper.date())
+    CurrencyPriceFactory.create(currency="NANO", date=wallet_helper.date())
+    CurrencyPriceFactory.create(currency="DOGE", date=wallet_helper.date())
 
     # Simple deposit + withdrawal
     wallet_helper.deposit(currency="BTC", quantity=8)
@@ -84,7 +83,7 @@ def test_get_consumable_currency_balances():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
-    CurrencyPriceFactory.create(currency="BTC", fiat="EUR", date=wallet_helper.date())
+    CurrencyPriceFactory.create(currency="BTC", date=wallet_helper.date())
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
 
     # No deposits, nothing should be returned
@@ -141,7 +140,7 @@ def test_get_consumable_currency_balances__insufficient_funds():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
-    CurrencyPriceFactory.create(currency="BTC", fiat="EUR", date=wallet_helper.date())
+    CurrencyPriceFactory.create(currency="BTC", date=wallet_helper.date())
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
 
     # Deposit some cryptocurrency to wallet in two separate events
@@ -164,7 +163,7 @@ def test_get_consumable_currency_balances__get_last_consumable_balance():
     wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
-    CurrencyPriceFactory.create(currency="BTC", fiat="EUR", date=wallet_helper.date())
+    CurrencyPriceFactory.create(currency="BTC", date=wallet_helper.date())
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
 
     tx_1 = wallet_helper.deposit(crypto, quantity=100)
@@ -190,7 +189,7 @@ def test_get_consumable_currency_balances__same_timestamp():
     wallet_helper = WalletHelper(wallet)
 
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
-    CurrencyPriceFactory.create(currency=crypto, fiat=wallet.fiat, date=wallet_helper.date())
+    CurrencyPriceFactory.create(currency=crypto, date=wallet_helper.date())
 
     # Deposit some cryptocurrency to wallet in two separate events
     timestamp = datetime.datetime.combine(wallet_helper.date(), datetime.time(12))
@@ -219,12 +218,11 @@ def test_get_consumable_currency_balances__same_timestamp():
 
 @pytest.mark.django_db()
 def test_same_from_to_symbol():
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
 
-    wallet = WalletFactory.create(fiat=fiat)
+    wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
-    CurrencyPriceFactory.create(currency=crypto, fiat=fiat, date=wallet_helper.date(), price=1000)
+    CurrencyPriceFactory.create(currency=crypto, date=wallet_helper.date(), price=1000)
 
     tx_1 = wallet_helper.deposit(crypto, 1000)
     tx_2 = wallet_helper.trade(crypto, 1000, crypto, 500)

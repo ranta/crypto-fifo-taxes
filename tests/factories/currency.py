@@ -59,10 +59,9 @@ class CurrencyPairFactory(DjangoModelFactory):
 class CurrencyPriceFactory(DjangoModelFactory):
     class Meta:
         model = CurrencyPrice
-        django_get_or_create = ("currency", "fiat", "date")
+        django_get_or_create = ("currency", "date")
 
     currency = factory.SubFactory("tests.factories.CryptoCurrencyFactory")
-    fiat = factory.SubFactory("tests.factories.FiatCurrencyFactory")
     date = factory.fuzzy.FuzzyDate(date(2010, 1, 1), date(2020, 12, 31))
     price = factory.fuzzy.FuzzyDecimal(1, 1000, precision=8)
     market_cap = 0
@@ -76,7 +75,6 @@ class CurrencyPriceFactory(DjangoModelFactory):
         kwargs.update(
             {
                 "currency": get_test_currency(kwargs.get("currency"), False),
-                "fiat": get_test_currency(kwargs.get("fiat"), True),
             }
         )
 
@@ -104,7 +102,6 @@ class PriceTrend(Enum):
 
 def create_currency_price_history(
     currency: Currency | str,
-    fiat: Currency | str,
     start_price: Decimal | int = Decimal(1000),
     trend: PriceTrend = PriceTrend.BULL_SLOW,
     start_date: date | None = None,
@@ -114,7 +111,6 @@ def create_currency_price_history(
     from tests.utils import get_test_currency
 
     currency = get_test_currency(currency, is_fiat=False)
-    fiat = get_test_currency(fiat, is_fiat=True)
     if start_date is None:
         start_date = date(2010, 1, 1)
     assert days > 0
@@ -122,7 +118,6 @@ def create_currency_price_history(
     for day in range(days):
         CurrencyPriceFactory.create(
             currency=currency,
-            fiat=fiat,
             date=start_date + timedelta(days=day),
             # Price changes by X% of the start_price each day
             price=start_price + (start_price * trend.value * day / 100),

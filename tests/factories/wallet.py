@@ -14,4 +14,3 @@ class WalletFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: f"Wallet-{n}: {fake.word()}")
     icon = None
-    fiat = factory.SubFactory("tests.factories.FiatCurrencyFactory", symbol="EUR")

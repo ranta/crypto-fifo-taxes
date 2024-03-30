@@ -4,11 +4,11 @@ import pytest
 from django.db.transaction import atomic
 
 from crypto_fifo_taxes.exceptions import InsufficientFundsError
+from crypto_fifo_taxes.utils.currency import get_fiat_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
 from tests.factories import (
     CryptoCurrencyFactory,
     CurrencyPriceFactory,
-    FiatCurrencyFactory,
     WalletFactory,
 )
 from tests.utils import WalletHelper
@@ -16,10 +16,10 @@ from tests.utils import WalletHelper
 
 @pytest.mark.django_db()
 def test_fees_paid_with_new_currency():
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    fiat = get_fiat_currency()
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
 
-    wallet = WalletFactory.create(fiat=fiat)
+    wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
     # Deposit FIAT to wallet
@@ -44,10 +44,10 @@ def test_fees_paid_with_new_currency():
 
 @pytest.mark.django_db()
 def test_fees_paid_with_original_currency():
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    fiat = get_fiat_currency()
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
 
-    wallet = WalletFactory.create(fiat=fiat)
+    wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
     # Deposit FIAT to wallet
@@ -65,11 +65,11 @@ def test_fees_paid_with_original_currency():
 
 @pytest.mark.django_db()
 def test_fees_with_dedicated_fee_currency():
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    fiat = get_fiat_currency()
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
     fee_currency = CryptoCurrencyFactory.create(symbol="BNB")
 
-    wallet = WalletFactory.create(fiat=fiat)
+    wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
     # Deposit FIAT to wallet
@@ -92,14 +92,13 @@ def test_fees_with_dedicated_fee_currency():
 
 @pytest.mark.django_db()
 def test_fee_withdrawal():
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
 
-    wallet = WalletFactory.create(fiat=fiat)
+    wallet = WalletFactory.create()
     wallet_helper = WalletHelper(wallet)
 
     # Deposit FIAT to wallet
-    CurrencyPriceFactory.create(currency=crypto, fiat=fiat, date=wallet_helper.date(), price=1000)
+    CurrencyPriceFactory.create(currency=crypto, date=wallet_helper.date(), price=1000)
     wallet_helper.deposit(crypto, 10)
     assert wallet.get_current_balance("BTC") == Decimal(10)
 
@@ -112,11 +111,11 @@ def test_fee_withdrawal():
 
 @pytest.mark.django_db()
 def test_fee_transfer():
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    fiat = get_fiat_currency()
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
 
-    wallet_from = WalletFactory.create(fiat=fiat)
-    wallet_to = WalletFactory.create(fiat=fiat)
+    wallet_from = WalletFactory.create()
+    wallet_to = WalletFactory.create()
     wallet_helper = WalletHelper(wallet_from)
 
     wallet_helper.deposit(fiat, 1000)

@@ -1,4 +1,3 @@
-
 from django.core.management import BaseCommand
 
 from crypto_fifo_taxes.utils.helpers.snapshot_helper import SnapshotHelper

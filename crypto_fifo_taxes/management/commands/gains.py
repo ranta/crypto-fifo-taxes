@@ -8,7 +8,7 @@ from django.db.models import F, Sum
 from django.db.transaction import atomic
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
-from crypto_fifo_taxes.models import Transaction, Wallet
+from crypto_fifo_taxes.models import Transaction
 from crypto_fifo_taxes.models.transaction import TransactionDetail, TransactionQuerySet
 from crypto_fifo_taxes.utils.currency import get_currency
 from crypto_fifo_taxes.utils.wallet import get_wallet_balance_sum
@@ -18,8 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    fiat = Wallet.objects.first().fiat.symbol
-
     def add_arguments(self, parser):
         parser.add_argument("--year", type=str)
         parser.add_argument("--full", type=int)
@@ -60,15 +58,15 @@ class Command(BaseCommand):
         mining = qs.filter(transaction_label=TransactionLabel.MINING)
         rewards = qs.filter(transaction_label=TransactionLabel.REWARD)
 
-        logger.info(f"\nProfits for the year {year}: {self.get_profits(qs):.2f} {self.fiat}")
+        logger.info(f"\nProfits for the year {year}: {self.get_profits(qs):.2f}")
         if trades.exists():
-            logger.info(f"Trades: {self.get_profits(trades):.2f} {self.fiat}")
+            logger.info(f"Trades: {self.get_profits(trades):.2f}")
 
         if mining.exists():
-            logger.info(f"Mining: {self.get_profits(mining):.2f} {self.fiat}")
+            logger.info(f"Mining: {self.get_profits(mining):.2f}")
 
         if rewards.exists():
-            logger.info(f"Rewards: {self.get_profits(rewards):.2f} {self.fiat}")
+            logger.info(f"Rewards: {self.get_profits(rewards):.2f}")
 
     @atomic
     def handle(self, *args, **kwargs):
@@ -87,11 +85,14 @@ class Command(BaseCommand):
             .annotate(cost=F("cost_basis") * F("quantity"))
             .aggregate(sum=Sum("cost"))["sum"]
         )
+        logger.info(f"Deposits {deposits}")
+
         withdrawals = (
             TransactionDetail.objects.filter(from_detail__transaction_type=TransactionType.WITHDRAW)
             .annotate(cost=F("cost_basis") * F("quantity"))
             .aggregate(sum=Sum("cost"))["sum"]
         )
+        logger.info(f"Withdrawals {withdrawals}")
 
         combined_wallet_balance = get_wallet_balance_sum()
         total_wallet_sum = Decimal()
@@ -103,8 +104,6 @@ class Command(BaseCommand):
             price = currency.get_fiat_price(date=datetime.now().date()).price
             total_wallet_sum += price
 
-        logger.info(f"\nDeposits {deposits}")
-        logger.info(f"Withdrawals {withdrawals}")
         logger.info(f"Current wallet balance {total_wallet_sum}")
         logger.info(f"Profit € {(withdrawals + total_wallet_sum) - deposits}")
         logger.info(f"Profit % {((withdrawals + total_wallet_sum) / deposits - 1) * 100}%")
