@@ -4,7 +4,7 @@ from decimal import Decimal
 from crypto_fifo_taxes.models import Currency, Wallet
 from crypto_fifo_taxes.utils.currency import get_fiat_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
-from tests.factories import CryptoCurrencyFactory, TransactionDetailFactory, WalletFactory
+from tests.factories import CryptoCurrencyFactory, CurrencyPriceFactory, TransactionDetailFactory, WalletFactory
 
 
 def _set_timezone(timestamp) -> datetime | None:
@@ -54,9 +54,11 @@ class WalletHelper:
         wallet: Wallet | None = None,
         start_time: datetime | None = None,
         increment: timedelta | None = None,
+        auto_create_prices: bool = True,
     ):
         self.wallet = wallet if wallet is not None else self._get_wallet()
         self.tx_time = TxTime(start_time, increment)
+        self.auto_create_prices = auto_create_prices
 
     @property
     def date(self) -> datetime.date:
@@ -75,6 +77,10 @@ class WalletHelper:
         tx_timestamp = _set_timezone(timestamp) or self.tx_time.next()
         tx_creator = TransactionCreator(timestamp=tx_timestamp, fill_cost_basis=True)
         tx_creator.to_detail = TransactionDetailFactory.build(wallet=self.wallet, currency=currency, quantity=quantity)
+
+        if self.auto_create_prices:
+            CurrencyPriceFactory.create(currency=currency, date=self.date, price=quantity)
+
         return tx_creator.create_deposit()
 
     def withdraw(self, currency: Currency | str, quantity: Decimal | int, timestamp: datetime | None = None):
@@ -83,6 +89,10 @@ class WalletHelper:
         tx_creator.from_detail = TransactionDetailFactory.build(
             wallet=self.wallet, currency=currency, quantity=quantity
         )
+
+        if self.auto_create_prices:
+            CurrencyPriceFactory.create(currency=currency, date=self.date, price=quantity)
+
         return tx_creator.create_withdrawal()
 
     def _get_tx_creator(
@@ -106,6 +116,12 @@ class WalletHelper:
             tx_creator.fee_detail = TransactionDetailFactory.build(
                 wallet=self.wallet, currency=fee_currency, quantity=fee_currency_quantity
             )
+
+        if self.auto_create_prices:
+            CurrencyPriceFactory.create(currency=from_currency, date=self.date, price=from_currency_quantity)
+            to_price = from_currency_quantity / to_currency_quantity
+            CurrencyPriceFactory.create(currency=to_currency, date=self.date, price=to_price)
+
         return tx_creator
 
     def trade(
