@@ -1,13 +1,13 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from crypto_fifo_taxes.models import Currency
+from crypto_fifo_taxes.models import Currency, Wallet
 from crypto_fifo_taxes.utils.currency import get_fiat_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
-from tests.factories import CryptoCurrencyFactory, TransactionDetailFactory
+from tests.factories import CryptoCurrencyFactory, TransactionDetailFactory, WalletFactory
 
 
-def _set_timezone(timestamp):
+def _set_timezone(timestamp) -> datetime | None:
     """Set UTC timezone to a datetime object"""
     if timestamp is not None:
         return timestamp.replace(tzinfo=UTC)
@@ -17,20 +17,21 @@ def _set_timezone(timestamp):
 class TxTime:
     """Util to generate sequential timestamps for sequential transactions"""
 
-    def __init__(self, timestamp=None, increment=None):
-        timestamp = _set_timezone(timestamp)
-        self.timestamp = timestamp if timestamp is not None else datetime(2010, 1, 1, 12, 0, 0, tzinfo=UTC)
-        self.increment = increment if increment is not None else {"minutes": 1}
+    def __init__(self, timestamp=None, increment: None | timedelta = None):
+        if timestamp is not None:
+            self.timestamp = _set_timezone(timestamp)
+        else:
+            self.timestamp = datetime(2010, 1, 1, 12, 0, 0, tzinfo=UTC)
+        self.increment = increment if increment is not None else timedelta(minutes=1)
 
-    def next(self):
-        self.timestamp = self.timestamp + timedelta(**self.increment)
+    def next(self) -> datetime:
+        """Get next timestamp, incrementing by the set increment"""
+        self.timestamp = self.timestamp + self.increment
         return self.timestamp
 
-    def next_day(self):
+    def next_day(self) -> None:
         """Set timestamp to next day, reset hours and minutes"""
-        next_day = {"days": 1, "hours": -self.timestamp.hour, "minutes": -self.timestamp.minute}
-        self.timestamp = self.timestamp + timedelta(**next_day)
-        return self.timestamp
+        self.timestamp = self.timestamp + timedelta(days=1, hours=-self.timestamp.hour, minutes=-self.timestamp.minute)
 
     @property
     def date(self) -> datetime.date:
@@ -48,21 +49,37 @@ class WalletHelper:
     By default, new transactions created using WalletHelper are spaced 1 minute from the previous one
     """
 
-    def __init__(self, wallet, start_time=None):
-        self.wallet = wallet
-        self.tx_time = TxTime(start_time)
+    def __init__(
+        self,
+        wallet: Wallet | None = None,
+        start_time: datetime | None = None,
+        increment: timedelta | None = None,
+    ):
+        self.wallet = wallet if wallet is not None else self._get_wallet()
+        self.tx_time = TxTime(start_time, increment)
 
     @property
     def date(self) -> datetime.date:
         return self.tx_time.date
 
-    def deposit(self, currency, quantity, timestamp=None):
-        tx_creator = TransactionCreator(timestamp=_set_timezone(timestamp) or self.tx_time.next(), fill_cost_basis=True)
+    def _get_wallet(self) -> Wallet:
+        wallets_count = Wallet.objects.count()
+        if wallets_count == 1:
+            return Wallet.objects.first()
+        elif wallets_count == 0:
+            return WalletFactory.create(name="default")
+        else:
+            raise ValueError("Multiple wallets exist, please specify the wallet.")
+
+    def deposit(self, currency: Currency | str, quantity: Decimal | int, timestamp: datetime | None = None):
+        tx_timestamp = _set_timezone(timestamp) or self.tx_time.next()
+        tx_creator = TransactionCreator(timestamp=tx_timestamp, fill_cost_basis=True)
         tx_creator.to_detail = TransactionDetailFactory.build(wallet=self.wallet, currency=currency, quantity=quantity)
         return tx_creator.create_deposit()
 
-    def withdraw(self, currency, quantity, timestamp=None):
-        tx_creator = TransactionCreator(timestamp=_set_timezone(timestamp) or self.tx_time.next(), fill_cost_basis=True)
+    def withdraw(self, currency: Currency | str, quantity: Decimal | int, timestamp: datetime | None = None):
+        tx_timestamp = _set_timezone(timestamp) or self.tx_time.next()
+        tx_creator = TransactionCreator(timestamp=tx_timestamp, fill_cost_basis=True)
         tx_creator.from_detail = TransactionDetailFactory.build(
             wallet=self.wallet, currency=currency, quantity=quantity
         )
