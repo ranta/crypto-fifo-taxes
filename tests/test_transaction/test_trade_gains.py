@@ -2,10 +2,10 @@ from decimal import Decimal
 
 import pytest
 
+from crypto_fifo_taxes.utils.currency import get_fiat_currency
 from tests.factories import (
     CryptoCurrencyFactory,
     CurrencyPriceFactory,
-    FiatCurrencyFactory,
     WalletFactory,
 )
 from tests.utils import WalletHelper
@@ -14,7 +14,7 @@ from tests.utils import WalletHelper
 @pytest.mark.django_db()
 def test_gain_fiat_crypto_crypto_fiat_trades():
     """Test calculating profit for FIAT -> CRYPTO -> CRYPTO -> FIAT trades"""
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    fiat = get_fiat_currency()
     btc = CryptoCurrencyFactory.create(symbol="BTC")
     eth = CryptoCurrencyFactory.create(symbol="ETH")
 

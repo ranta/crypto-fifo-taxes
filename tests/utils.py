@@ -4,8 +4,9 @@ from decimal import Decimal
 import pytz
 
 from crypto_fifo_taxes.models import Currency
+from crypto_fifo_taxes.utils.currency import get_fiat_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
-from tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory, TransactionDetailFactory
+from tests.factories import CryptoCurrencyFactory, TransactionDetailFactory
 
 
 def _set_timezone(timestamp):
@@ -135,7 +136,7 @@ class WalletHelper:
 
 def get_test_currency(currency: Currency | str, is_fiat: bool = False):
     """Allow passing currency as a string, instead of a Currency object."""
-    currency_factory = CryptoCurrencyFactory if not is_fiat else FiatCurrencyFactory
+    currency_factory = CryptoCurrencyFactory if not is_fiat else get_fiat_currency()
 
     if isinstance(currency, str):
         currency = currency_factory.create(symbol=currency)

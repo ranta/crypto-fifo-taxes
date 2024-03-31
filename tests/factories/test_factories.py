@@ -15,12 +15,6 @@ def test_wallet_factory():
 
 
 @pytest.mark.django_db()
-def test_fiat_currency_factory():
-    factories.FiatCurrencyFactory.create()
-    assert Currency.objects.first().is_fiat is True
-
-
-@pytest.mark.django_db()
 def test_crypto_currency_factory():
     factories.CryptoCurrencyFactory.create()
     assert Currency.objects.first().is_fiat is False

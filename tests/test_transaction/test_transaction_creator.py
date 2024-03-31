@@ -5,14 +5,15 @@ from django.utils import timezone
 
 from crypto_fifo_taxes.enums import TransactionType
 from crypto_fifo_taxes.models import Transaction, TransactionDetail
+from crypto_fifo_taxes.utils.currency import get_fiat_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
-from tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory, WalletFactory
+from tests.factories import CryptoCurrencyFactory, WalletFactory
 
 
 @pytest.mark.django_db()
 def test_transaction_creator():
     wallet = WalletFactory.create()
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    fiat = get_fiat_currency()
     crypto = CryptoCurrencyFactory.create(symbol="BTC")
 
     # Deposit

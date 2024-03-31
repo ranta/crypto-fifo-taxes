@@ -4,14 +4,15 @@ import pytest
 from django.utils import timezone
 
 from crypto_fifo_taxes.enums import TransactionType
+from crypto_fifo_taxes.utils.currency import get_fiat_currency
 from crypto_fifo_taxes.utils.transaction_creator import TransactionCreator
-from tests.factories import CryptoCurrencyFactory, FiatCurrencyFactory, WalletFactory
+from tests.factories import CryptoCurrencyFactory, WalletFactory
 from tests.utils import WalletHelper
 
 
 @pytest.mark.django_db()
 def test_transfer():
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    fiat = get_fiat_currency()
     btc = CryptoCurrencyFactory.create(symbol="BTC")
 
     wallet_from = WalletFactory.create()
@@ -38,7 +39,7 @@ def test_transfer():
 
 @pytest.mark.django_db()
 def test_swap():
-    fiat = FiatCurrencyFactory.create(symbol="EUR")
+    fiat = get_fiat_currency()
     ven = CryptoCurrencyFactory.create(symbol="VEN")
     vet = CryptoCurrencyFactory.create(symbol="VET")
     btc = CryptoCurrencyFactory.create(symbol="BTC")
