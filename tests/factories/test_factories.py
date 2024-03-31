@@ -1,4 +1,7 @@
+import datetime
+
 import pytest
+from factory.errors import FactoryError
 
 from crypto_fifo_taxes.models import Currency
 from tests import factories
@@ -49,3 +52,21 @@ def test_transaction_detail_factory_currency_as_string():
     # Currency should still be saved, even if detail is not saved
     factories.TransactionDetailFactory.build(currency="ETH")
     assert Currency.objects.get(symbol="ETH")
+
+
+@pytest.mark.django_db()
+def test_snapshot_factory():
+    with pytest.raises(FactoryError):
+        # Date not defined
+        factories.SnapshotFactory.create()
+
+    factories.SnapshotFactory.create(date=datetime.date(2020, 1, 1))
+
+
+@pytest.mark.django_db()
+def test_snapshot_balance_factory():
+    with pytest.raises(FactoryError):
+        # Snapshot not defined
+        factories.SnapshotBalanceFactory.create()
+
+    factories.SnapshotBalanceFactory.create(snapshot__date=datetime.date(2020, 1, 1))
