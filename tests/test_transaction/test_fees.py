@@ -98,7 +98,7 @@ def test_fee_withdrawal():
     wallet_helper = WalletHelper(wallet)
 
     # Deposit FIAT to wallet
-    CurrencyPriceFactory.create(currency=crypto, date=wallet_helper.date(), price=1000)
+    CurrencyPriceFactory.create(currency=crypto, date=wallet_helper.date, price=1000)
     wallet_helper.deposit(crypto, 10)
     assert wallet.get_current_balance("BTC") == Decimal(10)
 

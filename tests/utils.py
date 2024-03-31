@@ -32,7 +32,8 @@ class TxTime:
         self.timestamp = self.timestamp + timedelta(**next_day)
         return self.timestamp
 
-    def date(self):
+    @property
+    def date(self) -> datetime.date:
         return self.timestamp.date()
 
 
@@ -51,8 +52,9 @@ class WalletHelper:
         self.wallet = wallet
         self.tx_time = TxTime(start_time)
 
-    def date(self):
-        return self.tx_time.date()
+    @property
+    def date(self) -> datetime.date:
+        return self.tx_time.date
 
     def deposit(self, currency, quantity, timestamp=None):
         tx_creator = TransactionCreator(timestamp=_set_timezone(timestamp) or self.tx_time.next(), fill_cost_basis=True)
@@ -134,9 +136,8 @@ class WalletHelper:
 
 def get_test_currency(currency: Currency | str, is_fiat: bool = False):
     """Allow passing currency as a string, instead of a Currency object."""
-    currency_factory = CryptoCurrencyFactory if not is_fiat else get_fiat_currency()
-
-    if isinstance(currency, str):
-        currency = currency_factory.create(symbol=currency)
-
+    if is_fiat:
+        return get_fiat_currency()
+    elif isinstance(currency, str):
+        return CryptoCurrencyFactory.create(symbol=currency)
     return currency
