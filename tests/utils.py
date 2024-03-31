@@ -1,7 +1,5 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-
-import pytz
 
 from crypto_fifo_taxes.models import Currency
 from crypto_fifo_taxes.utils.currency import get_fiat_currency
@@ -12,7 +10,7 @@ from tests.factories import CryptoCurrencyFactory, TransactionDetailFactory
 def _set_timezone(timestamp):
     """Set UTC timezone to a datetime object"""
     if timestamp is not None:
-        return timestamp.replace(tzinfo=pytz.UTC)
+        return timestamp.replace(tzinfo=UTC)
     return None
 
 
@@ -21,7 +19,7 @@ class TxTime:
 
     def __init__(self, timestamp=None, increment=None):
         timestamp = _set_timezone(timestamp)
-        self.timestamp = timestamp if timestamp is not None else datetime(2010, 1, 1, 12, 0, 0, tzinfo=pytz.UTC)
+        self.timestamp = timestamp if timestamp is not None else datetime(2010, 1, 1, 12, 0, 0, tzinfo=UTC)
         self.increment = increment if increment is not None else {"minutes": 1}
 
     def next(self):

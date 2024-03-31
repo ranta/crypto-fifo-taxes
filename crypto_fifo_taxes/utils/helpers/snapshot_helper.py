@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Annotated
 
-import pytz
 from django.core.exceptions import ValidationError
 from django.db.models import F, Q, Sum
 
@@ -244,7 +243,7 @@ class SnapshotHelper:
             # n:th snapshot; Sum deposits of last snapshot to the deposits in period between this and last snapshot
             deposits += last_snapshot.deposits
             deposits_filter &= Q(
-                tx_timestamp__gt=datetime.datetime.combine(last_snapshot.date, datetime.time.max, tzinfo=pytz.UTC)
+                tx_timestamp__gt=datetime.datetime.combine(last_snapshot.date, datetime.time.max, tzinfo=datetime.UTC)
             )
             deposits_qs = TransactionDetail.objects.filter(deposits_filter)
         deposits += deposits_qs.annotate(worth=CoalesceZero(F("quantity") * F("cost_basis"))).aggregate(

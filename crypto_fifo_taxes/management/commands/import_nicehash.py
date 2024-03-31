@@ -2,10 +2,9 @@ import csv
 import logging
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 
-import pytz
 from django.conf import settings
 from django.core.management import BaseCommand
 from django.db.transaction import atomic
@@ -34,7 +33,7 @@ class Command(BaseCommand):
         >>>nstrptime('2020-12-27 00:00:00 GMT')
         datetime.datetime(2020, 12, 27, 0, 0, tzinfo=<UTC>)
         """
-        return datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S GMT").replace(tzinfo=pytz.UTC)
+        return datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S GMT").replace(tzinfo=UTC)
 
     def import_income_row(self, data, row: dict[str, str]) -> None:
         pass

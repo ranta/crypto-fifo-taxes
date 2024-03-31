@@ -2,10 +2,9 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 
-import pytz
 from django.conf import settings
 from django.core.management import BaseCommand
 from django.db.transaction import atomic
@@ -34,7 +33,7 @@ class Command(BaseCommand):
                 continue
 
             tx_creator = TransactionCreator(
-                timestamp=datetime.strptime(row["created at"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=pytz.UTC),
+                timestamp=datetime.strptime(row["created at"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=UTC),
                 description="Manually imported Coinbase transaction",
                 tx_id=row["trade id"],
                 fill_cost_basis=False,

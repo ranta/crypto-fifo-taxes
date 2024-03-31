@@ -1,10 +1,9 @@
 import logging
 import time
 from collections.abc import Callable, Iterator
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 
-import pytz
 from binance.exceptions import BinanceAPIException
 from django.conf import settings
 
@@ -27,12 +26,12 @@ def to_timestamp(dt: datetime) -> int:
 
 def from_timestamp(stamp: int) -> datetime:
     """datetime from Binance-timestamp"""
-    return datetime.fromtimestamp(stamp / 1000).replace(tzinfo=pytz.UTC, microsecond=0)
+    return datetime.fromtimestamp(stamp / 1000).replace(tzinfo=UTC, microsecond=0)
 
 
 def bstrptime(stamp: str) -> datetime:
     """datetime from Binance datetime string: e.g. `2019-10-12 11:12:02`"""
-    return datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S").replace(tzinfo=pytz.UTC)
+    return datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
 
 
 def binance_history_iterator(
