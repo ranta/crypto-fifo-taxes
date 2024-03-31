@@ -8,7 +8,7 @@ from django.db.models.functions import Cast
 from django.http import QueryDict
 from django.views.generic import TemplateView
 
-from crypto_fifo_taxes.models import CurrencyPrice, Snapshot
+from crypto_fifo_taxes.models import CurrencyPrice, Snapshot, Transaction
 from crypto_fifo_taxes.utils.currency import get_currency
 from crypto_fifo_taxes.utils.db import CoalesceZero
 
@@ -31,7 +31,11 @@ class GraphView(TemplateView):
 
         query_params: QueryDict = self.request.GET
         if query_params.get("start"):
-            return max(datetime.strptime(query_params["start"], "%Y-%m-%d").date(), first_snapshot_date)
+            first_snapshot_date = max(datetime.strptime(query_params["start"], "%Y-%m-%d").date(), first_snapshot_date)
+
+        if Snapshot.objects.filter(date__gte=first_snapshot_date, cost_basis__isnull=True).exists():
+            raise ValueError("Some snapshots are missing cost basis")
+
         return first_snapshot_date
 
     def filter_queryset(self, queryset: QuerySet[Snapshot, CurrencyPrice]) -> QuerySet[Snapshot, CurrencyPrice]:
@@ -141,6 +145,12 @@ class GraphView(TemplateView):
 
         starting_point = datetime.combine(self.get_starting_date(), time()).timestamp() * 1000
         context["point_start"] = starting_point
+
+        context["years"] = (
+            Transaction.objects.values_list("timestamp__year", flat=True)
+            .order_by("timestamp__year")
+            .distinct("timestamp__year")
+        )
 
         # Legends
         context["graphs"] = [
