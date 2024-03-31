@@ -57,24 +57,23 @@
 
                     {% if transaction.from_detail and transaction.from_detail.currency.symbol == selected_currency_symbol %}
                         <td><b>{{ transaction.from_detail.currency.symbol }}</b> {{ transaction.from_detail.quantity.normalize }}</td>
-                        {% if transaction.transaction_type.label != "Withdraw" or transaction.transaction_label.label == "Spending"%}
-                            <td>EUR {{ transaction.from_detail.cost_basis|round_normalize:8 }}</td>
-                        {% else %}
-                            <td></td>
-                        {% endif %}
                     {% else %}
-                        <td></td>
+                        <td><i>{{ transaction.from_detail.currency.symbol }} {{ transaction.from_detail.quantity.normalize }}</i></td>
+                    {% endif %}
+                    {% if transaction.from_detail.cost_basis %}
+                        <td>EUR {{ transaction.from_detail.cost_basis|round_normalize:8 }}</td>
+                    {% else %}
                         <td></td>
                     {% endif %}
 
                     {% if transaction.to_detail and transaction.to_detail.currency.symbol == selected_currency_symbol %}
                         <td><b>{{ transaction.to_detail.currency.symbol }}</b> {{ transaction.to_detail.quantity.normalize }}</td>
-                        <td>EUR {{ transaction.to_detail.cost_basis|round_normalize:8 }}</td>
-                    {% elif transaction.transaction_label.label == "Spending" %}
-                        <td>{{ transaction.from_detail.currency.symbol }} {{ transaction.from_detail.quantity.normalize }}</td>
-                        <td>EUR {{ transaction|get_spending_cost_basis|floatformat:2 }}</td>
                     {% else %}
-                        <td></td>
+                        <td><i>{{ transaction.to_detail.currency.symbol }} {{ transaction.to_detail.quantity.normalize }}</i></td>
+                    {% endif %}
+                    {% if transaction.to_detail.cost_basis %}
+                        <td>EUR {{ transaction.to_detail.cost_basis|round_normalize:8 }}</td>
+                    {% else %}
                         <td></td>
                     {% endif %}
 
