@@ -66,22 +66,17 @@ class CurrencyPriceFactory(DjangoModelFactory):
         """Allow passing currency as a string, instead of a Currency object."""
         from tests.utils import get_test_currency
 
-        kwargs.update(
-            {
-                "currency": get_test_currency(kwargs.get("currency"), False),
-            }
-        )
+        kwargs.update({"currency": get_test_currency(kwargs.get("currency"), is_fiat=False)})
 
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
-        manager = cls._get_manager(model_class)
         cls.handle_currency(kwargs)
-        return manager.create(*args, **kwargs)
+        super()._create(model_class, *args, **kwargs)
 
     @classmethod
     def _build(cls, model_class, *args, **kwargs):
         cls.handle_currency(kwargs)  # Currency will be created, even if this object is only built and saved to db
-        return model_class(**kwargs)
+        super()._create(model_class, *args, **kwargs)
 
 
 class PriceTrend(Enum):
