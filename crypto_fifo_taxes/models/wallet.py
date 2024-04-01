@@ -7,6 +7,7 @@ from django.utils.translation import gettext_lazy as _
 
 from crypto_fifo_taxes.enums import TransactionType
 from crypto_fifo_taxes.models import Currency, TransactionDetail
+from crypto_fifo_taxes.models.transaction import TransactionDetailQuerySet
 from crypto_fifo_taxes.utils.currency import get_currency
 
 
@@ -72,8 +73,11 @@ class Wallet(models.Model):
         return combined
 
     def get_consumable_currency_balances(
-        self, currency: Currency, timestamp: datetime | None = None, quantity: Decimal | int | None = None
-    ) -> list[TransactionDetail]:
+        self,
+        currency: Currency,
+        timestamp: datetime | None = None,
+        quantity: Decimal | int | None = None,
+    ) -> TransactionDetailQuerySet:
         """
         Returns a list of "deposits" to the wallet after excluding any deposits,
         which have already been withdrawn from older to newer.
@@ -90,46 +94,43 @@ class Wallet(models.Model):
         - When iterating through transactions qs ordered by `timestamp` and using this method, also order them by `pk`.
         """
         # Total amount of currency that has left the wallet
-        from_filter = Q()
-        to_filter = Q()
-        fee_filter = Q()
+        from_filter = Q(from_detail__isnull=False)
+        to_filter = Q(to_detail__isnull=False)
+        fee_filter = Q(fee_detail__isnull=False) & ~Q(fee_detail__transaction_type=TransactionType.WITHDRAW)
         if timestamp is not None:
-            from_filter |= Q(from_detail__timestamp__lt=timestamp)
-            to_filter |= Q(to_detail__timestamp__lte=timestamp)
-            fee_filter |= Q(fee_detail__timestamp__lte=timestamp)
+            from_filter &= Q(from_detail__timestamp__lt=timestamp)
+            to_filter &= Q(to_detail__timestamp__lte=timestamp)
+            fee_filter &= Q(fee_detail__timestamp__lte=timestamp)
 
-        total_spent = self.transaction_details.filter(
-            Q(currency=currency)
-            & (
-                (Q(from_detail__isnull=False) & from_filter)
-                | (Q(fee_detail__isnull=False) & fee_filter & ~Q(fee_detail__transaction_type=TransactionType.WITHDRAW))
-            )
+        # Total amount of currency spent from the wallet (withdrawals and fees)
+        total_spent = TransactionDetail.objects.filter(
+            Q(wallet=self),
+            Q(currency=currency),
+            Q(from_filter | fee_filter),
         ).aggregate(total_spent=Sum("quantity"))["total_spent"] or Decimal(0)
 
         # All deposits of currency to the wallet, annotated with
         # the sum of all earlier deposits and balance left after reducing total_spent.
         deposits = (
-            self.transaction_details.filter(to_filter, to_detail__isnull=False, currency=currency)
+            TransactionDetail.objects.filter(
+                Q(wallet=self),
+                Q(currency=currency),
+                to_filter,
+            )
+            .order_by("to_detail__timestamp", "pk")
             .annotate(
                 accum_quantity=Window(Sum(F("quantity")), order_by=F("to_detail__timestamp").asc()),
                 quantity_left=ExpressionWrapper(F("accum_quantity") - total_spent, output_field=DecimalField()),
             )
-            .order_by("to_detail__timestamp", "pk")
-        )
+        ).filter(accum_quantity__gt=total_spent)
 
-        # Convert to SQL to allow filtering by `accum_quantity`.
-        # refs. https://blog.oyam.dev/django-filter-by-window-function/
-        sql, params = deposits.query.sql_with_params()
-        deposits_filtered = TransactionDetail.objects.raw(
-            f"SELECT * FROM ({sql}) deposits_with_accumed_quantity WHERE accum_quantity > %s",  # noqa: S608,RUF100
-            [*params, total_spent],
-        )
-        deposits_filtered = list(deposits_filtered)
+        if quantity is None:
+            return deposits
 
-        if quantity is not None:
-            assert quantity > 0
-            # Return only minimum amount of deposits, exclude all that exceed requested quantity.
-            for n, deposit in enumerate(deposits_filtered):
-                if deposit.quantity_left >= quantity:
-                    return deposits_filtered[: n + 1]
-        return deposits_filtered
+        assert quantity > 0
+        # Return only minimum amount of deposits, exclude all that exceed requested quantity.
+        for n, deposit in enumerate(deposits):
+            if deposit.quantity_left >= quantity:
+                return deposits[: n + 1]
+
+        return deposits

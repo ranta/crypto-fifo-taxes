@@ -99,7 +99,7 @@ class Transaction(models.Model):
         If it's advantageous to use deemed acquisition cost, it is used
         https://www.vero.fi/henkiloasiakkaat/omaisuus/sijoitukset/osakkeiden_myynt/
         """
-        consumable_balances: list[TransactionDetail] = transaction_detail.get_consumable_balances()
+        consumable_balances: TransactionDetailQuerySet = transaction_detail.get_consumable_balances()
         required_quantity: Decimal = transaction_detail.quantity
         cost_bases: list[tuple] = []  # [(quantity, cost_basis)]
         only_hmo_used = True
@@ -469,7 +469,7 @@ class TransactionDetail(models.Model):
             return self.fee_detail
         return None
 
-    def get_consumable_balances(self) -> list[TransactionDetail]:
+    def get_consumable_balances(self) -> TransactionDetailQuerySet:
         return self.wallet.get_consumable_currency_balances(
             currency=self.currency,
             timestamp=self.transaction.timestamp,
@@ -487,7 +487,7 @@ class TransactionDetail(models.Model):
         )
 
         if last_balance_only:
-            return last_balance_only[-1]
+            return last_balance_only.last()
         return None
 
     @property

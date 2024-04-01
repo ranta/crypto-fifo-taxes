@@ -34,7 +34,7 @@ def test_transfer():
     assert tx.from_detail.cost_basis == tx.to_detail.cost_basis
     assert wallet_from.get_current_balance("BTC") == Decimal(0)
     assert wallet_to.get_current_balance("BTC") == Decimal(9)
-    assert wallet_to.get_consumable_currency_balances(btc, now)[-1].quantity_left == Decimal(9)
+    assert wallet_to.get_consumable_currency_balances(btc, now).last().quantity_left == Decimal(9)
 
 
 @pytest.mark.django_db()
