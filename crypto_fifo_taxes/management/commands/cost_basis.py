@@ -33,33 +33,39 @@ class Command(BaseCommand):
         fast_mode = kwargs.pop("fast")
         date = kwargs.pop("date")
 
+        transactions = Transaction.objects.order_by("timestamp", "pk").defer(
+            "description", "tx_id", "transaction_label"
+        )
+
         if date:
             # Date is given, calculate cost basis for transactions after this date.
             date = datetime.strptime(date, "%Y-%m-%d").date()
-            transactions = Transaction.objects.order_by("timestamp", "pk").filter(timestamp__date__gte=date)
+            transactions = transactions.filter(timestamp__date__gte=date)
         elif fast_mode:
             # Use the first transaction that has no cost basis as a starting point
-            first_tx_with_no_cost_basis = (
-                Transaction.objects.filter(
-                    Q(from_detail__isnull=False) & Q(from_detail__cost_basis__isnull=True)
-                    | Q(to_detail__isnull=False) & Q(to_detail__cost_basis__isnull=True)
-                    | Q(fee_detail__isnull=False) & Q(fee_detail__cost_basis__isnull=True)
-                )
-                .order_by("timestamp", "pk")
-                .first()
-            )
+            first_tx_with_no_cost_basis = transactions.filter(
+                Q(from_detail__isnull=False) & Q(from_detail__cost_basis__isnull=True)
+                | Q(to_detail__isnull=False) & Q(to_detail__cost_basis__isnull=True)
+                | Q(fee_detail__isnull=False) & Q(fee_detail__cost_basis__isnull=True)
+            ).first()
 
             if first_tx_with_no_cost_basis is None:
                 logger.info("All transactions cost basis has been calculated, nothing to do.")
                 return
 
             logger.info(f"Calculating cost basis for starting from {first_tx_with_no_cost_basis.timestamp}.")
-            transactions = Transaction.objects.order_by("timestamp", "pk").filter(
-                timestamp__gte=first_tx_with_no_cost_basis.timestamp
-            )
+            transactions = transactions.filter(timestamp__gte=first_tx_with_no_cost_basis.timestamp)
         else:
             # Date is not given and fast mode is not enabled, calculate cost basis for all transactions.
             logger.info("Calculating cost basis for ALL transactions.")
-            transactions = Transaction.objects.all().order_by("timestamp", "pk")
 
+        transactions = transactions.select_related(
+            "from_detail",
+            "to_detail",
+            "fee_detail",
+            "from_detail__currency",
+            "to_detail__currency",
+            "fee_detail__currency",
+            "from_detail__wallet",
+        )
         self.calculate_cost_bases(transactions)

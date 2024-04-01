@@ -150,7 +150,16 @@ class TransactionByCurrencyListView(ListView):
             return queryset.none()
 
     def get_queryset(self) -> QuerySet[Transaction]:
-        queryset = Transaction.objects.order_by("timestamp", "pk")
+        queryset = Transaction.objects.order_by("timestamp", "pk").select_related(
+            "from_detail",
+            "to_detail",
+            "fee_detail",
+            "from_detail__currency",
+            "to_detail__currency",
+            "fee_detail__currency",
+            "to_detail__wallet",
+            "from_detail__wallet",
+        )
         return self.filter_queryset(queryset)
 
     def get_context_data(self, **kwargs):
