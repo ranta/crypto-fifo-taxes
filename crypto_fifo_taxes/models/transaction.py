@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+from collections.abc import Iterable
 from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
@@ -164,16 +165,13 @@ class Transaction(models.Model):
     def _handle_buy_crypto_with_fiat_cost_basis(self) -> None:
         # from_detail cost_basis is simply the amount of FIAT it was bought with
         self.from_detail.cost_basis = Decimal(1)
-        self.from_detail.save()
 
         # Distribute amount of FIAT spent equally to crypto bought
         self.to_detail.cost_basis = self.from_detail.quantity / self.to_detail.quantity
-        self.to_detail.save()
 
     def _handle_to_sell_crypto_to_fiat_cost_basis(self) -> None:
         # Use sold price as cost basis
         self.to_detail.cost_basis = Decimal(1)
-        self.to_detail.save()
 
     def _handle_to_trade_crypto_to_crypto_cost_basis(self) -> None:
         # Get currency's FIAT price
@@ -191,14 +189,11 @@ class Transaction(models.Model):
             calculated_from_detail_total_value = self.from_detail.quantity * self._get_from_detail_cost_basis()[0]
             self.to_detail.cost_basis = calculated_from_detail_total_value / self.to_detail.quantity
 
-        self.to_detail.save()
-
     def _handle_from_crypto_cost_basis(self) -> bool:
         # Sell value is divided for every sold token to find the average price
         sell_price = self.to_detail.total_value / self.from_detail.quantity
         from_cost_basis, only_hmo_used = self._get_from_detail_cost_basis(sell_price=sell_price)
         self.from_detail.cost_basis = from_cost_basis
-        self.from_detail.save()
 
         self.gain = self.to_detail.total_value - self.from_detail.total_value
 
@@ -215,10 +210,8 @@ class Transaction(models.Model):
         ratio = Decimal(self.from_detail.quantity / self.to_detail.quantity)
 
         self.from_detail.cost_basis = cost_basis
-        self.from_detail.save()
 
         self.to_detail.cost_basis = cost_basis * ratio
-        self.to_detail.save()
 
         self.gain = Decimal(0)
 
@@ -226,7 +219,6 @@ class Transaction(models.Model):
         # If deposit is FIAT, cost basis is always 1 (1 EUR == 1 EUR)
         self.to_detail.cost_basis = Decimal(1)
         self.gain = Decimal(0)
-        self.to_detail.save()
 
     def _handle_deposit_cost_basis(self) -> None:
         """
@@ -253,13 +245,10 @@ class Transaction(models.Model):
             else:
                 self.to_detail.cost_basis = Decimal(0)
 
-        self.to_detail.save()
-
     def _handle_fiat_withdrawal_cost_basis(self) -> None:
         """Funds are e.g. withdrawn to a bank account, which does not realize any gains."""
         self.from_detail.cost_basis = Decimal(1)
         self.gain = Decimal(0)
-        self.from_detail.save()
 
     def _handle_withdrawal_cost_basis(self) -> None:
         """
@@ -270,12 +259,9 @@ class Transaction(models.Model):
         from_cost_basis, only_hmo_used = self._get_from_detail_cost_basis(sell_price=sell_price)
         self.from_detail.cost_basis = from_cost_basis
         self.gain = (sell_price - from_cost_basis) * self.from_detail.quantity
-        self.from_detail.save()
 
     def _handle_fee_cost_basis(self) -> None:
-        cost_basis = self._get_fee_detail_cost_basis()
-        self.fee_detail.cost_basis = cost_basis
-        self.fee_detail.save()
+        self.fee_detail.cost_basis = self._get_fee_detail_cost_basis()
 
     @atomic()
     def fill_cost_basis(self) -> None:
@@ -323,13 +309,27 @@ class Transaction(models.Model):
 
         # Fees
         if self.fee_detail is not None:
+            if self.to_detail is not None and self.to_detail.currency == self.fee_detail.currency:
+                # Handle cases where fee deducted from the amount received.
+                self.to_detail.save(update_fields=["cost_basis"])
+
             self._handle_fee_cost_basis()
 
             # If deemed acquisition cost (HMO) is used, the fee can not be deducted
             # refs. https://www.vero.fi/henkiloasiakkaat/omaisuus/sijoitukset/osakkeiden_myynt/
             # Set fee to zero only if all sold tokens used HMO. If any tokens don't use HMO, fee can be deducted
             self.fee_amount = self.fee_detail.total_value if not only_hmo_used else Decimal(0)
-        self.save()
+
+        TransactionDetail.objects.bulk_update(self.get_all_details(), fields=["cost_basis"])
+        self.save(update_fields=["gain", "fee_amount"])
+
+    def get_all_details(self) -> Iterable[TransactionDetail]:
+        if self.from_detail:
+            yield self.from_detail
+        if self.to_detail:
+            yield self.to_detail
+        if self.fee_detail:
+            yield self.fee_detail
 
     @atomic()
     def add_detail(self, type: str, wallet: Wallet, currency: Currency, quantity: Decimal):
