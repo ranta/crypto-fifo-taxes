@@ -123,7 +123,7 @@ def fetch_currency_market_chart(currency: Currency) -> None:
         return
 
     # First transaction date for the currency
-    first_transaction_details = currency.transaction_details.order_by("tx_timestamp").first()
+    first_transaction_details = currency.transaction_details.order_by_timestamp().first()
     if first_transaction_details is None:
         logger.debug(f"Currency {currency} has no transactions, so we don't need to fetch historical prices for it.")
         return

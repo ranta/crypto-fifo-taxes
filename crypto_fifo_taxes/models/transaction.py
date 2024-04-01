@@ -351,7 +351,7 @@ class TransactionDetailQuerySet(models.QuerySet):
     def order_by_timestamp(self):
         return self.annotate(
             tx_timestamp=Coalesce(F("from_detail__timestamp"), F("to_detail__timestamp"), F("fee_detail__timestamp"))
-        ).order_by("tx_timestamp")
+        ).order_by("tx_timestamp", "pk")
 
     def get_balances_for_snapshot(self, timestamp_from: date, timestamp_to: date) -> list[dict[str, Any]]:
         from crypto_fifo_taxes.models import SnapshotBalance
@@ -434,7 +434,7 @@ class TransactionDetailQuerySet(models.QuerySet):
 
 class TransactionDetailManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().select_related("from_detail", "to_detail", "fee_detail").order_by_timestamp()
+        return super().get_queryset().select_related("from_detail", "to_detail", "fee_detail")
 
 
 class TransactionDetail(models.Model):

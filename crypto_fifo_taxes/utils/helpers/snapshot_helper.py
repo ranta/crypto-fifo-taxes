@@ -144,9 +144,9 @@ class SnapshotHelper:
         """Generate a table of the changes in currency balances for each day."""
         logger.info("Generating snapshots currency balances...")
 
-        transaction_details = TransactionDetail.objects.filter(
-            tx_timestamp__gte=utc_start_of_day(self.starting_date),
-        ).order_by("tx_timestamp")
+        transaction_details = TransactionDetail.objects.order_by_timestamp().filter(
+            tx_timestamp__gte=utc_start_of_day(self.starting_date)
+        )
         transaction_details_count = len(transaction_details)
 
         table: dict[datetime.date, dict[CurrencyID, BalanceDelta]] = {}
@@ -222,7 +222,11 @@ class SnapshotHelper:
                     )
                 latest_balance: SnapshotBalance = latest_balances[currency_id]
 
-                self._process_single_date_currency(balance_delta, latest_balance)
+                try:
+                    self._process_single_date_currency(balance_delta, latest_balance)
+                except SnapshotHelperException:
+                    logger.exception(f"Error processing currency {get_currency(currency_id)} on {current_date}")
+                    raise
 
                 # Skip empty balances
                 if balance_delta.withdrawals == 0 and latest_balance.quantity == 0:
