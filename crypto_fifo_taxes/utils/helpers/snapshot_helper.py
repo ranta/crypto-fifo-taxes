@@ -11,6 +11,7 @@ from django.db.models import F, Q, Sum
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.exceptions import MissingPriceHistoryError, SnapshotHelperException
 from crypto_fifo_taxes.models import Snapshot, SnapshotBalance, Transaction, TransactionDetail
+from crypto_fifo_taxes.utils.common import log_progress
 from crypto_fifo_taxes.utils.currency import get_currency
 from crypto_fifo_taxes.utils.date_utils import utc_date, utc_end_of_day, utc_start_of_day
 from crypto_fifo_taxes.utils.db import CoalesceZero
@@ -87,9 +88,6 @@ class SnapshotHelper:
             else:
                 return first_tx_date
 
-    def _get_percentage_str(self, v1: int, v2) -> str:
-        return f"{(v1) / v2 * 100:>5.2f}%"
-
     def generate_snapshots(self) -> None:
         """Generate snapshots (without balances) for each day starting from the first transaction date. until today."""
         logger.info(f"Creating empty snapshots starting from {self.starting_date}")
@@ -154,9 +152,7 @@ class SnapshotHelper:
 
             self._process_single_transaction_detail(transaction_detail, table[date][currency_id])
 
-            # Report progress
-            if i % 200 == 0:
-                logger.info(f"Processing balances: ({self._get_percentage_str(i, transaction_details_count)})")
+            log_progress(f"Processing balances: {date}", i, transaction_details_count, 200)
 
         return table
 

@@ -6,6 +6,7 @@ from django.core.management import BaseCommand
 from django.db.models import Q, QuerySet
 
 from crypto_fifo_taxes.models import Transaction
+from crypto_fifo_taxes.utils.common import log_progress
 from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -25,7 +26,7 @@ class Command(BaseCommand):
         i: int
         transaction: Transaction
         for i, transaction in enumerate(transactions):
-            logger.info(f"Calculating cost bases. {(i + 1) / count * 100:>5.2f}% ({transaction.timestamp.date()})")
+            log_progress(f"Calculating cost basis: {transaction.timestamp.date()}", i, count, 100)
             transaction.fill_cost_basis()
 
     def handle(self, *args, **kwargs):
