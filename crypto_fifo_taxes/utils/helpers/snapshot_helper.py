@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Annotated
 
-from django.db.models import F, Q, Sum
+from django.db.models import F, Q, QuerySet, Sum
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.exceptions import MissingPriceHistoryError, SnapshotHelperException
@@ -51,18 +51,29 @@ class BalanceDelta:
 
 
 class SnapshotHelper:
+    """
+    Helper class for generating snapshots and snapshot balances.
+
+    Usage:
+    >>> helper = SnapshotHelper()
+    >>> helper.generate_snapshots()
+    >>> helper.generate_snapshot_balances()
+    >>> helper.calculate_snapshots_worth()
+    """
+
     starting_date: datetime.date
     today: datetime.date
     total_days_to_generate: int
+    selected_snapshots_qs: QuerySet[Snapshot]
 
     def __init__(self) -> None:
         self.starting_date = self._get_starting_date()
         self.today = utc_date()
         self.total_days_to_generate = (self.today - self.starting_date).days + 1  # Inclusive
+        self.selected_snapshots_qs = Snapshot.objects.filter(date__gte=self.starting_date).order_by("date")
 
     def _get_starting_date(self) -> datetime.date:
         first_tx_date = Transaction.objects.order_by("timestamp").values_list("timestamp__date", flat=True).first()
-        # return first_tx_date
 
         if first_tx_date is None:
             raise SnapshotHelperException("No transactions founds.")
@@ -93,7 +104,7 @@ class SnapshotHelper:
         logger.info(f"Creating empty snapshots starting from {self.starting_date}")
 
         # Delete any existing snapshots from the period about to be generated
-        Snapshot.objects.filter(date__gte=self.starting_date).delete()
+        self.selected_snapshots_qs.delete()
 
         snapshots = []
         for date_index in range(self.total_days_to_generate):
@@ -183,10 +194,10 @@ class SnapshotHelper:
 
         table = self._generate_currency_delta_balance_table()
 
-        # Fetch all snapshots in the period
-        snapshots = Snapshot.objects.filter(date__gte=self.starting_date).order_by("date")
         # Map snapshots to their date for easy access
-        snapshot_to_date: dict[datetime.date, Snapshot] = {snapshot.date: snapshot for snapshot in snapshots}
+        snapshot_to_date: dict[datetime.date, Snapshot] = {
+            snapshot.date: snapshot for snapshot in self.selected_snapshots_qs
+        }
 
         # List of SnapshotBalance objects to be bulk created
         snapshot_balances: list[SnapshotBalance] = []
@@ -225,16 +236,14 @@ class SnapshotHelper:
         logger.info("Generated snapshot balances complete!")
 
     def calculate_snapshots_worth(self) -> None:
-        Snapshot.objects.filter(date__gte=self.starting_date).update(worth=None, cost_basis=None, deposits=None)
+        self.selected_snapshots_qs.update(worth=None, cost_basis=None, deposits=None)
 
-        qs = Snapshot.objects.filter(date__gte=self.starting_date)
-        for snapshot in qs:
+        for snapshot in self.selected_snapshots_qs:
             self._calculate_snapshot_worth(snapshot)
 
         logger.info("Calculating snapshots worth complete!")
 
-    @staticmethod
-    def _calculate_snapshot_worth(snapshot: Snapshot) -> None:
+    def _calculate_snapshot_worth(self, snapshot: Snapshot) -> None:
         logger.info(f"Calculating snapshot worth. {snapshot.date}")
 
         sum_worth = Decimal(0)
