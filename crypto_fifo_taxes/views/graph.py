@@ -65,24 +65,24 @@ class GraphView(TemplateView):
                 results.append((cur - 1) * 100)
             return results
 
-        qs = self.snapshot_qs.annotate(
-            deposits_delta=ExpressionWrapper(
-                F("deposits")
-                - CoalesceZero(
-                    Subquery(
-                        Snapshot.objects.filter(date__lt=OuterRef("date")).order_by("-date").values_list("deposits")[:1]
-                    )
+        subquery_qs = Snapshot.objects.filter(date__lt=OuterRef("date")).order_by("-date")
+        qs = (
+            self.snapshot_qs.alias(
+                deposits_delta=ExpressionWrapper(
+                    F("deposits") - CoalesceZero(Subquery(subquery_qs.values_list("deposits")[:1])),
+                    output_field=DecimalField(),
                 ),
-                output_field=DecimalField(),
-            ),
-            last_worth=CoalesceZero(
-                Subquery(Snapshot.objects.filter(date__lt=OuterRef("date")).order_by("-date").values_list("worth")[:1]),
-            ),
-            twr_returns=ExpressionWrapper(
-                1 + (F("worth") - (F("last_worth") + F("deposits_delta"))) / (F("last_worth") + F("deposits_delta")),
-                output_field=FloatField(),
-            ),
-        ).values_list("twr_returns", flat=True)
+                last_worth=CoalesceZero(Subquery(subquery_qs.values_list("worth")[:1])),
+            )
+            .annotate(
+                twr_returns=ExpressionWrapper(
+                    1
+                    + (F("worth") - (F("last_worth") + F("deposits_delta"))) / (F("last_worth") + F("deposits_delta")),
+                    output_field=FloatField(),
+                ),
+            )
+            .values_list("twr_returns", flat=True)
+        )
         return cumulative_product(qs)
 
     # Currency prices
