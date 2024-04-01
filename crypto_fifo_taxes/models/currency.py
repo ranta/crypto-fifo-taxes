@@ -1,10 +1,40 @@
 import datetime
+from functools import lru_cache
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from crypto_fifo_taxes.exceptions import MissingPriceHistoryError
 from crypto_fifo_taxes.utils.models import TransactionDecimalField
+
+
+@lru_cache
+def _get_cached_fiat_price(currency: "Currency", date: datetime.date) -> "CurrencyPrice":
+    """
+    Get the FIAT price for a crypto on a specific date.
+
+    Fetch price for the crypto if no record for date is found.
+
+    Only way for this method to raise MissingPriceHistoryError, is if the price is unable to fetched from the API
+    e.g. it's deprecated, ignored, etc.
+    """
+    from crypto_fifo_taxes.utils.coingecko import fetch_currency_market_chart
+
+    # Get crypto price from db
+    currency_price = currency.prices.filter(date=date).first()
+
+    # Price was found in the database
+    if currency_price is not None:
+        return currency_price
+
+    # Fetch prices from an API
+    fetch_currency_market_chart(currency)
+
+    currency_price = currency.prices.filter(date=date).first()
+    if currency_price is None:
+        raise MissingPriceHistoryError(f"Currency: `{currency}` does not have a price for {date}.")
+
+    return currency_price
 
 
 class Currency(models.Model):
@@ -47,16 +77,6 @@ class Currency(models.Model):
         return f"<{self.__class__.__name__} ({self.pk}): {self.name} ({self.symbol}){fiat_str}>"
 
     def get_fiat_price(self, date: datetime.date | datetime.datetime) -> "CurrencyPrice":
-        """
-        Get the FIAT price for a crypto on a specific date.
-
-        Fetch price for the crypto if no record for date is found.
-
-        Only way for this method to raise MissingPriceHistoryError, is if the price is unable to fetched from the API
-        e.g. it's deprecated, ignored, etc.
-        """
-        from crypto_fifo_taxes.utils.coingecko import fetch_currency_market_chart
-
         # Validate date
         if date is None:
             raise TypeError("Date must be entered!")
@@ -66,21 +86,7 @@ class Currency(models.Model):
         if self.is_fiat is True:
             raise TypeError("Getting a FIAT currency's price in another FIAT currency is not supported.")
 
-        # Get crypto price from db
-        currency_price = self.prices.filter(date=date).first()
-
-        # Price was found in the database
-        if currency_price is not None:
-            return currency_price
-
-        # Fetch prices from an API
-        fetch_currency_market_chart(self)
-
-        currency_price = self.prices.filter(date=date).first()
-        if currency_price is None:
-            raise MissingPriceHistoryError(f"Currency: `{self}` does not have a price for {date}.")
-
-        return currency_price
+        return _get_cached_fiat_price(self, date)
 
 
 class CurrencyPair(models.Model):
