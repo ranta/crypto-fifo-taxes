@@ -201,7 +201,6 @@ class Transaction(models.Model):
         self.from_detail.save()
 
         self.gain = self.to_detail.total_value - self.from_detail.total_value
-        self.save()
 
         return only_hmo_used
 
@@ -222,14 +221,12 @@ class Transaction(models.Model):
         self.to_detail.save()
 
         self.gain = Decimal(0)
-        self.save()
 
     def _handle_fiat_deposit_cost_basis(self) -> None:
         # If deposit is FIAT, cost basis is always 1 (1 EUR == 1 EUR)
         self.to_detail.cost_basis = Decimal(1)
         self.gain = Decimal(0)
         self.to_detail.save()
-        self.save()
 
     def _handle_deposit_cost_basis(self) -> None:
         """
@@ -257,14 +254,12 @@ class Transaction(models.Model):
                 self.to_detail.cost_basis = Decimal(0)
 
         self.to_detail.save()
-        self.save()
 
     def _handle_fiat_withdrawal_cost_basis(self) -> None:
         """Funds are e.g. withdrawn to a bank account, which does not realize any gains."""
         self.from_detail.cost_basis = Decimal(1)
         self.gain = Decimal(0)
         self.from_detail.save()
-        self.save()
 
     def _handle_withdrawal_cost_basis(self) -> None:
         """
@@ -276,7 +271,6 @@ class Transaction(models.Model):
         self.from_detail.cost_basis = from_cost_basis
         self.gain = (sell_price - from_cost_basis) * self.from_detail.quantity
         self.from_detail.save()
-        self.save()
 
     def _handle_fee_cost_basis(self) -> None:
         cost_basis = self._get_fee_detail_cost_basis()
@@ -285,6 +279,9 @@ class Transaction(models.Model):
 
     @atomic()
     def fill_cost_basis(self) -> None:
+        self.gain = None
+        self.fee_amount = None
+
         # TODO: Refactor Cost Basis calculation to a separate helper class
         only_hmo_used = False
 
@@ -311,14 +308,14 @@ class Transaction(models.Model):
                 self._handle_transfer_or_swap_cost_basis()
 
         # Deposit
-        if self.from_detail is None and self.to_detail is not None:
+        elif self.from_detail is None and self.to_detail is not None:
             if self.to_detail.currency.is_fiat:
                 self._handle_fiat_deposit_cost_basis()
             else:
                 self._handle_deposit_cost_basis()
 
         # Withdrawal
-        if self.from_detail is not None and self.to_detail is None:
+        elif self.from_detail is not None and self.to_detail is None:
             if self.from_detail.currency.is_fiat:
                 self._handle_fiat_withdrawal_cost_basis()
             else:
@@ -332,7 +329,7 @@ class Transaction(models.Model):
             # refs. https://www.vero.fi/henkiloasiakkaat/omaisuus/sijoitukset/osakkeiden_myynt/
             # Set fee to zero only if all sold tokens used HMO. If any tokens don't use HMO, fee can be deducted
             self.fee_amount = self.fee_detail.total_value if not only_hmo_used else Decimal(0)
-            self.save()
+        self.save()
 
     @atomic()
     def add_detail(self, type: str, wallet: Wallet, currency: Currency, quantity: Decimal):
