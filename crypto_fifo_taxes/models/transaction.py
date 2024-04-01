@@ -449,9 +449,11 @@ class TransactionDetail(models.Model):
     wallet = models.ForeignKey(to="Wallet", on_delete=models.CASCADE, related_name="transaction_details")
     currency = models.ForeignKey(to="Currency", on_delete=models.PROTECT, related_name="transaction_details")
     quantity = TransactionDecimalField()
-    cost_basis = TransactionDecimalField(null=True)  # Price for one crypto currency in FIAT
+    cost_basis = TransactionDecimalField(null=True)  # Price for one cryptocurrency in FIAT
 
     objects = TransactionDetailManager.from_queryset(TransactionDetailQuerySet)()
+
+    currency_id: int  # Type hint as int instead of Type[int]
 
     def __str__(self):
         return f"{self.currency.symbol} ({str(self.quantity).rstrip('0').rstrip('.')})"

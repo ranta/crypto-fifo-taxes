@@ -1,15 +1,15 @@
 import datetime
 import logging
 import sys
+from copy import copy
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Annotated
 
-from django.core.exceptions import ValidationError
 from django.db.models import F, Q, Sum
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
-from crypto_fifo_taxes.exceptions import MissingPriceHistoryError
+from crypto_fifo_taxes.exceptions import MissingPriceHistoryError, SnapshotHelperException
 from crypto_fifo_taxes.models import Snapshot, SnapshotBalance, Transaction, TransactionDetail
 from crypto_fifo_taxes.utils.currency import get_currency
 from crypto_fifo_taxes.utils.date_utils import utc_date, utc_end_of_day, utc_start_of_day
@@ -18,15 +18,35 @@ from crypto_fifo_taxes.utils.db import CoalesceZero
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+type CurrencyID = Annotated[int, "currency_id"]
+
 
 @dataclass
 class BalanceDelta:
-    quantity: Decimal
-    cost_basis: Decimal
+    deposits: Decimal
+    withdrawals: Decimal
+    cost_basis: Decimal | None  # Average cost basis for all "deposit" transactions in the day, weighted by quantity
+
+    def __init__(
+        self,
+        deposits: Decimal | int = Decimal(),
+        withdrawals: Decimal | int = Decimal(),
+        cost_basis: Decimal | int | None = None,
+    ):
+        self.deposits = Decimal(deposits)
+        self.withdrawals = Decimal(withdrawals)
+        self.cost_basis = Decimal(cost_basis) if cost_basis is not None else None
+
+    def __eq__(self, other: "BalanceDelta"):
+        return (
+            self.deposits == other.deposits
+            and self.withdrawals == other.withdrawals
+            and self.cost_basis == other.cost_basis
+        )
 
     @property
-    def value(self) -> Decimal:
-        return self.quantity * self.cost_basis
+    def deposits_value(self) -> Decimal:
+        return self.deposits * self.cost_basis
 
 
 class SnapshotHelper:
@@ -36,144 +56,174 @@ class SnapshotHelper:
 
     def __init__(self) -> None:
         self.starting_date = self._get_starting_date()
-        self._validate_starting_date(self.starting_date)
-
         self.today = utc_date()
-        self.total_days_to_generate = (self.today - self.starting_date).days
+        self.total_days_to_generate = (self.today - self.starting_date).days + 1  # Inclusive
 
     def _get_starting_date(self) -> datetime.date:
+        first_tx_date = Transaction.objects.order_by("timestamp").values_list("timestamp__date", flat=True).first()
+        # return first_tx_date
+
+        if first_tx_date is None:
+            raise SnapshotHelperException("No transactions founds.")
+
         latest_snapshot_date = (
             Snapshot.objects.filter(balances__isnull=False, cost_basis__isnull=False)
             .order_by("-date")
             .values_list("date", flat=True)
             .first()
         )
-        if latest_snapshot_date is not None:
-            return latest_snapshot_date
 
-        first_transaction_date = Transaction.objects.order_by("timestamp").first().timestamp.date()
-        if first_transaction_date is None:
-            raise ValueError("Starting date not found, no transactions found.")
+        # If no snapshots are found, return the date of the first transaction
+        if latest_snapshot_date is None:
+            return first_tx_date
+        else:
+            # Check if there are missing snapshots between the first transaction and the latest snapshot
+            past_snapshots_count = Snapshot.objects.filter(date__lte=latest_snapshot_date).count()
+            required_snapshots_count = (latest_snapshot_date - first_tx_date).days
 
-        return first_transaction_date
-
-    @staticmethod
-    def _validate_starting_date(starting_date) -> None:
-        first_transaction_date = Transaction.objects.order_by("timestamp").first().timestamp.date()
-
-        past_snapshots_count = Snapshot.objects.filter(date__lte=starting_date).count()
-        required_snapshots_count = (starting_date - first_transaction_date).days
-
-        if required_snapshots_count > past_snapshots_count:
-            raise ValidationError("Snapshots are missing for a date before given date. Unable to continue.")
-
-    def _generate_snapshot_currencies(self, snapshot: Snapshot) -> list[SnapshotBalance]:
-        timestamp_from = utc_start_of_day(snapshot.date)
-        timestamp_to = utc_end_of_day(snapshot.date)
-
-        balance_deltas = TransactionDetail.objects.get_balances_for_snapshot(timestamp_from, timestamp_to)
-
-        snapshot_balances = []
-        for delta in balance_deltas:
-            new_quantity = delta["new_balance"]
-            cost_basis = delta["new_cost_basis"]
-
-            snapshot_balances.append(
-                SnapshotBalance(
-                    snapshot=snapshot,
-                    currency_id=delta["currency_id"],
-                    quantity=new_quantity,
-                    cost_basis=cost_basis,
-                )
-            )
-        return snapshot_balances
+            # Return the latest snapshot date if all snapshots are found
+            if required_snapshots_count <= past_snapshots_count:
+                return latest_snapshot_date
+            else:
+                return first_tx_date
 
     def _get_percentage_str(self, v1: int, v2) -> str:
         return f"{(v1) / v2 * 100:>5.2f}%"
 
     def generate_snapshots(self) -> None:
+        """Generate snapshots (without balances) for each day starting from the first transaction date. until today."""
         logger.info(f"Creating empty snapshots starting from {self.starting_date}")
+
+        # Delete any existing snapshots from the period about to be generated
         Snapshot.objects.filter(date__gte=self.starting_date).delete()
 
         snapshots = []
-        for date_index in range(self.total_days_to_generate + 1):
-            current_date = self.starting_date + datetime.timedelta(days=date_index)
-            snapshot = Snapshot(date=current_date)
-            snapshots.append(snapshot)
+        for date_index in range(self.total_days_to_generate):
+            snapshot_date = self.starting_date + datetime.timedelta(days=date_index)
+            snapshots.append(Snapshot(date=snapshot_date))
 
         Snapshot.objects.bulk_create(snapshots)
+
         logger.info("Created empty snapshots!")
 
-    def generate_snapshot_balances(self) -> None:
-        logger.info("Generating snapshots currency balances...")
-        table: dict[datetime.date, dict[Annotated[int, "currency_id"], BalanceDelta]] = {}
-        td_queryset = TransactionDetail.objects.filter(
-            tx_timestamp__gte=utc_start_of_day(self.starting_date),
-            tx_timestamp__lte=utc_end_of_day(self.today),
-        ).order_by("tx_timestamp")
+    def _process_single_transaction_detail(self, transaction_detail: TransactionDetail, day_data: BalanceDelta) -> None:
+        """Process a single transaction detail and update the day's data."""
+        # Incoming
+        if hasattr(transaction_detail, "to_detail"):
+            if day_data.deposits == 0:
+                day_data.deposits = transaction_detail.quantity
+                day_data.cost_basis = transaction_detail.cost_basis
+            else:
+                total_value = day_data.deposits_value + transaction_detail.total_value
+                total_quantity = day_data.deposits + transaction_detail.quantity
 
-        # Create the table with deltas for each currency on each day
-        for i, td in enumerate(td_queryset):
-            date = td.tx_timestamp.date()
+                day_data.deposits = total_value
+                day_data.cost_basis = total_value / total_quantity
+        # Outgoing
+        elif (
+            hasattr(transaction_detail, "from_detail")
+            # Is fee and not a withdrawal.
+            # In withdrawals the fee is included in from_detail quantity, and deducted from the total received
+            or (
+                hasattr(transaction_detail, "fee_detail")
+                and transaction_detail.fee_detail.transaction_type != TransactionType.WITHDRAW
+            )
+        ):
+            day_data.withdrawals += transaction_detail.quantity
+
+    def _generate_currency_delta_balance_table(self) -> dict[datetime.date, dict[CurrencyID, BalanceDelta]]:
+        """Generate a table of the changes in currency balances for each day."""
+        logger.info("Generating snapshots currency balances...")
+
+        transaction_details = TransactionDetail.objects.filter(
+            tx_timestamp__gte=utc_start_of_day(self.starting_date),
+        ).order_by("tx_timestamp")
+        transaction_details_count = len(transaction_details)
+
+        table: dict[datetime.date, dict[CurrencyID, BalanceDelta]] = {}
+
+        for i, transaction_detail in enumerate(transaction_details):
+            date: datetime.date = transaction_detail.transaction.timestamp.date()
+            currency_id: int = transaction_detail.currency_id
+
             # Empty defaults
             if date not in table:
                 table[date] = {}
-            if td.currency.symbol not in table[date]:
-                table[date][td.currency_id] = BalanceDelta(quantity=Decimal(0), cost_basis=Decimal(0))
+            if currency_id not in table[date]:
+                table[date][currency_id] = BalanceDelta(deposits=Decimal(0), withdrawals=Decimal(0), cost_basis=None)
 
-            # Incoming
-            if hasattr(td, "to_detail"):
-                table[date][td.currency_id].quantity += td.quantity
-            # Outgoing
-            elif (
-                hasattr(td, "from_detail")
-                # Is fee and not an actual withdrawal
-                # In withdrawals the fee is included in from_detail quantity, and deducted from the total received
-                or (hasattr(td, "fee_detail") and td.fee_detail.transaction_type != TransactionType.WITHDRAW)
-            ):
-                table[date][td.currency_id].quantity -= td.quantity
+            self._process_single_transaction_detail(transaction_detail, table[date][currency_id])
 
+            # Report progress
             if i % 200 == 0:
-                logger.info(f"Processing balances: {self._get_percentage_str(i, len(td_queryset))}")
+                logger.info(f"Processing balances: ({self._get_percentage_str(i, transaction_details_count)})")
 
+        return table
+
+    def _process_single_date_currency(self, balance_delta: BalanceDelta, latest_balance: SnapshotBalance) -> None:
+        # Cost Basis
+        # Balance was empty or no last known cost basis
+        if not latest_balance.quantity or not latest_balance.cost_basis:
+            latest_balance.cost_basis = balance_delta.cost_basis
+        # Negative delta, cost basis should not be changed from the last known value
+        elif balance_delta.deposits - balance_delta.withdrawals < 0:
+            pass
+        # Calculate new cost basis weighted by quantity
+        else:
+            # TODO: This is wrong, this way we only get the average cost basis, not the real cost basis.
+            #  To get the real cost basis we first need to get all deposits and withdrawals in history...
+            total_value = latest_balance.total_value + balance_delta.deposits_value
+            latest_balance.cost_basis = total_value / (latest_balance.quantity + balance_delta.deposits)
+
+        # Quantity
+        latest_balance.quantity += balance_delta.deposits - balance_delta.withdrawals
+
+        if latest_balance.quantity < 0:
+            raise SnapshotHelperException(f"Negative balance for currency {get_currency(latest_balance.currency_id)}")
+
+    def generate_snapshot_balances(self) -> None:
+        """Generate snapshot balances for each day in the period."""
         logger.info("Creating SnapshotBalance objects...")
-        snapshots = Snapshot.objects.filter(date__gte=self.starting_date).order_by("date")
-        snapshot_to_date: dict[datetime.date, Snapshot] = {snapshot.date: snapshot for snapshot in snapshots}
-        snapshot_balances: list[SnapshotBalance] = []
-        last_balance: dict[Annotated[int, "currency_id"], BalanceDelta] = {}
 
-        for current_date, currencies in table.items():
+        table = self._generate_currency_delta_balance_table()
+
+        # Fetch all snapshots in the period
+        snapshots = Snapshot.objects.filter(date__gte=self.starting_date).order_by("date")
+        # Map snapshots to their date for easy access
+        snapshot_to_date: dict[datetime.date, Snapshot] = {snapshot.date: snapshot for snapshot in snapshots}
+
+        # List of SnapshotBalance objects to be bulk created
+        snapshot_balances: list[SnapshotBalance] = []
+
+        # Last known balance for each currency
+        latest_balances: dict[CurrencyID, SnapshotBalance] = {}
+
+        # Process snapshots
+        for current_date, table_currencies in table.items():
             snapshot: Snapshot = snapshot_to_date.get(current_date)
             if snapshot is None:
-                raise ValueError(f"Snapshot not found for date {current_date}")
+                raise SnapshotHelperException(f"Snapshot not found for date {current_date}")
 
-            for currency_id, balance_delta in currencies.items():
-                if currency_id not in last_balance:
-                    last_balance[currency_id] = BalanceDelta(quantity=Decimal(0), cost_basis=Decimal(0))
-
-                # Quantity
-                last_balance[currency_id].quantity += balance_delta.quantity
-
-                # Cost Basis
-                # Balance emptied or no last known cost basis
-                if last_balance[currency_id].quantity == 0 or last_balance[currency_id].cost_basis == 0:
-                    last_balance[currency_id].cost_basis += balance_delta.cost_basis
-                # Negative delta, cost basis should not be changed from the last known value
-                elif balance_delta.quantity < 0:
-                    pass
-                # Calculate new cost basis weighted by quantity
-                else:
-                    total_value = last_balance[currency_id].value + balance_delta.value
-                    last_balance[currency_id].cost_basis = total_value / last_balance[currency_id].quantity
-
-                snapshot_balances.append(
-                    SnapshotBalance(
-                        snapshot=snapshot,
+            # Process single currency balance for the snapshot
+            for currency_id, balance_delta in table_currencies.items():
+                # Empty defaults
+                if currency_id not in latest_balances:
+                    latest_balances[currency_id] = SnapshotBalance(
                         currency_id=currency_id,
-                        quantity=last_balance[currency_id].quantity,
-                        cost_basis=last_balance[currency_id].cost_basis,
+                        quantity=Decimal(0),
+                        cost_basis=Decimal(0),
                     )
-                )
+                latest_balance: SnapshotBalance = latest_balances[currency_id]
+
+                self._process_single_date_currency(balance_delta, latest_balance)
+
+                # Skip empty balances
+                if balance_delta.withdrawals == 0 and latest_balance.quantity == 0:
+                    continue
+
+                latest_balance.snapshot = snapshot
+                # Append a copy of the latest balance to the list (to avoid updating the same object later)
+                snapshot_balances.append(copy(latest_balance))
 
         SnapshotBalance.objects.bulk_create(snapshot_balances)
         logger.info("Generated snapshot balances complete!")

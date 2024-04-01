@@ -73,24 +73,35 @@ class WalletHelper:
         else:
             raise ValueError("Multiple wallets exist, please specify the wallet.")
 
-    def deposit(self, currency: Currency | str, quantity: Decimal | int, timestamp: datetime | None = None):
+    def deposit(
+        self,
+        currency: Currency | str,
+        quantity: Decimal | int,
+        timestamp: datetime | None = None,
+        cost_basis: Decimal | int | None = None,
+    ):
         tx_timestamp = _set_timezone(timestamp) or self.tx_time.next()
         tx_creator = TransactionCreator(timestamp=tx_timestamp, fill_cost_basis=True)
         tx_creator.to_detail = TransactionDetailFactory.build(wallet=self.wallet, currency=currency, quantity=quantity)
 
-        if self.auto_create_prices:
+        if cost_basis is not None:
+            CurrencyPriceFactory.create(currency=currency, date=self.date, price=cost_basis)
+        elif self.auto_create_prices:
             CurrencyPriceFactory.create(currency=currency, date=self.date, price=quantity)
 
         return tx_creator.create_deposit()
 
-    def withdraw(self, currency: Currency | str, quantity: Decimal | int, timestamp: datetime | None = None):
+    def withdraw(self, currency: Currency | str, quantity: Decimal | int, timestamp: datetime | None = None,
+        cost_basis: Decimal | int | None = None,):
         tx_timestamp = _set_timezone(timestamp) or self.tx_time.next()
         tx_creator = TransactionCreator(timestamp=tx_timestamp, fill_cost_basis=True)
         tx_creator.from_detail = TransactionDetailFactory.build(
             wallet=self.wallet, currency=currency, quantity=quantity
         )
 
-        if self.auto_create_prices:
+        if cost_basis is not None:
+            CurrencyPriceFactory.create(currency=currency, date=self.date, price=cost_basis)
+        elif self.auto_create_prices:
             CurrencyPriceFactory.create(currency=currency, date=self.date, price=quantity)
 
         return tx_creator.create_withdrawal()

@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 from typing import Any
 
 from django.db import models
@@ -48,6 +49,8 @@ class SnapshotBalance(models.Model):
     quantity = TransactionDecimalField(null=True, blank=True)
     cost_basis = TransactionDecimalField(null=True, blank=True)
 
+    currency_id: int  # Type hint as int instead of Type[int]
+
     def __str__(self):
         return f"Snapshot Balance for {self.currency} on {self.snapshot.date}"
 
@@ -55,3 +58,9 @@ class SnapshotBalance(models.Model):
         return (
             f"<{self.__class__.__name__} ({self.pk}): {self.currency.symbol}, {self.quantity}, {self.snapshot.date})>"
         )
+
+    @property
+    def total_value(self) -> Decimal | None:
+        if self.cost_basis is None:
+            return None
+        return self.cost_basis * self.quantity
