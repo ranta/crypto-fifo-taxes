@@ -93,6 +93,34 @@ def test_snapshot_helper__generate_snapshots__count():
     assert Snapshot.objects.all().count() == 31
 
 
+######################################
+# _process_single_transaction_detail #
+######################################
+
+
+def test_snapshot_helper___process_single_transaction_detail():
+    btc = CryptoCurrencyFactory.create(symbol="BTC")
+
+    wallet_helper = WalletHelper()
+    tx_1 = wallet_helper.deposit(btc, 5, cost_basis=4)  # Value = 20
+    tx_2 = wallet_helper.deposit(btc, 10, cost_basis=1)  # Value = 10
+    tx_3 = wallet_helper.withdraw(btc, 2)  # Value does not matter
+
+    snapshot_helper = SnapshotHelper()
+
+    # btc_balance_delta gets updated in place
+    btc_balance_delta = BalanceDelta(deposits=Decimal(0), withdrawals=Decimal(0), cost_basis=None)
+
+    snapshot_helper._process_single_transaction_detail(tx_1.to_detail, btc_balance_delta)
+    assert btc_balance_delta == BalanceDelta(deposits=5, cost_basis=4)  # 5*4 / 5 = 4
+
+    snapshot_helper._process_single_transaction_detail(tx_2.to_detail, btc_balance_delta)
+    assert btc_balance_delta == BalanceDelta(deposits=15, cost_basis=2)  # (5*4 + 10*1) / 15 = 2
+
+    snapshot_helper._process_single_transaction_detail(tx_3.from_detail, btc_balance_delta)
+    assert btc_balance_delta == BalanceDelta(deposits=15, cost_basis=2, withdrawals=2)
+
+
 ##########################################
 # _generate_currency_delta_balance_table #
 ##########################################
@@ -113,7 +141,8 @@ def test_snapshot_helper__generate_currency_delta_balance_table():
     wallet_helper.trade(eth, 5, btc, 1)
 
     snapshot_helper = SnapshotHelper()
-    delta_table = snapshot_helper._generate_currency_delta_balance_table()
+    snapshot_helper._generate_currency_delta_balance_table()
+    delta_table = snapshot_helper.balance_delta_table
     assert len(delta_table) == 3
 
     assert delta_table[tx_1.timestamp.date()][btc.id] == BalanceDelta(deposits=5, cost_basis=5)
@@ -123,6 +152,32 @@ def test_snapshot_helper__generate_currency_delta_balance_table():
     date_data = delta_table[tx_3.timestamp.date()]
     assert date_data[btc.id] == BalanceDelta(deposits=1, withdrawals=3, cost_basis=3)  # 3 BTC => 15 ETH
     assert date_data[eth.id] == BalanceDelta(deposits=15, withdrawals=5, cost_basis=Decimal("0.2"))  # 5 ETH => 1 BTC
+
+
+def test_snapshot_helper__generate_currency_delta_balance_table__multiple_trades_on_same_day():
+    eth = CryptoCurrencyFactory.create(symbol="ETH")
+    ada = CryptoCurrencyFactory.create(symbol="ADA")
+
+    wallet_helper = WalletHelper()
+    tx_1 = wallet_helper.deposit(eth, 2)
+
+    wallet_helper.tx_time.next_day()
+    tx_2 = wallet_helper.trade(eth, Decimal("0.1"), ada, 10)
+    wallet_helper.trade(eth, Decimal("0.2"), ada, 20)
+    wallet_helper.trade(eth, Decimal("0.3"), ada, 30)
+    wallet_helper.trade(eth, Decimal("0.4"), ada, 40)
+    wallet_helper.trade(eth, Decimal("0.5"), ada, 50)
+
+    snapshot_helper = SnapshotHelper()
+    snapshot_helper._generate_currency_delta_balance_table()
+    delta_table = snapshot_helper.balance_delta_table
+    assert len(delta_table) == 2
+
+    assert delta_table[tx_1.timestamp.date()][eth.id] == BalanceDelta(deposits=2, cost_basis=2)
+
+    date_data = delta_table[tx_2.timestamp.date()]
+    assert date_data[eth.id] == BalanceDelta(withdrawals=Decimal("1.5"))
+    assert date_data[ada.id] == BalanceDelta(deposits=150, cost_basis=Decimal("0.01"))
 
 
 ##############################

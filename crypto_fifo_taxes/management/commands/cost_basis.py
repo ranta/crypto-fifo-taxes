@@ -26,7 +26,7 @@ class Command(BaseCommand):
         i: int
         transaction: Transaction
         for i, transaction in enumerate(transactions):
-            log_progress(f"Calculating cost basis: {transaction.timestamp.date()}", i, count, 100)
+            log_progress(logger, f"Calculating cost basis: {transaction.timestamp.date()}", i, count, 100)
             transaction.fill_cost_basis()
 
     def handle(self, *args, **kwargs):
