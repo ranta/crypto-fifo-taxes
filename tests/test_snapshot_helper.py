@@ -5,7 +5,7 @@ import pytest
 from freezegun import freeze_time
 
 from crypto_fifo_taxes.exceptions import SnapshotHelperException
-from crypto_fifo_taxes.models import Snapshot
+from crypto_fifo_taxes.models import Currency, Snapshot, SnapshotBalance
 from crypto_fifo_taxes.utils.helpers.snapshot_helper import BalanceDelta, SnapshotHelper
 from tests.factories import CryptoCurrencyFactory, SnapshotBalanceFactory, TransactionFactory
 from tests.utils import WalletHelper
@@ -13,6 +13,21 @@ from tests.utils import WalletHelper
 pytestmark = [
     pytest.mark.django_db,
 ]
+
+################
+# Test Helpers #
+################
+
+
+def _get_snapshot_balance_for_date(
+    date: datetime.date | datetime.datetime,
+    currency: Currency,
+) -> SnapshotBalance | None:
+    if isinstance(date, datetime.datetime):
+        date = date.date()
+
+    return Snapshot.objects.get(date=date).balances.filter(currency=currency).first()
+
 
 ######################
 # _get_starting_date #
@@ -204,25 +219,20 @@ def test_snapshot_helper__generate_snapshot_balances():
     snapshot_helper.generate_snapshots()
     snapshot_helper.generate_snapshot_balances()
 
-    snapshot_1_balances = Snapshot.objects.get(date=tx_1.timestamp.date()).get_balances()
-    assert snapshot_1_balances == [{"currency_id": btc.id, "currency__symbol": "BTC", "quantity": 5, "cost_basis": 5}]
+    balance = _get_snapshot_balance_for_date(tx_1.timestamp, btc)
+    assert balance.quantity == 5
+    assert balance.cost_basis == 5
 
-    snapshot_2_balances = Snapshot.objects.get(date=tx_2.timestamp.date()).get_balances()
-    assert snapshot_2_balances == [{"currency_id": btc.id, "currency__symbol": "BTC", "quantity": 3, "cost_basis": 5}]
+    balance = _get_snapshot_balance_for_date(tx_2.timestamp, btc)
+    assert balance.quantity == 3
+    assert balance.cost_basis == 5
 
-    snapshot_3_balances = Snapshot.objects.get(date=tx_3.timestamp.date()).get_balances()
-    assert snapshot_3_balances[0] == {
-        "currency_id": btc.id,
-        "currency__symbol": "BTC",
-        "quantity": 1,
-        "cost_basis": Decimal("5"),  # 5 ETH => 1 BTC
-    }
-    assert snapshot_3_balances[1] == {
-        "currency_id": eth.id,
-        "currency__symbol": "ETH",
-        "quantity": 10,
-        "cost_basis": Decimal("0.2"),  # 3 BTC => 15 ETH
-    }
+    balance = _get_snapshot_balance_for_date(tx_3.timestamp, btc)
+    assert balance.quantity == 1
+    assert balance.cost_basis == 5  # 5 ETH => 1 BTC
+    balance = _get_snapshot_balance_for_date(tx_3.timestamp, eth)
+    assert balance.quantity == 10
+    assert balance.cost_basis == Decimal("0.2")  # 3 BTC => 15 ETH
 
 
 @freeze_time("2020-01-31")
@@ -251,21 +261,21 @@ def test_snapshot_helper__generate_snapshot_balances__cost_basis():
     snapshot_helper.generate_snapshots()
     snapshot_helper.generate_snapshot_balances()
 
-    balances = Snapshot.objects.get(date=tx_1.timestamp.date()).get_balances()
-    assert balances[0]["quantity"] == 10
-    assert balances[0]["cost_basis"] == 10
+    balance = _get_snapshot_balance_for_date(tx_1.timestamp, btc)
+    assert balance.quantity == 10
+    assert balance.cost_basis == 10
 
-    balances = Snapshot.objects.get(date=tx_2.timestamp.date()).get_balances()
-    assert balances[0]["quantity"] == 12
-    assert balances[0]["cost_basis"] == Decimal("10.5")
+    balance = _get_snapshot_balance_for_date(tx_2.timestamp, btc)
+    assert balance.quantity == 12
+    assert balance.cost_basis == Decimal("10.5")
 
-    balances = Snapshot.objects.get(date=tx_3.timestamp.date()).get_balances()
-    assert balances[0]["quantity"] == 20
-    assert balances[0]["cost_basis"] == Decimal("13.5")
+    balance = _get_snapshot_balance_for_date(tx_3.timestamp, btc)
+    assert balance.quantity == 20
+    assert balance.cost_basis == Decimal("13.5")
 
-    balances = Snapshot.objects.get(date=tx_4.timestamp.date()).get_balances()
-    assert balances[0]["quantity"] == 30
-    assert balances[0]["cost_basis"] == 13
+    balance = _get_snapshot_balance_for_date(tx_4.timestamp, btc)
+    assert balance.quantity == 30
+    assert balance.cost_basis == 13
 
 
 # TODO: Test cost basis with trades and withdrawals

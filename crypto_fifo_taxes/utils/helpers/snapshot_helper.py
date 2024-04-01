@@ -159,9 +159,6 @@ class SnapshotBalanceHelperMixin:
             day_data.withdrawals += transaction_detail.quantity
 
     def _generate_snapshot_balances(self) -> list[SnapshotBalance]:
-        # Map snapshots to their date for easy access
-        snapshot_to_date: dict[datetime.date, Snapshot] = {ss.date: ss for ss in self.selected_snapshots_qs}
-
         # List of SnapshotBalance objects to be bulk created
         snapshot_balances: list[SnapshotBalance] = []
 
@@ -174,29 +171,29 @@ class SnapshotBalanceHelperMixin:
             )
         )
 
-        # Process snapshots
-        for current_date, table_currencies in self.balance_delta_table.items():
-            snapshot: Snapshot = snapshot_to_date.get(current_date)
-            if snapshot is None:
-                raise SnapshotHelperException(f"Snapshot not found for date {current_date}")
+        # Generate SnapshotBalances
+        for snapshot in self.selected_snapshots_qs:
+            table_currencies = self.balance_delta_table[snapshot.date]
 
             # Process single currency balance for the snapshot
             for currency_id, balance_delta in table_currencies.items():
-                latest_balance: SnapshotBalance = latest_balances[currency_id]
-
                 try:
-                    self._process_single_date_currency(balance_delta, latest_balance)
+                    self._process_single_date_currency(balance_delta, latest_balances[currency_id])
                 except SnapshotHelperException:
-                    logger.exception(f"Error processing currency {get_currency(currency_id)} on {current_date}")
+                    logger.exception(f"Error processing currency {get_currency(currency_id)} on {snapshot.date}")
                     raise
 
-                # Skip empty balances
-                if balance_delta.withdrawals == 0 and latest_balance.quantity == 0:
+            # Add SnapshotBalance for each currency to the list
+            for currency_id in list(latest_balances.keys()):  # Copy the keys to avoid changing the dict while iterating
+                # Delete the currency from the latest balances if it's empty
+                if latest_balances[currency_id].quantity == 0:
+                    del latest_balances[currency_id]
+                    # print("deleted:", get_currency(currency_id), snapshot.date)
                     continue
 
-                latest_balance.snapshot = snapshot
                 # Append a copy of the latest balance to the list (to avoid updating the same object later)
-                snapshot_balances.append(copy(latest_balance))
+                latest_balances[currency_id].snapshot = snapshot
+                snapshot_balances.append(copy(latest_balances[currency_id]))
 
         return snapshot_balances
 
@@ -233,7 +230,7 @@ class SnapshotWorthHelperMixin:
     def calculate_snapshots_worth(self) -> None:
         self.selected_snapshots_qs.update(worth=None, cost_basis=None, deposits=None)
 
-        snapshot_qs = self.selected_snapshots_qs
+        snapshot_qs = self.selected_snapshots_qs.prefetch_related("balances", "balances__currency")
         for i, snapshot in enumerate(snapshot_qs):
             log_progress(logger, f"Calculating snapshot worth: {snapshot.date}", i, self.total_days_to_generate, 100)
             self._calculate_snapshot_worth(snapshot)
@@ -243,34 +240,32 @@ class SnapshotWorthHelperMixin:
         sum_worth = Decimal(0)
         sum_cost_basis = Decimal(0)
 
-        balances = snapshot.get_balances()
-        for balance in balances:
-            if balance["quantity"] == 0:
+        for balance in snapshot.balances.all():
+            if balance.quantity == 0:
                 continue
 
-            currency = get_currency(balance["currency_id"])
             # For FIAT currencies we can simply add then, as their worth is their quantity
-            if currency.is_fiat:
-                sum_worth += balance["quantity"]
-                sum_cost_basis += balance["cost_basis"]
+            if balance.currency.is_fiat:
+                sum_worth += balance.quantity
+                sum_cost_basis += balance.cost_basis
                 continue
 
             # For non-FIAT currencies we need to fetch their price
             try:
-                currency_price = currency.get_fiat_price(date=snapshot.date)
+                currency_price = balance.currency.get_fiat_price(date=snapshot.date)
             # If the price is missing, we skip the currency and add its cost basis to the sums
             except MissingPriceHistoryError:
-                logger.debug(f"Missing price for currency {currency}")
+                logger.debug(f"Missing price for currency {balance.currency}")
 
-                sum_worth += balance["cost_basis"]
-                sum_cost_basis += balance["cost_basis"]
+                sum_worth += balance.cost_basis
+                sum_cost_basis += balance.cost_basis
                 continue
 
             if currency_price is None:
                 continue
 
-            sum_worth += balance["quantity"] * currency_price.price
-            sum_cost_basis += balance["quantity"] * balance["cost_basis"]
+            sum_worth += balance.quantity * currency_price.price
+            sum_cost_basis += balance.quantity * balance.cost_basis
 
         # This defines what transactions are deposits
         deposits_filter = Q(
