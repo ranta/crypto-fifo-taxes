@@ -4,7 +4,7 @@ import datetime
 from collections.abc import Iterable
 from datetime import date
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 from django.conf import settings
 from django.db import models
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 
 class TransactionQuerySet(models.QuerySet):
-    def filter_currency(self, symbol: str):
+    def filter_currency(self, symbol: str) -> Self:
         return self.filter(Q(from_detail__currency__symbol=symbol) | Q(to_detail__currency__symbol=symbol))
 
 

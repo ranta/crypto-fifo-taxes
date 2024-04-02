@@ -8,7 +8,8 @@ from django.views.generic import ListView
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.exceptions import MissingCostBasisError
-from crypto_fifo_taxes.models import Currency, CurrencyPrice, Transaction
+from crypto_fifo_taxes.models import Currency, CurrencyPrice, SnapshotBalance, Transaction
+from crypto_fifo_taxes.models.transaction import TransactionQuerySet
 from crypto_fifo_taxes.utils.db import CoalesceZero
 
 
@@ -138,14 +139,23 @@ class TransactionByCurrencyListView(ListView):
             return f"All transactions for {currency.name} ({currency.symbol})"
         return "Select a currency"
 
-    def filter_queryset(self, queryset: QuerySet[Transaction]) -> QuerySet[Transaction]:
+    def filter_queryset(self, queryset: TransactionQuerySet) -> QuerySet[Transaction]:
         """
         Filter examples:
         `?currency=btc`
         """
         query_params: QueryDict = self.request.GET
         if currency_symbol := query_params.get("currency_symbol"):
-            return queryset.filter_currency(currency_symbol)
+            return queryset.filter_currency(currency_symbol).annotate(
+                holdings=Subquery(
+                    SnapshotBalance.objects.filter(
+                        currency__symbol=currency_symbol,
+                        snapshot__date=OuterRef("timestamp__date"),
+                    )
+                    .order_by("-snapshot__date")
+                    .values("quantity")[:1]
+                )
+            )
         else:
             return queryset.none()
 

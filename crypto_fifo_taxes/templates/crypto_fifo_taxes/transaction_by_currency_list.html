@@ -79,13 +79,8 @@
 
                     <td>{% if transaction.fee_amount and transaction.fee_detail.currency.symbol == selected_currency_symbol %}<b>{{ transaction.to_detail.currency.symbol }}</b> {{ transaction.fee_detail.quantity|round_normalize:8 }}{% endif %}</td>
                     <td>
-                        {% if transaction.to_detail and transaction.to_detail.currency.symbol == selected_currency_symbol %}
-                            <b>{{ transaction.to_detail.currency.symbol }}</b>
-                            {{ transaction.to_detail.get_last_consumable_balance.quantity_left|round_normalize:8 }}
-                        {% elif transaction.from_detail and transaction.from_detail.currency.symbol == selected_currency_symbol %}
-                            <b>{{ transaction.from_detail.currency.symbol }}</b>
-                            {{ transaction.from_detail.get_last_consumable_balance.quantity_left|round_normalize:8 }}
-                        {% endif %}
+                        <b>{{ selected_currency_symbol }}</b>
+                        {{ transaction.holdings|round_normalize:8 }}
                     </td>
                 </tr>
             {% endfor %}
