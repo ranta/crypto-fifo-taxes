@@ -70,7 +70,7 @@ class MassCurrencyPriceHelper:
         super().__init__()
         self.price_dict = {}
 
-    def get_price(self, currency: Currency, date: datetime.date) -> Decimal:
+    def get_price(self, currency: Currency, date: datetime.date) -> Decimal | None:
         if currency.pk not in self.price_dict:
             self.price_dict[currency.pk] = dict(
                 CurrencyPrice.objects.filter(
@@ -81,8 +81,12 @@ class MassCurrencyPriceHelper:
 
         price = self.price_dict[currency.pk].get(date)
         if price is None:
-            return currency.get_fiat_price(date).price
-
+            try:
+                return currency.get_fiat_price(date).price
+            # If the price is missing, we skip the currency and add its cost basis to the sums
+            except MissingPriceHistoryError:
+                logger.debug(f"Missing price for currency {currency} on {date}")
+                return None
         return price
 
 
@@ -264,9 +268,12 @@ class SnapshotWorthHelperMixin:
         snapshot_qs = self.selected_snapshots_qs.prefetch_related("balances", "balances__currency")
         for i, snapshot in enumerate(snapshot_qs):
             log_progress(logger, f"Calculating snapshot worth: {snapshot.date}", i, self.total_days_to_generate, 100)
-            self._calculate_snapshot_worth(snapshot)
 
-    def _calculate_snapshot_worth(self, snapshot: Snapshot) -> None:
+            self._handle_snapshot_cost_basis_and_worth(snapshot)
+            self._handle_snapshot_deposits(snapshot)
+            snapshot.save()
+
+    def _handle_snapshot_cost_basis_and_worth(self, snapshot: Snapshot):
         sum_worth = Decimal(0)
         sum_cost_basis = Decimal(0)
 
@@ -280,23 +287,31 @@ class SnapshotWorthHelperMixin:
                 sum_cost_basis += balance.cost_basis
                 continue
 
-            # For non-FIAT currencies we need to fetch their price
-            try:
-                currency_price: Decimal = self.mass_price_helper.get_price(balance.currency, snapshot.date)
-            # If the price is missing, we skip the currency and add its cost basis to the sums
-            except MissingPriceHistoryError:
-                logger.debug(f"Missing price for currency {balance.currency}")
+            currency_date_price = self.mass_price_helper.get_price(balance.currency, snapshot.date)
+            if currency_date_price is None:
+                # If the price is missing, find the latest price before the snapshot date
+                latest_known_price = (
+                    CurrencyPrice.objects.filter(currency=balance.currency, date__lte=snapshot.date)
+                    .order_by("-date")
+                    .values_list("price", flat=True)
+                    .first()
+                )
+                if latest_known_price is None:
+                    # If there is no known price, calculate the worth from the cost basis as the best assumption.
+                    sum_worth += balance.total_value
+                    sum_cost_basis += balance.cost_basis
+                else:
+                    # Assume the latest known price is still right and calculate the worth from it.
+                    sum_worth += latest_known_price * balance.quantity
+                    sum_cost_basis += balance.cost_basis
+            else:
+                sum_worth += balance.quantity * currency_date_price
+                sum_cost_basis += balance.quantity * balance.cost_basis
 
-                sum_worth += balance.cost_basis
-                sum_cost_basis += balance.cost_basis
-                continue
+        snapshot.worth = sum_worth
+        snapshot.cost_basis = sum_cost_basis
 
-            if not currency_price:
-                continue
-
-            sum_worth += balance.quantity * currency_price
-            sum_cost_basis += balance.quantity * balance.cost_basis
-
+    def _handle_snapshot_deposits(self, snapshot: Snapshot):
         # This defines what transactions are deposits
         deposits_filter = Q(
             Q(to_detail__isnull=False)
@@ -320,10 +335,7 @@ class SnapshotWorthHelperMixin:
             worth=CoalesceZero(F("quantity") * F("cost_basis")),
         ).aggregate(sum_deposits_worth=Sum("worth"))["sum_deposits_worth"] or Decimal(0)
 
-        snapshot.worth = sum_worth
-        snapshot.cost_basis = sum_cost_basis
         snapshot.deposits = deposits
-        snapshot.save()
 
 
 ########################################################################################################################
