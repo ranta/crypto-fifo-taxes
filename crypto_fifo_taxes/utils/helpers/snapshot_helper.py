@@ -11,7 +11,7 @@ from django.db.models import F, Q, QuerySet, Sum
 
 from crypto_fifo_taxes.enums import TransactionLabel, TransactionType
 from crypto_fifo_taxes.exceptions import MissingPriceHistoryError, SnapshotHelperException
-from crypto_fifo_taxes.models import Snapshot, SnapshotBalance, Transaction, TransactionDetail
+from crypto_fifo_taxes.models import Currency, CurrencyPrice, Snapshot, SnapshotBalance, Transaction, TransactionDetail
 from crypto_fifo_taxes.utils.common import log_progress
 from crypto_fifo_taxes.utils.currency import get_currency
 from crypto_fifo_taxes.utils.date_utils import utc_date, utc_end_of_day
@@ -56,6 +56,34 @@ class BalanceDelta:
     @property
     def deposits_value(self) -> Decimal:
         return self.deposits * self.cost_basis
+
+
+########################################################################################################################
+
+
+class MassCurrencyPriceHelper:
+    """Prefetch and cache currency prices for a given period."""
+
+    price_dict: dict[CurrencyID, dict[datetime.date, Decimal]]
+
+    def __init__(self):
+        super().__init__()
+        self.price_dict = {}
+
+    def get_price(self, currency: Currency, date: datetime.date) -> Decimal:
+        if currency.pk not in self.price_dict:
+            self.price_dict[currency.pk] = dict(
+                CurrencyPrice.objects.filter(
+                    currency=currency,
+                    date__gte=date,
+                ).values_list("date", "price")
+            )
+
+        price = self.price_dict[currency.pk].get(date)
+        if price is None:
+            return currency.get_fiat_price(date).price
+
+        return price
 
 
 ########################################################################################################################
@@ -225,9 +253,12 @@ class SnapshotBalanceHelperMixin:
 class SnapshotWorthHelperMixin:
     total_days_to_generate: int
     selected_snapshots_qs: QuerySet[Snapshot]
+    mass_price_helper: MassCurrencyPriceHelper
 
     @print_entry_and_exit(logger=logger, function_name="Calculate Snapshots Worth")
     def calculate_snapshots_worth(self) -> None:
+        self.mass_price_helper = MassCurrencyPriceHelper()
+
         self.selected_snapshots_qs.update(worth=None, cost_basis=None, deposits=None)
 
         snapshot_qs = self.selected_snapshots_qs.prefetch_related("balances", "balances__currency")
@@ -235,8 +266,7 @@ class SnapshotWorthHelperMixin:
             log_progress(logger, f"Calculating snapshot worth: {snapshot.date}", i, self.total_days_to_generate, 100)
             self._calculate_snapshot_worth(snapshot)
 
-    @staticmethod
-    def _calculate_snapshot_worth(snapshot: Snapshot) -> None:
+    def _calculate_snapshot_worth(self, snapshot: Snapshot) -> None:
         sum_worth = Decimal(0)
         sum_cost_basis = Decimal(0)
 
@@ -252,7 +282,7 @@ class SnapshotWorthHelperMixin:
 
             # For non-FIAT currencies we need to fetch their price
             try:
-                currency_price = balance.currency.get_fiat_price(date=snapshot.date)
+                currency_price: Decimal = self.mass_price_helper.get_price(balance.currency, snapshot.date)
             # If the price is missing, we skip the currency and add its cost basis to the sums
             except MissingPriceHistoryError:
                 logger.debug(f"Missing price for currency {balance.currency}")
@@ -261,10 +291,10 @@ class SnapshotWorthHelperMixin:
                 sum_cost_basis += balance.cost_basis
                 continue
 
-            if currency_price is None:
+            if not currency_price:
                 continue
 
-            sum_worth += balance.quantity * currency_price.price
+            sum_worth += balance.quantity * currency_price
             sum_cost_basis += balance.quantity * balance.cost_basis
 
         # This defines what transactions are deposits
