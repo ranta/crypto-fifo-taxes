@@ -7,7 +7,7 @@ from django.db.models import Q, QuerySet
 
 from crypto_fifo_taxes.models import Transaction
 from crypto_fifo_taxes.utils.common import log_progress
-from crypto_fifo_taxes.utils.wrappers import print_time_elapsed
+from crypto_fifo_taxes.utils.wrappers import print_entry_and_exit
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class Command(BaseCommand):
         parser.add_argument("-d", "--date", type=str, help="Start from this date. Format: YYYY-MM-DD")
 
     @staticmethod
-    @print_time_elapsed
+    @print_entry_and_exit(logger=logger, function_name="Calculate cost basis")
     def calculate_cost_bases(transactions: QuerySet[Transaction]):
         count = transactions.count()
 

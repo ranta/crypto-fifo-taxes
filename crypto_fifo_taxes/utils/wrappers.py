@@ -49,14 +49,19 @@ def print_entry_and_exit(logger: logging.Logger, function_name: str):
             logger.info("┌" + "─" * (len(message) + 2) + "┐")
             logger.info("│ " + message)
 
-        def print_box_message_bottom(message: str) -> None:
-            logger.info("│ " + message)
-            logger.info("└" + "─" * (len(message) + 2) + "┘")
+        def print_box_message_bottom(message: str, time_elapsed: timedelta | None = None) -> None:
+            time_elapsed_str = f"Time elapsed: {time_elapsed}" if time_elapsed else ""
+            logger.info("│ " + message + (f" │ {time_elapsed_str}" if time_elapsed else ""))
+            logger.info(
+                ("└" + "─" * (len(message) + 2))
+                + ("┘" if time_elapsed is None else "┴" + "─" * (len(time_elapsed_str) + 2) + "┘")
+            )
 
         def wrapper(*args, **kwargs):
             print_box_message_top(f"Starting `{function_name}`")
+            start_time = datetime.now()
             func(*args, **kwargs)
-            print_box_message_bottom(f"Finished `{function_name}`")
+            print_box_message_bottom(f"Finished `{function_name}`", time_elapsed=datetime.now() - start_time)
 
         return wrapper
 
