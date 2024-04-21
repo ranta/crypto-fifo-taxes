@@ -7,9 +7,8 @@ A calculator to count gains and losses on crypto mining, staking and trading act
 
 ### Prerequisites
 
-* [Python 3.8](https://www.python.org/)
+* [Python 3.12](https://www.python.org/)
 * [Poetry](https://github.com/python-poetry/poetry#installation)
-* Make
 * PostgreSQL
 
 
