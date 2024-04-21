@@ -319,6 +319,8 @@ class Transaction(models.Model):
             # refs. https://www.vero.fi/henkiloasiakkaat/omaisuus/sijoitukset/osakkeiden_myynt/
             # Set fee to zero only if all sold tokens used HMO. If any tokens don't use HMO, fee can be deducted
             self.fee_amount = self.fee_detail.total_value if not only_hmo_used else Decimal(0)
+        else:
+            self.fee_amount = Decimal(0)
 
         TransactionDetail.objects.bulk_update(self.get_all_details(), fields=["cost_basis"])
         self.save(update_fields=["gain", "fee_amount"])
