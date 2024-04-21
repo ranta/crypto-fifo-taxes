@@ -55,7 +55,7 @@ class TransactionListView(ListView):
             .exclude(transaction_type=TransactionType.WITHDRAW, fee_amount=0, gain=0)
             .exclude(transaction_type=TransactionType.SWAP, fee_amount=0, gain=0)
             .annotate(
-                profit=F("gain") - F("fee_amount"),
+                profit=F("gain") - CoalesceZero(F("fee_amount")),
                 from_detail__total_value=Case(
                     When(
                         Q(transaction_type=TransactionType.WITHDRAW) & ~Q(transaction_label=TransactionLabel.SPENDING),
