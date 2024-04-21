@@ -114,6 +114,7 @@ DEFAULT_FIAT_CURRENCY = {"name": "Euro", "cg_id": "eur"}
 
 # Due to CoinGecko allowing multiple ids for the same currency, we need to map the ids to the correct currency.
 # Not all currencies need to be mapped, but it helps to prevent errors when fetching prices.
+# https://api.coingecko.com/api/v3/coins/list?include_platform=false
 COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     # STABLECOINS
     "USDT": {"name": "Tether", "cg_id": "tether"},
@@ -167,11 +168,13 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "NAV": {"name": "Navcoin", "cg_id": "nav-coin"},
     "NFP": {"name": "NFPrompt", "cg_id": "nfprompt-token"},
     "NTRN": {"name": "Neutron", "cg_id": "neutron-3"},
+    "OMNI": {"name": "Omni Network", "cg_id": "omni-network"},
     "PENDLE": {"name": "Pendle", "cg_id": "pendle"},
     "PIXEL": {"name": "Pixels", "cg_id": "pixels"},
     "QI": {"name": "BENQI", "cg_id": "benqi"},
     "RDNT": {"name": "Radiant Capital", "cg_id": "radiant-capital"},
     "RVN": {"name": "Ravencoin", "cg_id": "ravencoin"},
+    "SAGA": {"name": "Saga", "cg_id": "saga-2"},
     "SANTOS": {"name": "Santos FC Fan Token", "cg_id": "santos-fc-fan-token"},
     "SEI": {"name": "Sei", "cg_id": "sei-network"},
     "SOL": {"name": "Solana", "cg_id": "solana"},
