@@ -132,3 +132,9 @@ dmypy.json
 
 # PyCharm
 .idea/
+
+# Project
+binance_eth2_staking.json
+coinbase_fills.json
+import.json
+nicehash_report.csv
