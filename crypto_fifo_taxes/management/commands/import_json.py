@@ -58,6 +58,7 @@ class Command(BaseCommand):
             transaction.description += f" ({rox_description})"
 
         wallets = self.get_wallets(row)
+        # FIXME: Updating does not work on wallet, symbol or quantity
         if "from_symbol" in row:
             transaction.add_detail(
                 "from_detail",

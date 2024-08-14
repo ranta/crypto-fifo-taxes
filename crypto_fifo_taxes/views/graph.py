@@ -23,6 +23,7 @@ def qs_values_list_to_float(qs, field) -> str:
     return json_dumps(qs.annotate(float_field=Cast(field, FloatField())).values_list("float_field", flat=True))
 
 
+# TODO: Ignore all fiat deposit and withdrawals transactions in the graph
 class GraphView(TemplateView):
     template_name = "graph.html"
 
