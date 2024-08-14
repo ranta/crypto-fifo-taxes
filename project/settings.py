@@ -132,6 +132,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "ATA": {"name": "ATA Token", "cg_id": "automata"},
     "ATOM": {"name": "Cosmos Hub", "cg_id": "cosmos"},
     "AVAX": {"name": "Avalanche", "cg_id": "avalanche-2"},
+    "BANANA": {"name": "Banana Gun", "cg_id": "banana-gun"},
     "BB": {"name": "BounceBit", "cg_id": "bouncebit"},
     "BCPT": {"name": "Blockmason Credit Protocol", "cg_id": "blockmason-credit-protocol"},  # Not in coingecko
     "BEL": {"name": "Bella Protocol", "cg_id": "bella-protocol"},
@@ -155,6 +156,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "HFT": {"name": "Hashflow", "cg_id": "hashflow"},
     "HIGH": {"name": "Highstreet", "cg_id": "highstreet"},
     "ICP": {"name": "Internet Computer", "cg_id": "internet-computer"},
+    "IO": {"name": "io.net", "cg_id": "io"},
     "IOTA": {"name": "IOTA", "cg_id": "iota"},  # Previously MIOTA
     "KLAY": {"name": "Klaytn", "cg_id": "klay-token"},
     "LINK": {"name": "Chainlink", "cg_id": "chainlink"},
