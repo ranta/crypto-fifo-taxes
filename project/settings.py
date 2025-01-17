@@ -137,6 +137,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "BCPT": {"name": "Blockmason Credit Protocol", "cg_id": "blockmason-credit-protocol"},  # Not in coingecko
     "BEL": {"name": "Bella Protocol", "cg_id": "bella-protocol"},
     "BETH": {"name": "Binance ETH staking", "cg_id": "binance-eth"},
+    "BIO": {"name": "Bio Protocol", "cg_id": "bio-protocol"},
     "BNB": {"name": "Binance Coin", "cg_id": "binancecoin"},
     "BTC": {"name": "Bitcoin", "cg_id": "bitcoin"},
     "BTCST": {"name": "BTC Standard Hashrate Token", "cg_id": "btc-standard-hashrate-token"},
@@ -145,6 +146,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "DAR": {"name": "Mines of Dalarnia", "cg_id": "mines-of-dalarnia"},
     "DODO": {"name": "DODO", "cg_id": "dodo"},
     "DOGE": {"name": "Dogecoin", "cg_id": "dogecoin"},
+    "DOGS": {"name": "Dogs", "cg_id": "dogs-2"},
     "DOT": {"name": "Polkadot", "cg_id": "polkadot"},
     "EDG": {"name": "Edgeware", "cg_id": "edgeware"},
     "ETH": {"name": "Ethereum", "cg_id": "ethereum"},
@@ -168,24 +170,30 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "MBOX": {"name": "Mobox", "cg_id": "mobox"},
     "MC": {"name": "Merit Circle", "cg_id": "merit-circle"},
     "MEME": {"name": "Memecoin", "cg_id": "memecoin-2"},
+    "MOVE": {"name": "Movement", "cg_id": "movement"},
     "NAV": {"name": "Navcoin", "cg_id": "nav-coin"},
     "NFP": {"name": "NFPrompt", "cg_id": "nfprompt-token"},
     "NOT": {"name": "Notcoin", "cg_id": "notcoin"},
     "NTRN": {"name": "Neutron", "cg_id": "neutron-3"},
     "OMNI": {"name": "Omni Network", "cg_id": "omni-network"},
     "PENDLE": {"name": "Pendle", "cg_id": "pendle"},
+    "PENGU": {"name": "Pudgy Penguins", "cg_id": "pudgy-penguins"},
     "PIXEL": {"name": "Pixels", "cg_id": "pixels"},
     "QI": {"name": "BENQI", "cg_id": "benqi"},
     "RDNT": {"name": "Radiant Capital", "cg_id": "radiant-capital"},
     "RVN": {"name": "Ravencoin", "cg_id": "ravencoin"},
     "SAGA": {"name": "Saga", "cg_id": "saga-2"},
     "SANTOS": {"name": "Santos FC Fan Token", "cg_id": "santos-fc-fan-token"},
+    "SCR": {"name": "Scroll", "cg_id": "scroll"},
     "SEI": {"name": "Sei", "cg_id": "sei-network"},
     "SOL": {"name": "Solana", "cg_id": "solana"},
     "STRK": {"name": "Starknet", "cg_id": "starknet"},
     "SUI": {"name": "Sui", "cg_id": "sui"},
     "SXP": {"name": "Sxp", "cg_id": "swipe"},
+    "THE": {"name": "Thena", "cg_id": "thena"},
     "TLM": {"name": "Alien Worlds", "cg_id": "alien-worlds"},
+    "TON": {"name": "Toncoin", "cg_id": "the-open-network"},
+    "USUAL": {"name": "Usual", "cg_id": "usual"},
     "VET": {"name": "VeChain", "cg_id": "vechain"},  # Previously VEN
     "VTHO": {"name": "VeThor", "cg_id": "vethor-token"},
     "WABI": {"name": "Wabi", "cg_id": "wabi"},  # No longer exists in Coingecko
@@ -213,6 +221,7 @@ RENAMED_SYMBOLS = {
 COINGECKO_DEPRECATED_TOKENS = {
     "WABI",  # Wabi, Price is missing in Coingecko
     "BCPT",  # Blockmason Credit Protocol, Price is missing in Coingecko
+    "1000CAT",  # Not found in Coingecko
 }
 
 # Sometimes the price is not found in CoinGecko, but the token still has value.
@@ -229,7 +238,9 @@ COINGECKO_FLAKY_PRICES = {
     "NTRN",  # does not have a price for 2023-10-12 in Euro (EUR)
     "PENDLE",  # does not have a price for 2023-07-05 in Euro (EUR)
     "RDNT",  # does not have a price for 2023-04-01 in Euro (EUR)
+    "SCR",  # does not have a price for 2024-10-11 in Euro (EUR)
     "SUI",  # does not have a price for 2023-05-02 in Euro (EUR)
+    "USUAL",  # does not have a price for 2024-11-19 in Euro (EUR)
     "VET",
     "VTHO",
     "XAI",  # does not have a price for 2024-01-09 in Euro (EUR)
