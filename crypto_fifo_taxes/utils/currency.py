@@ -105,7 +105,7 @@ def get_coingecko_id_for_symbol(symbol: str) -> dict:
         return currency_data
 
     if symbol in settings.COINGECKO_DEPRECATED_TOKENS:
-        return {"id": None, "symbol": symbol, "name": None}
+        return {"id": symbol, "symbol": symbol, "name": symbol}
 
     raise CoinGeckoMissingCurrency(f"Currency `{symbol}` not found in CoinGecko API")
 
