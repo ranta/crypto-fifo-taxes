@@ -87,6 +87,9 @@ def coingecko_request_market_chart(
     days = (timezone.now().date() - start_date).days + 1  # Add 1 to include end date (today)
     if days <= 0:
         raise ValueError("Start date should be before today.")
+    if days > 365:
+        logger.warning(f"Trying to fetch {days} days of data from CoinGecko API, but the maximum is 365 days.")
+        days = 365
 
     api_url = (
         f"https://api.coingecko.com/api/v3/coins/{currency.cg_id}/market_chart?"
