@@ -248,7 +248,8 @@ class SnapshotBalanceHelperMixin:
         latest_balance.quantity += balance_delta.deposits - balance_delta.withdrawals
 
         if latest_balance.quantity < 0:
-            raise SnapshotHelperException(f"Negative balance for currency {get_currency(latest_balance.currency_id)}")
+            msg = f"Negative balance for currency {get_currency(latest_balance.currency_id)} {latest_balance.quantity=}"
+            raise SnapshotHelperException(msg)
 
 
 ########################################################################################################################
@@ -277,6 +278,7 @@ class SnapshotWorthHelperMixin:
         sum_worth = Decimal(0)
         sum_cost_basis = Decimal(0)
 
+        balance: SnapshotBalance
         for balance in snapshot.balances.all():
             if balance.quantity == 0:
                 continue
@@ -288,7 +290,10 @@ class SnapshotWorthHelperMixin:
                 continue
 
             currency_date_price = self.mass_price_helper.get_price(balance.currency, snapshot.date)
-            if currency_date_price is None:
+            if currency_date_price:
+                sum_worth += balance.quantity * currency_date_price
+                sum_cost_basis += balance.quantity * (balance.cost_basis or Decimal(0))
+            else:
                 # If the price is missing, find the latest price before the snapshot date
                 latest_known_price = (
                     CurrencyPrice.objects.filter(currency=balance.currency, date__lte=snapshot.date)
@@ -299,14 +304,11 @@ class SnapshotWorthHelperMixin:
                 if latest_known_price is None:
                     # If there is no known price, calculate the worth from the cost basis as the best assumption.
                     sum_worth += balance.total_value
-                    sum_cost_basis += balance.cost_basis
+                    sum_cost_basis += (balance.cost_basis or Decimal(0))
                 else:
                     # Assume the latest known price is still right and calculate the worth from it.
                     sum_worth += latest_known_price * balance.quantity
                     sum_cost_basis += balance.cost_basis
-            else:
-                sum_worth += balance.quantity * currency_date_price
-                sum_cost_basis += balance.quantity * balance.cost_basis
 
         snapshot.worth = sum_worth
         snapshot.cost_basis = sum_cost_basis

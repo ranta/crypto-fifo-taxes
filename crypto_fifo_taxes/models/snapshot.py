@@ -48,7 +48,7 @@ class SnapshotBalance(models.Model):
         )
 
     @property
-    def total_value(self) -> Decimal | None:
+    def total_value(self) -> Decimal:
         if self.cost_basis is None:
-            return None
+            return Decimal(0)
         return self.cost_basis * self.quantity
