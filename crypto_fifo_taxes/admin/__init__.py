@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.admin import ModelAdmin
 
 from crypto_fifo_taxes.models import (
     Currency,
@@ -13,9 +14,35 @@ from crypto_fifo_taxes.models import (
 
 admin.site.register(Currency)
 admin.site.register(CurrencyPair)
-admin.site.register(CurrencyPrice)
 admin.site.register(Wallet)
 admin.site.register(Transaction)
 admin.site.register(TransactionDetail)
-admin.site.register(Snapshot)
-admin.site.register(SnapshotBalance)
+
+
+@admin.register(CurrencyPrice)
+class CurrencyPriceAdmin(ModelAdmin):
+    list_display = [
+        "currency",
+        "date",
+        "price",
+    ]
+    list_filter = ["currency", "date"]
+
+
+class SnapshotBalanceInline(admin.TabularInline):
+    model = SnapshotBalance
+    extra = 0
+    show_change_link = False
+    can_delete = False
+
+
+@admin.register(Snapshot)
+class SnapshotAdmin(ModelAdmin):
+    list_display = [
+        "date",
+        "worth",
+        "cost_basis",
+        "deposits",
+    ]
+    inlines = [SnapshotBalanceInline]
+    ordering = ["-date"]
