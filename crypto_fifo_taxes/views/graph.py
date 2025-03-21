@@ -89,11 +89,17 @@ class GraphView(TemplateView):
     # Currency prices
     def currency_price_returns(self, symbol) -> str:
         qs = self.base_currency_price_qs.filter(currency=get_currency(symbol))
-        first_price = qs.first().price
+        first_price = qs.first()
+
+        if first_price is None:
+            return []
 
         return json_dumps(
             qs.annotate(
-                returns=ExpressionWrapper((F("price") - first_price) / first_price * 100, output_field=FloatField()),
+                returns=ExpressionWrapper(
+                    (F("price") - first_price.price) / first_price.price * 100,
+                    output_field=FloatField(),
+                ),
             ).values_list("returns", flat=True)
         )
 
