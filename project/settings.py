@@ -129,6 +129,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "ALICE": {"name": "My Neighbor Alice", "cg_id": "my-neighbor-alice"},
     "ALT": {"name": "AltLayer", "cg_id": "altlayer"},
     "ANC": {"name": "Anchor Protocol", "cg_id": "anchor-protocol"},
+    "ANIME": {"name": "Animecoin", "cg_id": "anime"},
     "ATA": {"name": "ATA Token", "cg_id": "automata"},
     "ATOM": {"name": "Cosmos Hub", "cg_id": "cosmos"},
     "AVAX": {"name": "Avalanche", "cg_id": "avalanche-2"},
@@ -138,6 +139,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "BEL": {"name": "Bella Protocol", "cg_id": "bella-protocol"},
     "BETH": {"name": "Binance ETH staking", "cg_id": "binance-eth"},
     "BIO": {"name": "Bio Protocol", "cg_id": "bio-protocol"},
+    "BMT": {"name": "Bubblemaps", "cg_id": "bubblemaps"},
     "BNB": {"name": "Binance Coin", "cg_id": "binancecoin"},
     "BTC": {"name": "Bitcoin", "cg_id": "bitcoin"},
     "BTCST": {"name": "BTC Standard Hashrate Token", "cg_id": "btc-standard-hashrate-token"},
@@ -161,6 +163,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "IO": {"name": "io.net", "cg_id": "io"},
     "IOTA": {"name": "IOTA", "cg_id": "iota"},  # Previously MIOTA
     "KLAY": {"name": "Klaytn", "cg_id": "klay-token"},
+    "LAYER": {"name": "Solayer", "cg_id": "solayer"},
     "LINK": {"name": "Chainlink", "cg_id": "chainlink"},
     "LIT": {"name": "Litentry", "cg_id": "litentry"},
     "LRC": {"name": "Loopring", "cg_id": "loopring"},
@@ -181,11 +184,13 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "PIXEL": {"name": "Pixels", "cg_id": "pixels"},
     "QI": {"name": "BENQI", "cg_id": "benqi"},
     "RDNT": {"name": "Radiant Capital", "cg_id": "radiant-capital"},
+    "RED": {"name": "RedStone", "cg_id": "redstone-oracles"},
     "RVN": {"name": "Ravencoin", "cg_id": "ravencoin"},
     "SAGA": {"name": "Saga", "cg_id": "saga-2"},
     "SANTOS": {"name": "Santos FC Fan Token", "cg_id": "santos-fc-fan-token"},
     "SCR": {"name": "Scroll", "cg_id": "scroll"},
     "SEI": {"name": "Sei", "cg_id": "sei-network"},
+    "SHELL": {"name": "MyShell", "cg_id": "myshell"},
     "SOL": {"name": "Solana", "cg_id": "solana"},
     "STRK": {"name": "Starknet", "cg_id": "starknet"},
     "SUI": {"name": "Sui", "cg_id": "sui"},
@@ -227,23 +232,26 @@ COINGECKO_DEPRECATED_TOKENS = {
 # Sometimes the price is not found in CoinGecko, but the token still has value.
 # These tokens are allowed to have missing prices.
 COINGECKO_FLAKY_PRICES = {
-    "AI",  # does not have a price for 2024-01-04 in Euro (EUR)
-    "CYBER",  # does not have a price for 2023-08-03 in Euro (EUR)
+    "AI",  # does not have a price for 2024-01-04
+    "ALT",  # does not have a price for 2024-01-25
+    "CYBER",  # does not have a price for 2023-08-03
     "ENA",
-    "MANTA",  # does not have a price for 2024-01-18 in Euro (EUR)
-    "MAV",  # does not have a price for 2023-06-15 in Euro (EUR)
-    "MEME",  # does not have a price for 2023-10-29 in Euro (EUR)
-    "NFP",  # does not have a price for 2023-12-27 in Euro (EUR)
-    "NOT",  # does not have a price for 2024-05-16 in Euro (EUR)
-    "NTRN",  # does not have a price for 2023-10-12 in Euro (EUR)
-    "PENDLE",  # does not have a price for 2023-07-05 in Euro (EUR)
-    "RDNT",  # does not have a price for 2023-04-01 in Euro (EUR)
-    "SCR",  # does not have a price for 2024-10-11 in Euro (EUR)
-    "SUI",  # does not have a price for 2023-05-02 in Euro (EUR)
-    "USUAL",  # does not have a price for 2024-11-19 in Euro (EUR)
+    "KAITO",  # does not have a price for 2025-02-19
+    "MANTA",  # does not have a price for 2024-01-18
+    "MAV",  # does not have a price for 2023-06-15
+    "MEME",  # does not have a price for 2023-10-29
+    "NFP",  # does not have a price for 2023-12-27
+    "NOT",  # does not have a price for 2024-05-16
+    "NTRN",  # does not have a price for 2023-10-12
+    "PENDLE",  # does not have a price for 2023-07-05
+    "RDNT",  # does not have a price for 2023-04-01
+    "SCR",  # does not have a price for 2024-10-11
+    "SUI",  # does not have a price for 2023-05-02
+    "USUAL",  # does not have a price for 2024-11-19
+    "RED",  # does not have a price for 2025-02-28
     "VET",
     "VTHO",
-    "XAI",  # does not have a price for 2024-01-09 in Euro (EUR)
+    "XAI",  # does not have a price for 2024-01-09
 }
 
 # The following symbols are ignored when importing dividends
