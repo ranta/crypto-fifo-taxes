@@ -49,33 +49,32 @@ class TransactionListView(ListView):
         queryset = (
             Transaction.objects
             # Exclude transactions that don't affect gains/profits
-            .exclude(transaction_type=TransactionType.DEPOSIT, to_detail__currency__is_fiat=True, fee_amount=0)
-            .exclude(transaction_type=TransactionType.DEPOSIT, transaction_label=TransactionLabel.REWARD, gain=0)
-            .exclude(transaction_type=TransactionType.TRANSFER, fee_amount=0, gain=0)
-            .exclude(transaction_type=TransactionType.WITHDRAW, fee_amount=0, gain=0)
-            .exclude(transaction_type=TransactionType.SWAP, fee_amount=0, gain=0)
+            .exclude(fee_amount=0, gain=0)
+            .alias(
+                timestamp_date=Cast("timestamp", DateField()),  # Allow filtering CurrencyPrices
+            )
             .annotate(
                 profit=F("gain") - CoalesceZero(F("fee_amount")),
                 from_detail__total_value=Case(
                     When(
-                        Q(transaction_type=TransactionType.WITHDRAW) & ~Q(transaction_label=TransactionLabel.SPENDING),
+                        # Withdrawals should not have "from detail value", but SPENDING WITHDRAWALS transactions need it
+                        Q(transaction_type=TransactionType.WITHDRAW)
+                        & ~Q(transaction_label=TransactionLabel.SPENDING),
                         then=Decimal(0),
                     ),
                     default=CoalesceZero(F("from_detail__quantity") * F("from_detail__cost_basis")),
                 ),
-                # Add a "sell value" for `SPENDING` transactions.
-                # Required to make `from_total - to_total == gains_total`
-                timestamp_date=Cast("timestamp", DateField()),  # Allow filtering CurrencyPrices
                 to_detail__total_value=Case(
                     When(
+                        # Add a "sell value" for `SPENDING` transactions.
+                        # Required to make `from_total - to_total == gains_total`
                         transaction_label=TransactionLabel.SPENDING,
                         then=Subquery(
                             CurrencyPrice.objects.filter(
                                 date=OuterRef("timestamp_date"),
                                 currency=OuterRef("from_detail__currency"),
                             ).values_list("price", flat=True)[:1]
-                        )
-                        * F("from_detail__quantity"),
+                        ) * F("from_detail__quantity"),
                     ),
                     default=CoalesceZero(F("to_detail__quantity") * F("to_detail__cost_basis")),
                 ),
