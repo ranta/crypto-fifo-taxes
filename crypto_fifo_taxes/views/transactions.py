@@ -66,6 +66,11 @@ class TransactionListView(ListView):
                 ),
                 to_detail__total_value=Case(
                     When(
+                        Q(transaction_type=TransactionType.DEPOSIT)
+                        & Q(to_detail__currency__is_fiat=True),
+                        then=Decimal(0),
+                    ),
+                    When(
                         # Add a "sell value" for `SPENDING` transactions.
                         # Required to make `from_total - to_total == gains_total`
                         transaction_label=TransactionLabel.SPENDING,
