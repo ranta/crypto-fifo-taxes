@@ -30,7 +30,8 @@ def _get_cached_fiat_price(currency: "Currency", date: datetime.date) -> "Curren
     # Fetch prices from an API
     fetch_currency_market_chart(currency)
 
-    currency_price = currency.prices.filter(date=date).first()
+    # If the price for a date is not found, use the first available price after that date.
+    currency_price = currency.prices.filter(date__gte=date).order_by("date").first()
     if currency_price is None:
         raise MissingPriceHistoryError(f"Currency: `{currency}` does not have a price for {date}.")
 
