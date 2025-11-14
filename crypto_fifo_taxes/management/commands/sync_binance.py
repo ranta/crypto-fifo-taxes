@@ -5,7 +5,6 @@ from datetime import datetime
 
 from binance.exceptions import BinanceAPIException
 from django.core.management import BaseCommand
-from django.db.transaction import atomic
 
 from crypto_fifo_taxes.models import CurrencyPair, Wallet
 from crypto_fifo_taxes.utils.binance.binance_api import (
@@ -162,17 +161,17 @@ class Command(BaseCommand):
 
     @print_time_elapsed_new_transactions
     def sync_binance_full(self):
-        self.sync_trades()
-        self.sync_deposits()
-        self.sync_withdrawals()
-        self.sync_convert_trade_history()
         self.sync_dust()
         self.sync_dividends()
         self.sync_interest_flexible()
         self.sync_interest_locked()
         self.sync_interest_eth()
+        self.sync_deposits()
+        self.sync_trades()
+        self.sync_convert_trade_history()
+        self.sync_withdrawals()
 
-    @atomic
+    # @atomic
     def handle(self, *args, **kwargs):
         self.mode = kwargs.pop("mode")
         if not self.mode:

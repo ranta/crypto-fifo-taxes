@@ -127,6 +127,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "ADA": {"name": "Cardano", "cg_id": "cardano"},
     "AI": {"name": "Sleepless AI", "cg_id": "sleepless-ai"},
     "ALICE": {"name": "My Neighbor Alice", "cg_id": "my-neighbor-alice"},
+    "ALLO": {"name": "Allora", "cg_id": "allora"},
     "ALT": {"name": "AltLayer", "cg_id": "altlayer"},
     "ANC": {"name": "Anchor Protocol", "cg_id": "anchor-protocol"},
     "ANIME": {"name": "Animecoin", "cg_id": "anime"},
@@ -151,6 +152,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "DOGE": {"name": "Dogecoin", "cg_id": "dogecoin"},
     "DOGS": {"name": "Dogs", "cg_id": "dogs-2"},
     "DOT": {"name": "Polkadot", "cg_id": "polkadot"},
+    "EDEN": {"name": "OpenEden", "cg_id": "openeden"},
     "EDG": {"name": "Edgeware", "cg_id": "edgeware"},
     "ERA": {"name": "Caldera", "cg_id": "caldera"},
     "ETH": {"name": "Ethereum", "cg_id": "ethereum"},
@@ -161,6 +163,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "HBAR": {"name": "Hedera", "cg_id": "hedera-hashgraph"},
     "HFT": {"name": "Hashflow", "cg_id": "hashflow"},
     "HIGH": {"name": "Highstreet", "cg_id": "highstreet"},
+    "HOLO": {"name": "Holoworld", "cg_id": "holoworld"},
     "HYPER": {"name": "Hyperlane", "cg_id": "hyperlane"},
     "ICP": {"name": "Internet Computer", "cg_id": "internet-computer"},
     "INIT": {"name": "Initia", "cg_id": "initia"},
@@ -178,6 +181,10 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "MBOX": {"name": "Mobox", "cg_id": "mobox"},
     "MC": {"name": "Merit Circle", "cg_id": "merit-circle"},
     "MEME": {"name": "Memecoin", "cg_id": "memecoin-2"},
+    "MIRA": {"name": "Mira", "cg_id": "mira-2"},
+    "MITO": {"name": "Mitosis", "cg_id": "mitosis"},
+    "MMT": {"name": "Momentum", "cg_id": "momentum-3"},
+    "MORPHO": {"name": "Morpho", "cg_id": "morpho"},
     "MOVE": {"name": "Movement", "cg_id": "movement"},
     "NAV": {"name": "Navcoin", "cg_id": "nav-coin"},
     "NEWT": {"name": "Newton Protocol", "cg_id": "newton-protocol"},
@@ -185,6 +192,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "NOT": {"name": "Notcoin", "cg_id": "notcoin"},
     "NTRN": {"name": "Neutron", "cg_id": "neutron-3"},
     "OMNI": {"name": "Omni Network", "cg_id": "omni-network"},
+    "OPEN": {"name": "OpenLedger", "cg_id": "openledger-2"},
     "PENDLE": {"name": "Pendle", "cg_id": "pendle"},
     "PENGU": {"name": "Pudgy Penguins", "cg_id": "pudgy-penguins"},
     "PIXEL": {"name": "Pixels", "cg_id": "pixels"},
@@ -206,6 +214,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "TLM": {"name": "Alien Worlds", "cg_id": "alien-worlds"},
     "TON": {"name": "Toncoin", "cg_id": "the-open-network"},
     "TREE": {"name": "Treehouse", "cg_id": "treehouse"},
+    "TURTLE": {"name": "Turtle", "cg_id": "turtle-2"},
     "USUAL": {"name": "Usual", "cg_id": "usual"},
     "VET": {"name": "VeChain", "cg_id": "vechain"},  # Previously VEN
     "VTHO": {"name": "VeThor", "cg_id": "vethor-token"},
@@ -215,6 +224,7 @@ COINGECKO_MAPPED_CRYPTO_CURRENCIES = {
     "XLM": {"name": "Stellar", "cg_id": "stellar"},
     "XMR": {"name": "Monero", "cg_id": "monero"},
     "XNO": {"name": "Nano", "cg_id": "nano"},  # Previously NANO
+    "XPL": {"name": "Plasma", "cg_id": "plasma"},
     "XRP": {"name": "XRP", "cg_id": "ripple"},
 }
 
